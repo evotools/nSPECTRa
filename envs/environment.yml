@@ -1,0 +1,20 @@
+name: nspectr
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - bioconda::samtools
+  - bioconda::bcftools
+  - bioconda::vcftools
+  - bioconda::bedtools
+  - bioconda::plink=1.90
+  - python=3.8
+  - pip
+  - bioconda::vcflib
+  - bioconda::java-jdk
+  - bioconda::shapeit4
+  - bioconda::ucsc-fatotwobit 
+  - bioconda::ucsc-twobitinfo 
+  - pip:
+    - mutyper

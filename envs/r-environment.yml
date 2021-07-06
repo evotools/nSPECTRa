@@ -1,0 +1,14 @@
+name: renv
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - bioconda::bcftools
+  - bioconda::samtools
+  - conda-forge::r-base<4
+  - conda-forge::r-tidyverse
+  - conda-forge::r-reshape2
+  - conda-forge::r-ggfortify
+  - conda-forge::r-lazyeval 
+  - conda-forge::r-plyr

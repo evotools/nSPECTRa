@@ -1,0 +1,54 @@
+#!/usr/bin/env python
+import sys
+
+def parse_args():
+    import argparse
+    # Argument definition
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-b", "--bed", metavar = 'ancestral_bed.bed', type = str, help = 'Input ancestral bed file',\
+                            dest = 'bed', required = True)
+    parser.add_argument("-f", "--fasta", metavar = 'fastafile', type = str, help = 'Genome file',\
+                            dest = 'fasta', required = False, default = None)
+    parser.add_argument("-o", "--out", metavar = 'prefix', type = str, help = 'Output file.',\
+                            dest = 'outname', required = False, default = "myanc.fa")
+    return parser.parse_args()
+
+# Bed parser
+def parse_bed(bed):
+    for line in open(bed):
+        line = line.strip().split()
+        if len(line[-1]) != line[-1].count("-"): 
+            yield [ line[0], int(line[1]), int(line[2]), line[3] ]
+
+# Bed to positions
+def bedtopos(interval):
+    for i in range(interval[1], interval[2]):
+        if interval[-1][i - interval[1]] != "-": 
+            yield [ interval[0], str(i), str(i+1), interval[-1][i - interval[1]] ]
+
+# Parse fai
+def parse_fai(fai):
+    return { line.split()[0]: int(line.split()[1]) for line in open(fai) }
+
+# Main function
+def main():
+    args = parse_args()
+
+    # Parse bed file and get multiple bases
+    for itv in parse_bed(args.bed):
+        for newline in bedtopos(itv): print('\t'.join(newline))
+
+
+    # make a copy to build our ancestor for this chromosome
+    # print(f"Copy {args.fasta}...")
+    # copyfile(args.fasta, args.outname)
+    # anc = pyfaidx.Fasta(args.outname, read_ahead=10000, mutable=True)
+
+    # Generate sequences
+    
+
+    # Process bed
+    return 0
+
+if __name__ == "__main__":
+    main()

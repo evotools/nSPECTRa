@@ -1,0 +1,8 @@
+name: sdm
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - bioconda::perl-bioperl 
+  - bioconda::perl-bio-db-hts 

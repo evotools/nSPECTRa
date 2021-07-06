@@ -1,0 +1,8 @@
+name: vep
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - bioconda::ensembl-vep
+  - bioconda::tabix

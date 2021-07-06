@@ -1,0 +1,28 @@
+#!/usr/bin/env python
+import sys
+
+
+def main():
+    results = {}
+    for n, line in enumerate(open(sys.argv[1])):
+        if n == 0:
+            pops = line.strip().split()
+            continue
+        elif n == 1:
+            times = line.strip().split()
+            continue
+        else:
+            line = line.strip().split()
+            pop1 = pops[ int(line[0]) ]
+            pop2 = pops[ int(line[1]) ]
+            if pop1 != pop2: continue
+            ne = [ 0.5/c for c in map(float, line[2:]) ]
+            results[ pop1 ] = ne
+    # Print results
+    [print( "{}\t{}\t{}".format(pop, times[n], ne) ) for pop in results for n,ne in enumerate(results[pop])]
+    # Exit function
+    return 0
+
+
+if __name__ == "__main__":
+    main()

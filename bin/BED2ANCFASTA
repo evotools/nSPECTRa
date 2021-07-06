@@ -1,0 +1,82 @@
+#!/usr/bin/env python
+import sys, gzip
+import numpy as np
+import pyfaidx
+from shutil import copyfile
+
+def parse_args():
+    import argparse
+    # Argument definition
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-b", "--bed", metavar = 'ancestral_bed.bed', type = str, help = 'Input ancestral bed file',\
+                            dest = 'bed', required = True)
+    parser.add_argument("-f", "--fasta", metavar = 'fastafile', type = str, help = 'Genome file',\
+                            dest = 'fasta', required = True, default = None)
+    parser.add_argument("-l", "--list", help = 'Is input a list of bed file? (Default: False)',\
+                            dest = 'list', default = False, action='store_true')
+    parser.add_argument("-o", "--out", metavar = 'prefix', type = str, help = 'Output file.',\
+                            dest = 'outname', required = False, default = "myanc.fa")
+    parser.set_defaults(list=False)
+    return parser.parse_args()
+
+# Bed parser
+def parse_bed(bed):
+    if ".gz" in bed: opn = gzip.open
+    else: opn = open
+    for line in opn(bed):
+        if 'gz' in bed: line = line.decode()
+        line = line.strip().split()
+        if len(line[-1]) != line[-1].count("-"): 
+            yield [ line[0], int(line[1]), int(line[2]) ] + [line[i] for i in range(3, len(line))]
+
+# # Bed to positions
+# def bedtopos(interval, mydict):
+#     if interval[0] not in mydict: 
+#         mydict[interval[0]] = {i: [ interval[3][ i - interval[1] ] ] for i in range(interval[1], interval[2]) if interval[3][ i - interval[1] ] != "-" }
+#     else:
+#         for i in range(interval[1], interval[2]):
+#             if interval[3][ i - interval[1] ] == "-": continue
+#             if i not in mydict[interval[0]]:
+#                 mydict[interval[0]][i]  = [ interval[3][ i - interval[1] ] ] 
+#                 continue
+#             mydict[interval[0]][i] += [ interval[3][ i - interval[1] ] ] 
+#     return 0
+
+# Parse fai
+# def parse_fai(fai):
+#     return { line.split()[0]: int(line.split()[1]) for line in open(fai) }
+
+# Parse and process bed file
+def process_fasta(bedfile, fastafile):
+    for itv in parse_bed(bedfile):
+        # bedtopos(itv, bases)
+        fastafile[itv[0]][itv[1]] = itv[-1]
+
+
+# Main function
+def main():
+    args = parse_args()
+
+    # make a copy to build our ancestor for this chromosome
+    print(f"Generate dummy fasta from: {args.fasta}")
+    anc = open(args.outname, "w")
+    for line in open(args.fasta):
+        if ">" in line: anc.write(line)
+        else:
+            anc.write(f"{'-' * len(line.strip())}\n")
+    anc.close()
+    anc = pyfaidx.Fasta(args.outname, read_ahead=8000000000, mutable=True)
+
+    # Parse bed and replace bases in the ancestral fasta file
+    if args.list:
+        print(f"Processing files in {args.bed}")
+        for bedfile in [ i.strip() for i in open(args.bed) ]:
+            print(f"Processing {bedfile}")
+            process_fasta(bedfile, anc)
+    else:
+        print(f"Processing {args.bed}")
+        process_fasta(args.bed, anc)
+    return 0
+
+if __name__ == "__main__":
+    main()

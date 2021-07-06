@@ -1,0 +1,337 @@
+#!/usr/bin/env perl
+use strict;
+
+#module load igmm/apps/perl/5.24.0
+
+use Bio::DB::Fasta;
+
+#arguments are:
+#0: The path/name of gzipped vcf
+#1: The path/name of file specifying sample ids to keep
+#2: The chromosome id
+#3: The path/name of the fasta file
+#4: The output prefix
+
+#get ancestral fasta
+my $file = $ARGV[3];
+my $db = Bio::DB::Fasta->new($file);
+
+#distance between variants. For SDMs would be 1
+my $dist = 1;
+
+#read in file listing ids of samples to process
+my %keepIds = ();
+open(SAMP, $ARGV[1]) || die "cant open pipe to $ARGV[0]";
+while(defined(my $line=<SAMP>))
+{
+    chomp($line);
+    $keepIds{$line} = 1;    
+}
+close SAMP;
+
+
+open(OUT,">$ARGV[4].txt");
+
+my @lastLine = (-1,-1);
+my %got = ();
+my @keepIndices = ();
+my @idLine = ();
+open(VCF, "gunzip -c $ARGV[0] |") || die "cannot open pipe to $ARGV[0]";
+while(defined(my $line=<VCF>))
+{
+    my @data = split(/\s+/, $line);
+    #get the columns of the samples going to keep
+    #may be quicker if ran bcftools to subset to these individuals (and chromosome?) first
+    if ($line =~ /^#CHROM/) {
+        @idLine = split(/\s+/, $line);
+        for(my $k = 0; $k < scalar @idLine; $k++)
+        {
+            if (exists($keepIds{$idLine[$k]})) {
+                push(@keepIndices, 1);
+            }
+            else
+            {
+                push(@keepIndices, 0);
+            }
+            
+        }
+    }
+    #if not a comment line and there is only one alternate allele
+    elsif (($line !~ /^#/) && ($data[4] !~/\,/)) {
+        
+        #check if distance of this variant to previous one matches required distance
+        if (abs($data[1]-$lastLine[1]) == $dist) {
+            #variable for keeping tallys of number of each observed haplotype and the individuals observed in
+            my $count00 = 0;
+            my $count01 = 0;
+            my $count10 = 0;
+            my $count11 = 0;
+            
+            my @ids00 = ();
+            my @ids01 = ();
+            my @ids10 = ();
+            my @ids11 = ();
+            
+            #start from column 9 as that is where the genos start
+            for(my $x = 9; $x < scalar @data; $x++)
+            {
+                #if one of the samples to keep
+                if ($keepIndices[$x] == 1) {
+                    #split genotypes of this and previous variant
+                    #script assumes the variants are phased so alleles are separated by "|"
+                    my @geno1 = split(/\|/, $lastLine[$x]);
+                    my @geno2 = split(/\|/, $data[$x]);
+                    #counts haplotypes with 00 corresponding to ref/ref
+                    for(my $y = 0; $y < 2; $y++)
+                    {
+                        if (($geno1[$y] == 0) && ($geno2[$y] == 0)){
+                            $count00++;
+                            push(@ids00, $idLine[$x]);
+                        }
+                        if (($geno1[$y] == 0) && ($geno2[$y] == 1)){
+                            $count01++;
+                            push(@ids01, $idLine[$x]);
+                        }
+                        if (($geno1[$y] == 1) && ($geno2[$y] == 0)){
+                            $count10++;
+                            push(@ids10, $idLine[$x]);
+                        }
+                        if (($geno1[$y] == 1) && ($geno2[$y] == 1)){
+                            $count11++;
+                            push(@ids11, $idLine[$x]);
+                        }
+                    }
+                }
+            }
+            
+            #note at moment assuming just AA followed by CSQ in the INFO field. So need to improve this
+            
+            #get ancestral alleles at both variants
+            my @aaSplit1 = split(/AA=/, $lastLine[7]);
+            my @aaSplit2 = split(/AA=/, $data[7]);
+            
+            #expects that indels have been filtered out so can just substring first character
+            my $aa1 = substr($aaSplit1[1], 0, 1);
+            my $aa2 = substr($aaSplit2[1], 0, 1);
+            
+            #expects the variants to have VEP consequence info
+            my @annot1 = split(/CSQ=/, $lastLine[7]);
+            my @annot2 = split(/CSQ=/, $data[7]);
+            
+            #as each variant can have multiple consequences goes through each
+            my @consSets1 = split(/\,/, $annot1[1]);
+            my @consSets2 = split(/\,/, $annot2[1]);
+            for(my $a = 0; $a < scalar @consSets1; $a++)
+            {
+                my @cons1 = split(/\|/, $consSets1[$a]);
+                for(my $b = 0; $b < scalar @consSets2; $b++)
+                {
+                    my @cons2 = split(/\|/, $consSets2[$b]);
+                    
+                    
+                    
+                    #if in same gene or neither in gene
+                    if (($cons1[6] eq $cons2[6]) || (($cons1[6] eq "") && ($cons2[6] eq ""))) {
+                        
+                        
+                        my $consequence1 = $cons1[1];
+                        my $consequence2 = $cons2[1];
+                        my @codon = ();
+                        #push @cods, [("0")];
+                        my @cods1 = ();
+                        #push @cods1 , [("NAN", "NAN")];
+                        my @cods2 = ();
+                        #push @cods2 , [("NAN", "NAN")];
+                        
+                        #if protein coding
+                        if((!($cons1[14] eq "")) && (!($cons2[14] eq "")))
+                        {
+                            @codon[0] = [("0")];
+                            if ($cons1[14] eq $cons2[14]) {
+                                @codon[0] = [("1")];
+                            }
+                            
+                            ###if in codon get codon changes
+                            
+                            if (!($cons1[16] eq "")) {
+                                @cods1[0] = [split(/\//, $cons1[16])];
+                             }
+                             if (!($cons2[16] eq "")) {
+                                @cods2[0] = [split(/\//, $cons2[16])];
+                             }
+                        }
+                        else
+                        {
+                            #get 5bp around each variant from fasta file
+                            my @sequence1   = split('', $db->seq($ARGV[2], $lastLine[1]-2 => $lastLine[1]+2));
+                            my @sequence2   = split('', $db->seq($ARGV[2], $data[1]-2 => $data[1]+2));
+                            
+                           
+                            for(my $s = 0; $s < 3; $s++)
+                            {
+                                my $start1 = ($lastLine[1]-2)+$s;
+                                for(my $t = 0; $t < 3; $t++)
+                                {
+                                    my $start2 = ($data[1]-2)+$t;
+                                    if ($start1 == $start2) {
+                                        push @codon, [("1")];
+                                    }
+                                    else
+                                    {
+                                        push @codon, [("0")];
+                                    }
+                                    my @anc1 = ($sequence1[$s], $sequence1[$s+1], $sequence1[$s+2]);
+                                    my @anc2 = ($sequence2[$t], $sequence2[$t+1], $sequence2[$t+2]);
+                                    my @change1 = @anc1;
+                                    my @change2 = @anc2;
+                                    $change1[2-$s] = $lastLine[4];
+                                    $change2[2-$t] = $data[4];
+                                    push @cods1 , [(join('', @anc1), join('', @change1))];
+                                    push @cods2 , [(join('', @anc2), join('', @change2))];
+                                }
+                            }
+                        }
+                        
+                        #print "$cods[0,0]\t$cods[0,1]\n";
+                        
+                        #go through each possible codon pairs or the one real pair of codons if coding
+                        for (my $i = 0; $i < @cods1; $i++) {
+                            #print "$cods1[$i][0]\t$cods1[$i][1]\n";
+                            #print "$codon[$i][0]\t$cods2[$i][0]\t$cods2[$i][1]\n";
+                            
+                            ####null codons
+                    
+                            my @cod00 = split("", lc($cods1[$i][0]));
+                            my @cod01 = split("", lc($cods2[$i][1]));
+                            my @cod10 = split("", lc($cods1[$i][1]));
+                            my @cod11 = ("n", "a", "n");
+                            
+                            #if same codon work out derived/derived codon. Otherwise leave as nan
+                            if ($codon[$i][0] == 1) {
+                                #@cod00 = split("", lc($cods1[$i][0]));
+                                #@cod01 = split("", lc($cods2[$i][1]));
+                                #@cod10 = split("", lc($cods1[$i][1]));
+                                #@cod11 = ("n", "a", "n");            
+                                for(my $q = 0; $q < 3; $q++)
+                                {
+                                    if (($cod00[$q] eq $cod01[$q]) && ($cod00[$q] eq $cod10[$q])) {
+                                        $cod11[$q]=$cod00[$q];
+                                    }
+                                    elsif($cod00[$q] eq $cod01[$q])
+                                    {
+                                        $cod10[$q] = uc($cod10[$q]);
+                                        $cod11[$q] = uc($cod10[$q]);
+                                    }
+                                    elsif($cod00[$q] eq $cod10[$q])
+                                    {
+                                        $cod01[$q] = uc($cod01[$q]);
+                                        $cod11[$q] = uc($cod01[$q]);
+                                    }
+                                }
+                            }
+                            
+                            
+                            my $countAA = "NA";
+                            my $countAD = "NA";
+                            my $countDA = "NA";
+                            my $countDD = "NA";
+                            
+                            my @idsAA = ();
+                            my @idsAD = ();
+                            my @idsDA = ();
+                            my @idsDD = ();
+                            
+                            my $codAA = "NA";
+                            my $codAD = "NA";
+                            my $codDA = "NA";
+                            my $codDD = "NA";
+                            #print "$lastLine[3]\t$lastLine[4]\t$aa1\t$data[3]\t$data[4]\t$aa2\n";
+                            if (($lastLine[3] eq uc($aa1)) && ($data[3] eq uc($aa2))) {
+                                $countAA = $count00;
+                                $countAD = $count01;
+                                $countDA = $count10;
+                                $countDD = $count11;
+                                
+                                @idsAA = @ids00;
+                                @idsAD = @ids01;
+                                @idsDA = @ids10;
+                                @idsDD = @ids11;
+                                
+                                $codAA = join('', @cod00);
+                                $codAD = join('', @cod01);
+                                $codDA = join('', @cod10);
+                                $codDD = join('', @cod11);
+                            }
+                            elsif (($lastLine[3] eq uc($aa1)) && ($data[4] eq uc($aa2))) {
+                                $countAA = $count01;
+                                $countAD = $count00;
+                                $countDA = $count11;
+                                $countDD = $count10;
+                                
+                                @idsAA = @ids01;
+                                @idsAD = @ids00;
+                                @idsDA = @ids11;
+                                @idsDD = @ids10;
+                                
+                                $codAA = join('', @cod01);
+                                $codAD = join('', @cod00);
+                                $codDA = join('', @cod11);
+                                $codDD = join('', @cod10);
+                            }
+                            elsif (($lastLine[4] eq uc($aa1)) && ($data[3] eq uc($aa2))) {
+                                $countAA = $count10;
+                                $countAD = $count11;
+                                $countDA = $count00;
+                                $countDD = $count01;
+                                
+                                @idsAA = @ids10;
+                                @idsAD = @ids11;
+                                @idsDA = @ids00;
+                                @idsDD = @ids01;
+                                
+                                $codAA = join('', @cod10);
+                                $codAD = join('', @cod11);
+                                $codDA = join('', @cod00);
+                                $codDD = join('', @cod01);
+                            }
+                             elsif (($lastLine[4] eq uc($aa1)) && ($data[4] eq uc($aa2))) {
+                                $countAA = $count11;
+                                $countAD = $count10;
+                                $countDA = $count01;
+                                $countDD = $count00;
+                                
+                                @idsAA = @ids11;
+                                @idsAD = @ids10;
+                                @idsDA = @ids01;
+                                @idsDD = @ids00;
+                                
+                                $codAA = join('', @cod11);
+                                $codAD = join('', @cod10);
+                                $codDA = join('', @cod01);
+                                $codDD = join('', @cod00);
+                            }
+                            my $id="$lastLine[0]\t$lastLine[1]\t$lastLine[2]\t$data[1]\t$data[2]\t$consequence1\t$consequence2\t$codon[$i][0]\t$countAA\t$countAD\t$countDA\t$countDD\t$codAA\t$codAD\t$codDA\t$codDD";
+                            #if got ancestral info and see a double derived change
+                            #if ((!($countDD eq "NA")) && ($countDD > 0) && (!($codDD eq "nan")) && (!(exists($got{$id})))) {
+                            #print "$countDD\n";
+                            
+                            
+                            if ((!($countDD eq "NA")) && ($countDD > 0) && (!(exists($got{$id})))) {
+                                my $ddInd = join(';', @idsDD);
+                                print OUT ("$lastLine[0]\t$lastLine[1]\t$lastLine[2]\t$data[1]\t$data[2]\t$dist\t$cons1[6]\t$consequence1\t$consequence2\t$aa1\t$aa2\t$codon[$i][0]\t$countAA\t$countAD\t$countDA\t$countDD\t$codAA\t$codAD\t$codDA\t$codDD\t$ddInd\n");
+                                #print "$lastLine[0]\t$lastLine[1]\t$lastLine[2]\t$data[1]\t$data[2]\t$dist\t$cons1[6]\t$consequence1\t$consequence2\t$codon[$i][0]\t$countAA\t$countAD\t$countDA\t$countDD\t$codAA\t$codAD\t$codDA\t$codDD\n";
+                                $got{$id} = 1;
+                            }
+                        }
+                    }
+                    
+                }
+            }
+            #print "$lastLine[0]\t$lastLine[1]\t$lastLine[2]\t$data[1]\t$data[2]\t$count00\t$count01\t$count10\t$count11\n";
+        }
+        @lastLine = @data;
+    }
+}
+close VCF;
+close OUT;
+

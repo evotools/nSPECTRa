@@ -1,0 +1,20 @@
+#!/usr/bin/env Rscript
+library(plyr)
+library(tidyverse)
+args <- commandArgs(trailingOnly = TRUE)
+
+popu<-args[1]
+inlist<-args[2]
+
+samps<-read.table(inlist, header=F)
+colnames(samps) = c('ID')
+row.names(samps)<-samps$ID
+
+outFile <- paste("indChanges.",popu,".RData",sep="")
+temp = list.files(pattern=paste("changeCounts.",popu,"*", sep=""))
+
+myfiles = lapply(temp, read.table, header=T, sep="\t", stringsAsFactors=FALSE)
+indChanges<-do.call(rbind, myfiles)
+indChanges$Change<-paste(indChanges$Codon1, indChanges$Codon2, sep=">")
+
+save(indChanges, samps, file=outFile)

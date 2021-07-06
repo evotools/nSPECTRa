@@ -1,0 +1,36 @@
+#!/usr/bin/env Rscript
+library(tidyverse)
+library(reshape2)
+args <- commandArgs(trailingOnly = TRUE)
+popu<-args[1]
+
+# Output file name
+outFile <- paste("sdm.",popu,".filtered.RData",sep="")
+
+# Get input file list
+temp = list.files(pattern=paste("sdm.",popu,"*", sep=""))
+
+# Edit column headers 
+cnames<-c("Chr", "Pos1", "Id1", "Pos2", "Id2", "Dist", "Null", "Cons1", "Cons2", "Anc1", "Anc2", "SameCodon", "StartF", "Mid1F", "Mid2F", "EndF", "StartC", "Mid1C", "Mid2C", "EndC", "Inds")
+myfiles = lapply(temp, read_tsv, col_names = cnames)
+
+# Combine all files
+dat<-bind_rows(myfiles)
+dat$Cons1[which((dat$Cons1 == "stop_gained") | (dat$Cons1 == "stop_lost") | (dat$Cons1 == "start_lost") | (dat$Cons1 == "missense_variant") | (dat$Cons1 == "synonymous_variant"))]<-"coding_variant"
+dat$Cons2[which((dat$Cons2 == "stop_gained") | (dat$Cons2 == "stop_lost") | (dat$Cons2 == "start_lost") | (dat$Cons2 == "missense_variant") | (dat$Cons2 == "synonymous_variant"))]<-"coding_variant"
+
+#only those in same triplet
+#to enable counting have commented out this line as otherwise coding and non-coding variants are not treated the same
+#because coding variants have been restricted to be in actual codons reducing their relative numbers.
+dat<-dat[which(dat$SameCodon == 1), ]
+#set it so that Mid1 is the more frequent mid change
+dat[which(dat$Mid2F > dat$Mid1F), c("Mid1F", "Mid2F", "Mid1C", "Mid2C")] <- dat[which(dat$Mid2F > dat$Mid1F), c("Mid2F", "Mid1F", "Mid2C", "Mid1C")]
+#just get MNPs where exactly three allele combinations are observed, one of which is ancestral or just two where where ancestral has a freq of 0
+dat$Haps<-rowSums(dat[,c("StartF", "Mid1F", "Mid2F", "EndF")] > 0)
+dat<-dat[which(((dat$Haps == 3) & (dat$StartF > 0)) | ((dat$Haps == 2) & (dat$StartF == 0))),]
+#only keep sites with confident ancestral alleles
+dat<-dat[which((toupper(dat$Anc1) == dat$Anc1) & (toupper(dat$Anc2) == dat$Anc2)),]
+dat %>% filter(SameCodon == 1) %>% select(StartF, Mid1F, Mid2F, EndF, StartC, Mid1C, Mid2C, EndC)
+gc()
+save(dat, file=outFile)
+

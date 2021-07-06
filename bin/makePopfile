@@ -1,0 +1,22 @@
+#!/usr/bin/env python
+import sys, os
+
+def main():
+    header = ["sample", "population", "group", "sex"]
+
+    inputfolder = sys.argv[1]
+    samples = {}
+    for f in os.listdir(inputfolder):
+        popname = '.'.join(f.split('.')[0:-1])
+        for line in open(f"{inputfolder}/{f}"):
+            sample = line.strip()
+            samples[sample] = popname
+
+    print(" ".join(header))
+    for (sample,pop) in samples.items():
+        print(f"{sample} {pop} {pop} NA")
+
+    return 0
+
+if __name__ == "__main__":
+    main()

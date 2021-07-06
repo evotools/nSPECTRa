@@ -1,0 +1,24 @@
+#!/usr/bin/env Rscript
+library(tidyverse)
+args = commandArgs(trailingOnly=TRUE)
+#args[1]<-"Contig22_pilon_pilon_pilon_pilon"
+
+if (length(args) == 1){
+    leg<-read_table2(paste(args[1], "RELATE.haps.gz", sep="."), col_names = FALSE)
+} else {
+    leg<-read_table2(paste(args[1], args[2], "RELATE.haps.gz", sep="."), col_names = FALSE)
+}
+#leg<-leg %>% separate(X2, c("chr", "pos"), convert=TRUE) %>% unite("id", c("chr", "pos", "X4", "X5"), remove=FALSE)
+#map<-tibble(chr=leg$chr, var=leg$id, Genetic_Map=leg$pos/1000000, pos=leg$pos)
+map<-tibble(pos=leg$X3, COMBINED_rate=1, Genetic_Map=leg$X3/1000000)
+#map$COMBINED_rate<-0
+#for(j in 1:dim(map)[1])
+#{
+#  if(j %% 1000 == 0)
+#  {
+#    print(j)
+#  }
+#  map$COMBINED_rate[j]<-(map$Genetic_Map[j+1]-map$Genetic_Map[j])/(map$pos[j+1]-map$pos[j])*1e6
+#}
+
+write_delim(map, paste(args[1],".map",sep=""), delim=" ", col_names=FALSE)

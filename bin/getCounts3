@@ -1,0 +1,109 @@
+#!/usr/bin/env Rscript
+library(plyr)
+library(tidyverse)
+
+args <- commandArgs(trailingOnly = TRUE)
+popu<-args[1]
+inds<-args[2]
+inRdata<-args[3]
+
+# Read sample list
+samps<-read.table(inds, header=F)
+colnames(samps) = c("ID")
+
+# Load output from filtering
+load(inRdata)
+
+# Analyse
+dat<-dat[which(dat$SameCodon == 1), ]
+uniqued<-dat[!duplicated(dat[c("Id1","Id2","Cons1","Cons2")]),]
+
+indCounts<-vector()
+indCounts_uniqued<-vector()
+doubleCounts<-vector()
+doubleCounts_uniqued<-vector()
+
+rDatObj<-paste("mutationCounts.",popu,".RData", sep="")
+place<-1
+if(file.exists(rDatObj))
+{
+   load(rDatObj)
+   place<-i
+}
+
+getCounts<-function(df, j)
+{
+  ind<-df[grep(samps$ID[j], df$Inds),]
+  theseCounts<-vector()
+  theseDoubleCounts<-vector()  
+  resultsList<-list()
+
+  ind$StartC<-toupper(ind$StartC)
+  ind$Mid1C<-toupper(ind$Mid1C)
+  ind$EndC<-toupper(ind$EndC)
+  counts <- ddply(ind, .(ind$StartC, ind$EndC, ind$Cons1, ind$Cons2), nrow)
+  colnames(counts)<-c("Codon1", "Codon2", "Cons1", "Cons2", "Count")
+  counts$Ind<-samps$ID[j]
+  counts$From<-"Start"
+  counts$To<-"End"
+  theseCounts<-rbind(theseCounts, counts)
+  
+  counts <- ddply(ind, .(ind$StartC, ind$Mid1C, ind$Cons1, ind$Cons2), nrow)
+  colnames(counts)<-c("Codon1", "Codon2", "Cons1", "Cons2", "Count")
+  counts$Ind<-samps$ID[j]
+  counts$From<-"Start"
+  counts$To<-"Mid"
+  theseCounts<-rbind(theseCounts, counts)
+  
+  counts <- ddply(ind, .(ind$Mid1C, ind$EndC, ind$Cons1, ind$Cons2), nrow)
+  colnames(counts)<-c("Codon1", "Codon2", "Cons1", "Cons2", "Count")
+  counts$Ind<-samps$ID[j]
+  counts$From<-"Mid"
+  counts$To<-"End"
+  theseCounts<-rbind(theseCounts, counts)
+  resultsList[[1]]<-theseCounts
+
+  theseDoubleCounts <- ddply(ind, .(ind$StartC, ind$Mid1C, ind$EndC, ind$Cons1, ind$Cons2), nrow)
+  colnames(theseDoubleCounts)<-c("Codon1", "Codon2", "Codon3", "Cons1", "Cons2", "Count")
+  theseDoubleCounts$Ind<-samps$ID[j]
+  theseDoubleCounts$From<-"Start"
+  theseDoubleCounts$To<-"End"   
+  resultsList[[2]]<-theseDoubleCounts
+  return(resultsList)
+}
+
+
+pb = txtProgressBar(min = 0, max = dim(samps)[1], style=3)
+for(i in place:dim(samps)[1])
+{
+
+  if((i %% 25) == 0)
+  {
+     save.image(rDatObj)
+  }
+  #print(i)
+
+  allResults<-getCounts(dat, i)
+  uniquedResults<-getCounts(uniqued, i)
+
+  indCounts<-rbind(indCounts, allResults[[1]])
+  indCounts_uniqued<-rbind(indCounts_uniqued, uniquedResults[[1]])
+  
+  doubleCounts<-rbind(doubleCounts, allResults[[2]])
+  doubleCounts_uniqued<-rbind(doubleCounts_uniqued, uniquedResults[[2]])
+
+
+  setTxtProgressBar(pb,i)
+  #which((toupper(ind[,15]) == "GGC") & (toupper(ind[,18]) == "CAT"))
+}
+if(file.exists(rDatObj))
+{
+   file.remove(rDatObj)
+}
+
+write.table(indCounts, paste("changeCounts",popu,"txt", sep="."), row.names=FALSE, sep="\t", quote=FALSE)
+write.table(indCounts_uniqued, paste("changeCounts_uniqued",popu,"txt", sep="."), row.names=FALSE, sep="\t", quote=FALSE)
+
+write.table(doubleCounts, paste("doubleCounts",popu,"txt", sep="."), row.names=FALSE, sep="\t", quote=FALSE)
+write.table(doubleCounts_uniqued, paste("doubleCounts_uniqued",popu,"txt", sep="."), row.names=FALSE, sep="\t", quote=FALSE)
+
