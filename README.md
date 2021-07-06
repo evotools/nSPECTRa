@@ -1,7 +1,7 @@
 
-# n-Spectr
+# nSPECTRa
 ## Mutation spectra analyses
-*n-Spectr* is a nextflow workflow that implements several methods to compute the mutation spectra for a given set of variants and multiple genome alignments which includes the ancestral genomes.
+*nSPECTRa* is a nextflow workflow that implements several methods to compute the mutation spectra for a given set of variants and multiple genome alignments which includes the ancestral genomes.
 
 ## Requirements
 The workflow comes with an anaconda environment which delivers most of the dependencies.
@@ -18,7 +18,7 @@ However, you need to install:
 ## Quicker environment installation with mamba
 The anaconda environment can take up to several hours to install due to the large number of dependencies it has to retrieve.
 You can speed up the installation using [mamba](https://mamba.readthedocs.io/en/latest/), that is an alternative anaconda package manager focusing on speed of installation and dependencies resolution.
-To create an environment suitable for *n-Spectr*, first create a new anaconda environment with [mamba](https://mamba.readthedocs.io/en/latest/) installed:
+To create an environment suitable for *nSPECTRa*, first create a new anaconda environment with [mamba](https://mamba.readthedocs.io/en/latest/) installed:
 ```
 conda create -n mamba -c conda-forge mamba
 mamba create -n nspectr -f ./nSpectr/environment.yml
