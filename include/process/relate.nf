@@ -239,7 +239,7 @@ process make_mask {
 
 // Relate mutation 
 process relate_mut {
-    label "medium_mem"
+    label "medium_largemem"
 
     input:
     path contig_csv
@@ -334,7 +334,7 @@ process relate_mut_chr {
     """
 }
 
-process relate_chr_mut_finalise {
+process relate_mut_chr_finalise {
     label "medium_mem"
     publishDir "${params.outdir}/relate/mut_finalised_chr", mode: "${params.publish_dir_mode}", overwrite: true
 
@@ -378,6 +378,7 @@ process relate_mut_finalise {
 
     input:
     path inputs
+    //tuple path(ancs), path(muts), path(mutbins), path(oppbins), path(rates)
     path contig_csv
     path poplabels
 
@@ -466,3 +467,99 @@ process relate_ne {
     """
 }
 
+
+process relate_mut_chr_pop {
+    label "medium_mem"
+
+    input:
+    tuple val(pop), path(popfile), val(idx), val(contig)
+    tuple path(anc), path(mut), path(dist) //, path(dist)
+    path ancestral
+    path ancestralfai
+    path maskfa
+    path maskfai
+    path poplabels
+
+    output:
+    tuple val(pop), path("relate_mut_ne_${pop}_chr${contig}_mut.bin"), path("relate_mut_ne_${pop}_chr${contig}_opp.bin")
+
+    stub:
+    """
+    touch relate_mut_${pop}_chr${contig}_mut.bin
+    touch relate_mut_${pop}_chr${contig}_opp.bin
+    """
+
+    script:
+    """
+    # Extract single-chr fastas
+    samtools faidx ${ancestral} ${contig} > anc.${contig}.fa
+    samtools faidx ${maskfa} ${contig} > mask.${contig}.fa
+
+    # Run relate mutation spectra
+    ${params.relate}/bin/RelateMutationRate \
+        --mode ForCategoryForPopForChromosome \
+        --ancestor anc.${contig}.fa \
+        --mask mask.${contig}.fa \
+        --years_per_gen ${params.intergen_time} \
+        --poplabels ${poplabels} \
+        --pop_of_interest ${pop} \
+        --mutcat ${baseDir}/assets/k3.mutcat \
+        -i relate_mut_ne_chr${contig} \
+        -o relate_mut_ne_${pop}_chr${contig} 2> ctx.${pop}.${contig}.err
+
+    # Remove extra fasta files
+    rm anc.${contig}.fa
+    rm mask.${contig}.fa
+    """
+}
+
+process relate_chr_pop_mut_finalise {
+    label "medium_mem"
+    publishDir "${params.outdir}/relate/mut_finalised_chr_pop", mode: "${params.publish_dir_mode}", overwrite: true
+
+    input:
+    tuple val(pop), path(muts), path(opps)
+    path contig_csv
+
+    output:
+    path "relate_mut_ne_${pop}*"
+    //tuple path("relate_mut_ne_chr${contig}.anc*"), path("relate_mut_ne_chr${contig}.mut*"), path("relate_mut_ne_chr${contig}_mut.bin"), path("relate_mut_ne_chr${contig}_opp.bin"), path("relate_mut_ne_chr${contig}.rate")
+
+    stub:
+    """
+    touch relate_mut_ne_${pop}_mut.bin
+    touch relate_mut_ne_${pop}_opp.bin
+    touch relate_mut_ne_${pop}.rate
+    """
+
+    script:
+    """
+    awk 'BEGIN{FS=","};{print \$NF}' ${contig_csv} | sort -nk1,1 > chroms.txt 
+
+    ${params.relate}/bin/RelateMutationRate --mode SummarizeForGenomeForCategory --chr chroms.txt -o relate_mut_ne_${pop}
+    ${params.relate}/bin/RelateMutationRate --mode FinalizeForCategory -i relate_mut_ne_${pop} -o relate_mut_ne_${pop}
+    """
+}
+
+
+process relate_plot_pop {
+    label "renv"
+    publishDir "${params.outdir}/relate/plot", mode: "${params.publish_dir_mode}", overwrite: true
+
+    input:
+    path rates 
+    path poplabels
+
+    output:
+    path "plot_mutrate.pdf"
+
+    stub:
+    """
+    touch plot_mutrate.pdf
+    """
+
+    script:
+    """
+    relate_plot_pop ${baseDir}/assets/k3.mutcat ${params.intergen_time} ${poplabels}
+    """
+}

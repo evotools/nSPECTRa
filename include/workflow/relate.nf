@@ -1,8 +1,9 @@
 include { chromosomeList } from "../process/prerun"
 include { relate_format; relate; relate_mut; relate_mut_chr } from '../process/relate'
-include { relate_mut_finalise; relate_chr_mut_finalise; relate_avg_mut } from '../process/relate'
+include { relate_mut_finalise; relate_mut_chr_finalise; relate_avg_mut } from '../process/relate'
+include { relate_mut_chr_pop; relate_chr_pop_mut_finalise } from '../process/relate'
 include { make_mask; makepopfile } from '../process/relate'
-include { relate_ne; make_relate_map } from '../process/relate'
+include { relate_ne; make_relate_map; relate_plot_pop } from '../process/relate'
 include { makeAnnotation } from '../process/annotate'
 include { makefai } from '../process/maf2fasta'
 
@@ -42,9 +43,7 @@ workflow RELATE {
         // Grep list of samples, and drop smallest groups
         breeds_ch = Channel
             .fromPath("${params.pops_folder}/*.txt")
-            .map { file -> tuple(file.simpleName, file, file.countLines() ) }
-            .filter { it -> it[2] >= params.min_pop_size }
-            .map { it -> tuple( it[0], it[1] ) }
+            .map { file -> tuple(file.simpleName, file ) }
         
         // Combine chromosomes and breeds
         combined_ch = breeds_ch.combine(chromosomes_ch)
@@ -73,14 +72,23 @@ workflow RELATE {
         relate_mut_chr( chromosomes_ch, relate_ne.out[0].collect(), anc_fa, anc_fai, make_mask.out, makefai.out, popfile_ch )
 
         // Finalize per-contig mutation rates
-        relate_chr_mut_finalise( relate_mut_chr.out, chromosomeList, popfile_ch )
+        relate_mut_chr_finalise( relate_mut_chr.out, chromosomeList, popfile_ch )
 
         // Collect finalised values
-        relate_mut_finalise( relate_chr_mut_finalise.out.collect(), chromosomeList, popfile_ch )
+        relate_mut_finalise( relate_mut_chr_finalise.out.collect(), chromosomeList, popfile_ch )
+
+        // Run relate mutation by breed by chr
+        relate_mut_chr_pop( combined_ch, relate_ne.out[0].collect(), anc_fa, anc_fai, make_mask.out, makefai.out, popfile_ch )
+
+        // Finalize per-contig mutation rates
+        relate_chr_pop_mut_finalise( relate_mut_chr_pop.out.groupTuple(by: 0), chromosomeList )
 
         // Calculate average mutation rate for population
         relate_avg_mut( relate_ne.out[0].collect(), chromosomeList, popfile_ch )
 
+        // Plot the relate results
+        // relate_plot_pop( relate_chr_pop_mut_finalise.out.collect(), popfile_ch )
+        
     emit:
         relate_ne.out[2] 
         relate_avg_mut.out
