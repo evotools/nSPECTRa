@@ -57,7 +57,7 @@ while(defined(my $line=<VCF>))
         }
     }
     #if not a comment line and there is only one alternate allele
-    elsif (($line !~ /^#/) && ($data[4] !~/\,/)) {
+    elsif (($line !~ /^#/) && ($data[4] !~/\,/) && $data[0] eq $ARGV[2] ) {
         
         #check if distance of this variant to previous one matches required distance
         if (abs($data[1]-$lastLine[1]) == $dist) {
