@@ -29,7 +29,7 @@ dat[which(dat$Mid2F > dat$Mid1F), c("Mid1F", "Mid2F", "Mid1C", "Mid2C")] <- dat[
 dat$Haps<-rowSums(dat[,c("StartF", "Mid1F", "Mid2F", "EndF")] > 0)
 dat<-dat[which(((dat$Haps == 3) & (dat$StartF > 0)) | ((dat$Haps == 2) & (dat$StartF == 0))),]
 #only keep sites with confident ancestral alleles
-dat<-dat[which((toupper(dat$Anc1) == dat$Anc1) & (toupper(dat$Anc2) == dat$Anc2)),]
+# dat<-dat[which((toupper(dat$Anc1) == dat$Anc1) & (toupper(dat$Anc2) == dat$Anc2)),]
 dat %>% filter(SameCodon == 1) %>% select(StartF, Mid1F, Mid2F, EndF, StartC, Mid1C, Mid2C, EndC)
 gc()
 save(dat, file=outFile)
