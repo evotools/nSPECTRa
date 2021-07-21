@@ -42,7 +42,7 @@ log.info '''
 ========================================================================
       '''
 log.info """\
-Nextflow mutation Spectra v 1.0
+Nextflow mutation Spectra v ${workflow.manifest.version}
 ========================================================================
 variants        : $params.variants
 idx             : $params.idx
@@ -64,6 +64,7 @@ filter          : $params.filter
 annotation      : $params.annotation
 pops_folder     : $params.pops_folder
 pop labels file : $params.poplabels
+chromosome list : $params.chr_list
 relate          : $params.relate""" 
 if (params.ancestral){
   log.info """ancestral       : $params.ancestral"""  
