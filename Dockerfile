@@ -4,15 +4,20 @@ LABEL authors="andrea.talenti@ed.ac.uk" \
       description="Docker image containing base requirements for n-spectr pipelines"
 
 # Install the package as normal:
-COPY environment.yml .
-RUN conda env create -f environment.yml
+COPY envs/all_environment.yml ./environment.yml
+
+# Install mamba to speed up the process
+RUN conda install -c conda-forge -y mamba
+
+# Create the environment
+RUN mamba env create -f environment.yml
 
 # Install conda-pack:
-RUN conda install -c conda-forge conda-pack
+RUN mamba install -c conda-forge conda-pack
 
 # Use conda-pack to create a standalone enviornment
 # in /venv:
-RUN conda-pack -n nf-LO -o /tmp/env.tar && \
+RUN conda-pack -n nspectra -o /tmp/env.tar && \
   mkdir /venv && cd /venv && tar xf /tmp/env.tar && \
   rm /tmp/env.tar
 

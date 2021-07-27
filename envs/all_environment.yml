@@ -1,0 +1,36 @@
+name: nspectra
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - bioconda::samtools
+  - bioconda::bcftools
+  - bioconda::vcftools
+  - bioconda::bedtools
+  - bioconda::plink=1.90
+  - bioconda::ensembl-vep
+  - python=3.7
+  - pip
+  - bioconda::vcflib
+  - bioconda::java-jdk
+  - bioconda::shapeit4
+  - bioconda::ucsc-fatotwobit 
+  - bioconda::ucsc-twobitinfo 
+  - matplotlib
+  - numpy
+  - pandas
+  - bioconda::perl-bioperl 
+  - bioconda::perl-bio-db-hts 
+  - bioconda::tabix
+  - conda-forge::r-base<4
+  - conda-forge::r-cowplot=1.1.1
+  - conda-forge::r-tidyverse=1.3.1
+  - conda-forge::r-reshape2=1.4.4
+  - conda-forge::r-ggfortify=0.4.12
+  - conda-forge::r-ggforce=0.3.3
+  - conda-forge::r-lazyeval=0.2.2
+  - conda-forge::r-plyr=1.8.6
+  - pip:
+    - mutyper
+    - mushi
