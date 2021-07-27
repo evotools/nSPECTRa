@@ -130,35 +130,36 @@ workflow {
       ch_masks = file(params.mask)
     }
 
-    // Pre-process the variants of interest
-    PREPROCESS ( ch_var, ch_var_idx, ANCESTRAL.out[2], ANCESTRAL.out[3] )
+    if (!params.ancestral_only){
+      // Pre-process the variants of interest
+      PREPROCESS ( ch_var, ch_var_idx, ANCESTRAL.out[2], ANCESTRAL.out[3] )
 
-    // Generate IBDs if requested
-    if (params.compute_ibd){
-      IBD()
+      // Generate IBDs if requested
+      if (params.compute_ibd){
+        IBD()
+      }
+
+      // Run the actual mutation spectra
+      if (params.algorithm =~ 'relate'){
+          RELATE( PREPROCESS.out[0], PREPROCESS.out[1], ANCESTRAL.out[0], ANCESTRAL.out[1], ANCESTRAL.out[2], ANCESTRAL.out[3], PREPROCESS.out[2], ch_masks )
+      }
+      if (params.algorithm =~ 'mutyper'){
+          GONE( PREPROCESS.out[0], PREPROCESS.out[1] )
+          MUTYPER( PREPROCESS.out[0], PREPROCESS.out[1], ANCESTRAL.out[0], ANCESTRAL.out[1], PREPROCESS.out[2], ch_masks, GONE.out )
+      } 
+      if (params.algorithm =~ 'sdm'){
+          SDM( PREPROCESS.out[0], PREPROCESS.out[1], ANCESTRAL.out[0], ANCESTRAL.out[1], ANCESTRAL.out[2], ANCESTRAL.out[3], ch_masks, PREPROCESS.out[2] )
+      }
+      //PROCESS ( PREPROCESS.out[0], PREPROCESS.out[1], ANCESTRAL.out[0], ANCESTRAL.out[1] )
+      // if (params.prefilter){
+      //     // Pre-process vcf file filtering variants/individuals and then annotating through VEP
+      //     // Process variants
+      //     PROCESS ( PREPROCESS.out[0], PREPROCESS.out[1] )
+
+      // } else {
+      //     // Process variants
+      //     PROCESS ( ch_var, ch_var_idx )
+      // }
     }
-
-    // Run the actual mutation spectra
-    if (params.algorithm =~ 'relate'){
-        RELATE( PREPROCESS.out[0], PREPROCESS.out[1], ANCESTRAL.out[0], ANCESTRAL.out[1], ANCESTRAL.out[2], ANCESTRAL.out[3], PREPROCESS.out[2], ch_masks )
-    }
-    if (params.algorithm =~ 'mutyper'){
-        GONE( PREPROCESS.out[0], PREPROCESS.out[1] )
-        MUTYPER( PREPROCESS.out[0], PREPROCESS.out[1], ANCESTRAL.out[0], ANCESTRAL.out[1], PREPROCESS.out[2], ch_masks, GONE.out )
-    } 
-    if (params.algorithm =~ 'sdm'){
-        SDM( PREPROCESS.out[0], PREPROCESS.out[1], ANCESTRAL.out[0], ANCESTRAL.out[1], ANCESTRAL.out[2], ANCESTRAL.out[3], ch_masks, PREPROCESS.out[2] )
-    }
-    //PROCESS ( PREPROCESS.out[0], PREPROCESS.out[1], ANCESTRAL.out[0], ANCESTRAL.out[1] )
-    // if (params.prefilter){
-    //     // Pre-process vcf file filtering variants/individuals and then annotating through VEP
-    //     // Process variants
-    //     PROCESS ( PREPROCESS.out[0], PREPROCESS.out[1] )
-
-    // } else {
-    //     // Process variants
-    //     PROCESS ( ch_var, ch_var_idx )
-    // }
-
 
 }
