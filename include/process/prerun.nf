@@ -155,7 +155,7 @@ process beagle {
 
     script:
     """
-    javamem=`python -c "import sys; maxmem=int(sys.argv[1]) * int(sys.argv[2]); print( maxmem - int(maxmem * .1) )" ${task.memory.toGiga()} ${task.cpus}`
+    javamem=`python -c "import sys; maxmem=int(sys.argv[1]) * int(sys.argv[2]); print( maxmem - int(maxmem * .1) )" ${task.memory.toGiga()}`
     java -jar -Xmx\${javamem}G ${beagle} gt=${vcf} ne=${params.neval} chrom=${chrom} out=prephase_${chrom} nthreads=${task.cpus}
     """
 }
@@ -249,7 +249,7 @@ process ibd {
     script:
     """
     # See 10.1534/genetics.113.150029 for details on filtering
-    javamem=`python -c "import sys; maxmem=int(sys.argv[1]) * int(sys.argv[2]); print( maxmem - int(maxmem * .1) )" ${task.memory.toGiga()} ${task.cpus}`
+    javamem=`python -c "import sys; maxmem=int(sys.argv[1]) * int(sys.argv[2]); print( maxmem - int(maxmem * .1) )" ${task.memory.toGiga()}`
     java -Xmx\${javamem}G -jar ${params.refinedibd} \
             gt=${imputed} \
             out=IBD.${chrom} \
