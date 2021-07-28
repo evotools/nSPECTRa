@@ -20,7 +20,7 @@ process ibd {
 
     script:
     """
-    javamem=`python -c "import sys; maxmem=int(sys.argv[1]) * int(sys.argv[2]); print( maxmem - int(maxmem * .1) )" ${ task.memory.toGiga() }`
+    javamem=`python -c "import sys; maxmem=int(sys.argv[1]); print( maxmem - int(maxmem * .1) )" ${ task.memory.toGiga() }`
     java -Xmx\${javamem}G -jar ${refinedibd} ${params.refined_ibd_params} \
             gt=${imputed} \
             out=IBD.${contig} \
@@ -66,7 +66,7 @@ process merge_ibd {
 
     script:
     """
-    javamem=`python -c "import sys; maxmem=int(sys.argv[1]) * int(sys.argv[2]); print( maxmem - int(maxmem * .1) )" ${ task.memory.toGiga() }`
+    javamem=`python -c "import sys; maxmem=int(sys.argv[1]); print( maxmem - int(maxmem * .1) )" ${ task.memory.toGiga() }`
     java -Xmx\${javamem}G -jar ${merge_ibd} \
             ${ibd} \
             ${vcf} \
