@@ -83,6 +83,13 @@ if (params.custom_vep){
 } else {
   log.info """VEP cache       : $params.vep_cache"""  
 }
+if (params.ancestral_only){
+  log.info """ 
+  
+  Running generation of ancestral genome only
+  
+  """  
+}
 
 // Check parameters
 checkPathParamList = [
@@ -123,14 +130,16 @@ workflow {
     // Generate the ancestral fasta
     ANCESTRAL()
 
-    if (!params.mask){
-      get_masks( ANCESTRAL.out[2] )
-      ch_masks = get_masks.out
-    } else {
-      ch_masks = file(params.mask)
-    }
 
     if (!params.ancestral_only){
+      // Fetch mask files
+      if (!params.mask){
+        get_masks( ANCESTRAL.out[2] )
+        ch_masks = get_masks.out
+      } else {
+        ch_masks = file(params.mask)
+      }
+
       // Pre-process the variants of interest
       PREPROCESS ( ch_var, ch_var_idx, ANCESTRAL.out[2], ANCESTRAL.out[3] )
 
