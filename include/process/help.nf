@@ -77,11 +77,13 @@ params {
       --intergen_time [value]         Define intergeneration time for the species (Default is 28, as in relate)
       --mutation_rate                 Define mutation rate for the species (Default: 1.25e-8)
       --min_pop_size                  Minimum population size to consider for relate analyses (Default: 5)
+      --chr_list [file]               List of chromosomes to use for vcf analyses in format "N,chrID" (if not provided, extract from vcf file provided)
 
     Other
       --max_memory                    Max memory available on the machine (Default: '128.GB')
       --max_cpus                      Max cpu available on the machine (Default: 16)
       --max_time                      Max runtime available on the machine (Default: '240.h')
+      --scratch [true/false]          Run the workflow with the scratch mode on (e.g. will use temporary files in temporary folder of node in cluster; default: false)
       --outdir [file]                 The output directory where the results will be saved (Default: './results')
       --publish_dir_mode [str]        Mode for publishing results in the output directory. Available: symlink, rellink, link, copy, copyNoFollow, move (Default: copy)
 
