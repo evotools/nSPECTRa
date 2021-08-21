@@ -53,7 +53,7 @@ process maf2bed {
 
     script:
     """
-    MAFSPLIT -m ${maf} -o tmp.split
+    MAFSPLIT -m ${maf} -o stdout > tmp.split.maf
     mafSTRANDER --maf tmp.split.maf --strand + > ${params.reference}_${params.target}.split.plus.maf && rm tmp.split.maf
     MAF2ANCFA -m ${params.reference}_${params.target}.split.plus.maf -d ${params.reference} -t ${task.cpus} -O bed -o ${params.reference}_${params.target}
     """
