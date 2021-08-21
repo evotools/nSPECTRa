@@ -14,11 +14,21 @@ workflow PREPROCESS {
         ch_ref_fai
     main:
         // Split variants in chromosomes and impute them
-        chromosomeList( ch_var, ch_var_idx )
-        chromosomeList.out
-            .splitCsv(header: ['N','chrom'])
-            .map{ row-> tuple(row.N, row.chrom) }
-            .set{ chromosomes_ch }
+        if (params.chr_list){
+            Channel
+                .fromPath(params.chr_list)
+                .splitCsv(header: ['N','chrom'])
+                .map{ row-> tuple(row.N, row.chrom) }
+                .set{ chromosomes_ch }
+            chr_list = file(params.chr_list)
+        } else {
+            chromosomeList( ch_var, ch_var_idx )
+            chromosomeList.out
+                .splitCsv(header: ['N','chrom'])
+                .map{ row-> tuple(row.N, row.chrom) }
+                .set{ chromosomes_ch }
+            chr_list = chromosomeList.out
+        }
 
         // Check vep cache
         if (params.download_cache) {
@@ -65,5 +75,5 @@ workflow PREPROCESS {
     emit:
         vcf_ch
         tbi_ch
-        chromosomeList.out
+        chr_list
 }
