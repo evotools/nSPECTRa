@@ -52,7 +52,7 @@ process mutyper {
 
 process mutyper_full {
     tag "mutyper_full"
-    label "medium"
+    label "largemem"
     publishDir "${params.outdir}/mutyper/vcfs", mode: "${params.publish_dir_mode}", overwrite: true
 
 
@@ -191,6 +191,7 @@ process plot_results {
     suppressPackageStartupMessages(library(tidyverse, quietly = TRUE))
     suppressPackageStartupMessages(library(reshape2, quietly = TRUE))
     suppressPackageStartupMessages(library(ggfortify, quietly = TRUE))
+    suppressPackageStartupMessages(library(ggforce, quietly = TRUE))
  
     mutSpectra = read_csv2("${spectra}") 
 
@@ -198,7 +199,7 @@ process plot_results {
     mutSpectra<-mutSpectra %>% separate(sample, c("Breed", "Id"), extra = "merge")
     pca_res <- prcomp(mutSpectra[,-c(1,2)], scale. = TRUE)
     pdf("plot_mutyper_mutSpectra_${params.reference}_${k}.pdf", height = 8, width = 12)
-    autoplot(pca_res, data=mutSpectra, colour = 'Breed')
+    autoplot(pca_res, data=mutSpectra, colour = 'Breed') + geom_mark_ellipse()
     dev.off()
     /$
 }
