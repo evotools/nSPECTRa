@@ -13,15 +13,15 @@ process get_hal {
     mkdir cactus/bin
     touch cactus/bin/hal2maf
     touch cactus/bin/hal2fasta
+    touch cactus/bin/halPhyloPTrain.py
+    touch cactus/bin/halPhyloPMP.py
     """
 
     script:
     """
-    wget https://github.com/ComparativeGenomicsToolkit/cactus/releases/download/v1.3.0/cactus-bin-v1.3.0.tar.gz
-    tar xvfz cactus-bin-v1.3.0.tar.gz && mv cactus-*/ cactus/ && rm cactus-bin-v1.3.0.tar.gz
+    wget -O - ${params.cactus_url} > cactus.tar.gz
+    tar xvfz cactus.tar.gz && mv cactus-*/ cactus/ && rm cactus.tar.gz
     """
-
-}
 
 // Download beagle
 process get_beagle {
