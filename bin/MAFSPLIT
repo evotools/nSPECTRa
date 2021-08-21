@@ -22,10 +22,10 @@ def get_ref(lines, seq):
     rname = lines[0].strip().split()[1].split(".")[0]           # Get reference names
     if seq is not None:                                         # If target sequence is provided, focus on that.
         references = [line for line in lines if seq in line.split()[1]]
-        queries = [line for line in lines if "Anc" in line]
+        queries = [line for line in lines if "Anc" in line or "Inner" in line]
     else:                                                       # Otherwise keep all that share the first (ref) line spp.
-        references = [line for line in lines if "Anc" not in line]
-        queries = [line for line in lines if "Anc" in line]
+        references = [line for line in lines if "Anc" not in line and "Inner" not in line]
+        queries = [line for line in lines if "Anc" in line or "Inner" in line]
     return references, queries                                 # Return reference-spp name and list of ref and target sequences.
 
 # High memory worker (keep in memory)
