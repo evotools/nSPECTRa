@@ -1,6 +1,7 @@
 #!/usr/bin/env Rscript
-library(plyr)
-library(tidyverse)
+options(stringsAsFactors = F, warn=-1, message = FALSE, readr.num_columns = 0)
+suppressPackageStartupMessages(library(tidyverse, quietly = TRUE))
+suppressPackageStartupMessages(library(plyr, quietly = TRUE))
 
 args <- commandArgs(trailingOnly = TRUE)
 popu<-args[1]
