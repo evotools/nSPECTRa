@@ -26,7 +26,7 @@ process gone_inputs {
     script:
     """
     awk -v pop=${pop} '{print pop, \$1}' ${samplefile} > keep.txt
-    plink --allow-extra-chr --vcf ${vcf} --keep keep.txt --const-fid ${pop} --recode --out ${pop} --maf 0.05 --geno 0.05 --threads ${task.cpus}
+    plink --allow-extra-chr --chr-set 90 --vcf ${vcf} --keep keep.txt --const-fid ${pop} --recode --out ${pop} --maf 0.05 --geno 0.05 --threads ${task.cpus}
     mv ${pop}.map ${pop}.bck
     FixMap ${pop}.bck ${pop}
     """

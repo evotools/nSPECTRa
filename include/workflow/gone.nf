@@ -6,7 +6,7 @@ workflow GONE {
     take:
         vcf_ch
         tbi_ch
-
+        
     main:
         // get GONE
         gone_get()
