@@ -13,7 +13,6 @@ process sdm {
     output:
     path "sdm.${samplename}.${contig}.txt.gz"
 
-    
     stub:
     """
     touch sdm.${samplename}.${contig}.txt.gz
@@ -58,16 +57,16 @@ process count_sdm {
     
 
     input:
-        tuple val(samplename), path(samplelist), path(filtered)
+    tuple val(samplename), path(samplelist), path(filtered)
 
 
     output:
     path "*.txt"
-    path "indChanges.*"
+    path "indChanges.${samplename}.RData"
 
     stub:
     """
-    touch indChanges.${samplename}.Rdata
+    touch indChanges.${samplename}.RData
     touch changeCounts.${samplename}.txt
     touch changeCounts_uniqued.${samplename}.txt
     touch doubleCounts.${samplename}.txt
@@ -78,8 +77,64 @@ process count_sdm {
     """
     echo "Run counter"
     getCounts3 ${samplename} ${samplelist} ${filtered}
+    echo
     echo "Run individuals"
     getIndchange ${samplename} ${samplelist} 
     """
 }
 
+
+process make_ksfs {
+    tag "ksfs"
+    label "renv_large"
+    publishDir "${params.outdir}/sdm/ksfs/${breedname}", mode: "${params.publish_dir_mode}", overwrite: true
+    
+
+    input:
+    tuple val(breedname), path(breedfile)
+    path raw_sdms
+
+
+    output:
+    path "sdm_${breedname}.txt"
+    path "mnp_${breedname}.txt"
+    path "disnps_${breedname}.txt"
+
+    stub:
+    """
+    touch sdm_${breedname}.txt
+    touch mnp_${breedname}.txt
+    touch disnps_${breedname}.txt
+    """
+
+    script:
+    """
+    SDMtoKsfs.R ${breedname}
+    """
+}
+
+
+process sdm_plot {
+    tag "sdm_plot"
+    label "renv_large"
+    publishDir "${params.outdir}/sdm/plot/${breedname}", mode: "${params.publish_dir_mode}", overwrite: true
+    
+
+    input:
+    tuple val(breedname), path(breedfile)
+    path raw_sdms
+
+
+    output:
+    path "plot_sdm_mutSpectra.pdf"
+
+    stub:
+    """
+    touch plot_sdm_mutSpectra.pdf
+    """
+
+    script:
+    """
+    sdmCounts.R ./
+    """
+}

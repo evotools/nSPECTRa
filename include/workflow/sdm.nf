@@ -1,6 +1,7 @@
 include { get_individuals; get_breeds } from "../process/prerun"
 include { makeAnnotation; annotateVcf } from '../process/annotate'
 include { sdm; filter_sdm; count_sdm } from "../process/sdm"
+include { make_ksfs; sdm_plot } from "../process/sdm"
 
 workflow SDM {
     take:
@@ -43,4 +44,11 @@ workflow SDM {
 
         // Generate outputs
         count_sdm( filter_sdm.out )
+
+        // Prepare Ksfs files
+        make_ksfs(breeds_ch, sdm.out.collect())
+
+        // Make plots for sdm results
+        all_counts = count_sdm.out[0]
+        sdm_plot( breeds_ch, all_counts.collect() ) 
 }
