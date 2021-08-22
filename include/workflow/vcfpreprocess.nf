@@ -79,9 +79,9 @@ workflow PREPROCESS {
             exclude(vcf_ch, tbi_ch, ch_exc)
             vcf_ch = extract_exclude.out[0]
             tbi_ch = extract_exclude.out[1]
-        } else if (params.exclude && !params.extract){
+        } else if (!params.exclude && params.extract){
             ch_ext = file(params.extract)
-            exclude(vcf_ch, tbi_ch, ch_ext)
+            extract(vcf_ch, tbi_ch, ch_ext)
             vcf_ch = extract_exclude.out[0]
             tbi_ch = extract_exclude.out[1]
         } else if (params.exclude && params.extract){
@@ -91,7 +91,7 @@ workflow PREPROCESS {
             vcf_ch = extract_exclude.out[0]
             tbi_ch = extract_exclude.out[1]
         }
-        
+
     emit:
         vcf_ch
         tbi_ch
