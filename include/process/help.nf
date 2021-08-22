@@ -71,6 +71,8 @@ params {
      
 
     Other parameters:
+      --extract [BED]                 Limit to variants in given regions (bed format) 
+      --exclude [BED]                 Limit to variants not in given regions (bed format) 
       --filter = 'n'                  Filter data after imputation? (y/n)
       --filter_vcf [PARAMS]           Filtering parameters to use when --filter is on (for bcftools e.g. "-i 'F_MISSING<0.1'")
       --k [values]                    Values of K to use for Mutyper, comma separated if multiple values are considered (Default: 3,5,7)
@@ -78,6 +80,12 @@ params {
       --mutation_rate                 Define mutation rate for the species (Default: 1.25e-8)
       --min_pop_size                  Minimum population size to consider for relate analyses (Default: 5)
       --chr_list [file]               List of chromosomes to use for vcf analyses in format "N,chrID" (if not provided, extract from vcf file provided)
+      --cactus_url                    Provide url for the desired cactus release
+
+    Constrained elements detection
+      --phast                         Provide path to phast installation
+      --hal4d                         Use hal4d to define the neutral regions
+      --exon_bed                      Provide path to bed file with exonic regions for hal4d
 
     Other
       --max_memory                    Max memory available on the machine (Default: '128.GB')
