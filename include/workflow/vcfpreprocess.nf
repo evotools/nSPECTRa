@@ -77,13 +77,13 @@ workflow PREPROCESS {
         if (params.exclude && !params.extract){
             ch_exc = file(params.exclude)
             exclude(vcf_ch, tbi_ch, ch_exc)
-            vcf_ch = extract_exclude.out[0]
-            tbi_ch = extract_exclude.out[1]
+            vcf_ch = exclude.out[0]
+            tbi_ch = exclude.out[1]
         } else if (!params.exclude && params.extract){
             ch_ext = file(params.extract)
             extract(vcf_ch, tbi_ch, ch_ext)
-            vcf_ch = extract_exclude.out[0]
-            tbi_ch = extract_exclude.out[1]
+            vcf_ch = extract.out[0]
+            tbi_ch = extract.out[1]
         } else if (params.exclude && params.extract){
             ch_exc = file(params.exclude)
             ch_ext = file(params.extract)
