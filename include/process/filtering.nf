@@ -30,6 +30,89 @@ process filtering {
     """
 }
 
+process extract {
+    tag "extract"
+    label "medium"
+
+    input:
+    path variants
+    path variants_idx 
+    path extract
+
+    output:
+    path "prefilter.vcf.gz"
+    path "prefilter.vcf.gz.tbi"
+
+    
+    stub:
+    """
+    touch prefilter.vcf.gz
+    touch prefilter.vcf.gz.tbi
+    """
+
+    script:
+    """
+    bedtools intersect -header -u -a $variants -b ${extract} | bgzip -c > prefilter.vcf.gz && \
+        tabix -p vcf prefilter.vcf.gz
+    """
+}
+
+process exclude {
+    tag "exclude"
+    label "medium"
+
+    input:
+    path variants
+    path variants_idx 
+    path exclude
+
+    output:
+    path "prefilter.vcf.gz"
+    path "prefilter.vcf.gz.tbi"
+
+    
+    stub:
+    """
+    touch prefilter.vcf.gz
+    touch prefilter.vcf.gz.tbi
+    """
+
+    script:
+    """
+    bedtools intersect -header -v -a $variants -b ${exclude} | bgzip -c > prefilter.vcf.gz && \
+        tabix -p vcf prefilter.vcf.gz
+    """
+}
+
+process extract_exclude {
+    tag "extexc"
+    label "medium"
+
+    input:
+    path variants
+    path variants_idx 
+    path extract
+    path exclude
+
+    output:
+    path "prefilter.vcf.gz"
+    path "prefilter.vcf.gz.tbi"
+
+    
+    stub:
+    """
+    touch prefilter.vcf.gz
+    touch prefilter.vcf.gz.tbi
+    """
+
+    script:
+    """
+    bedtools intersect -v -a ${extract} -b ${exclude} > shortlisted.txt
+    bedtools intersect -header -u -a $variants -b shortlisted.txt | bgzip -c > prefilter.vcf.gz && \
+        tabix -p vcf prefilter.vcf.gz
+    """
+}
+
 
 process apply_filter {
     tag "filter"

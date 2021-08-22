@@ -1,5 +1,5 @@
 
-include { filtering; apply_filter } from '../process/filtering'
+include { filtering; apply_filter; extract; exclude; extract_exclude } from '../process/filtering'
 include { vep } from '../process/annotate'
 include { shapeit4; beagle; chromosomeList; combine } from '../process/prerun'
 include { get_beagle; get_vep_cache } from '../process/dependencies'
@@ -72,6 +72,26 @@ workflow PREPROCESS {
             vcf_ch = apply_filter.out[0]
             tbi_ch = apply_filter.out[1]
         } 
+
+        // Narrow to given regions
+        if (params.exclude && !params.extract){
+            ch_exc = file(params.exclude)
+            exclude(vcf_ch, tbi_ch, ch_exc)
+            vcf_ch = extract_exclude.out[0]
+            tbi_ch = extract_exclude.out[1]
+        } else if (params.exclude && !params.extract){
+            ch_ext = file(params.extract)
+            exclude(vcf_ch, tbi_ch, ch_ext)
+            vcf_ch = extract_exclude.out[0]
+            tbi_ch = extract_exclude.out[1]
+        } else if (params.exclude && params.extract){
+            ch_exc = file(params.exclude)
+            ch_ext = file(params.extract)
+            extract_exclude(vcf_ch, tbi_ch, ch_ext, ch_exc)
+            vcf_ch = extract_exclude.out[0]
+            tbi_ch = extract_exclude.out[1]
+        }
+        
     emit:
         vcf_ch
         tbi_ch
