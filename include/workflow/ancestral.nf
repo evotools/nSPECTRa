@@ -9,10 +9,13 @@ include { get_hal } from '../process/dependencies'
 
 // Workflow
 workflow ANCESTRAL {
+    take:
+        hal
+        
     main:
         /*Create ancestral fasta file*/
-        // Get hal
-        get_hal()
+        // hal to maf, needed for constrained elements
+        hal2maf( hal )
 
         if (params.ancestral){
             // Import ancestral fasta
@@ -21,15 +24,13 @@ workflow ANCESTRAL {
             anc_fai = makefai.out
             
             // Extract the different genomes and split it into chunks to speed up the process
-            makeRefTgtFasta( get_hal.out )
+            makeRefTgtFasta( hal )
         } else {
-            // hal to maf
-            hal2maf( get_hal.out )
             // maf to bed
             maf2bed(hal2maf.out)
 
             // Extract the different genomes and split it into chunks to speed up the process
-            makeRefTgtFasta( get_hal.out )
+            makeRefTgtFasta( hal )
             splitfasta(makeRefTgtFasta.out[0], makeRefTgtFasta.out[2])
             //chunked_ref = maf2bed.out.combine(splitfasta.out)
             
