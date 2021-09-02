@@ -69,17 +69,20 @@ params {
       --refinedibd                    Path to merge-ibd jar (No default, if unspecified will download version 17Jan20.102)
       --mergeibd                      Path to merge-ibd jar (No default, if unspecified will download version 17Jan20.102)
      
-
-    Other parameters:
+    Filtering parameters:
       --extract [BED]                 Limit to variants in given regions (bed format) 
       --exclude [BED]                 Limit to variants not in given regions (bed format) 
-      --filter = 'n'                  Filter data after imputation? (y/n)
+      --filter                        Filter data after imputation
+      --coding                        Limit analyses to exonic variants only
+      --noncoding                     Limit analyses to intronic and intergenic variants only
+      --min_pop_size                  Minimum population size to consider for relate analyses (Default: 5)
+      --chr_list [file]               List of chromosomes to use for vcf analyses in format "N,chrID" (if not provided, extract from vcf file provided)
+
+    Other parameters:
       --filter_vcf [PARAMS]           Filtering parameters to use when --filter is on (for bcftools e.g. "-i 'F_MISSING<0.1'")
       --k [values]                    Values of K to use for Mutyper, comma separated if multiple values are considered (Default: 3,5,7)
       --intergen_time [value]         Define intergeneration time for the species (Default is 28, as in relate)
       --mutation_rate                 Define mutation rate for the species (Default: 1.25e-8)
-      --min_pop_size                  Minimum population size to consider for relate analyses (Default: 5)
-      --chr_list [file]               List of chromosomes to use for vcf analyses in format "N,chrID" (if not provided, extract from vcf file provided)
       --cactus_url                    Provide url for the desired cactus release
 
     Constrained elements detection
