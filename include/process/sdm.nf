@@ -117,11 +117,12 @@ process make_ksfs {
 process sdm_plot {
     tag "sdm_plot"
     label "renv_large"
-    publishDir "${params.outdir}/sdm/plot/${breedname}", mode: "${params.publish_dir_mode}", overwrite: true
+    //publishDir "${params.outdir}/sdm/plot/${breedname}", mode: "${params.publish_dir_mode}", overwrite: true
+    publishDir "${params.outdir}/sdm/plot/", mode: "${params.publish_dir_mode}", overwrite: true
     
 
     input:
-    tuple val(breedname), path(breedfile)
+    //tuple val(breedname), path(breedfile)
     path raw_sdms
 
 

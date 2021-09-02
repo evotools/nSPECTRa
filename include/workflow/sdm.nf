@@ -50,5 +50,6 @@ workflow SDM {
 
         // Make plots for sdm results
         all_counts = count_sdm.out[0]
-        sdm_plot( breeds_ch, all_counts.collect() ) 
+        //sdm_plot( breeds_ch, all_counts.collect() ) 
+        sdm_plot( all_counts.collect() ) 
 }
