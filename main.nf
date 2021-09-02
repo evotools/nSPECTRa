@@ -61,10 +61,16 @@ Min. pop. size  : $params.min_pop_size
 algorithm       : $params.algorithm
 imputation sfw  : $params.imputation
 filter          : $params.filter
+coding          : $params.coding
+noncoding       : $params.noncoding
 annotation      : $params.annotation
 pops_folder     : $params.pops_folder
 pop labels file : $params.poplabels
 chromosome list : $params.chr_list
+cactus url      : $params.cactus_url 
+phast           : $params.phast 
+exons           : $params.exon_bed 
+hal4d           : $params.hal4d 
 relate          : $params.relate""" 
 if (params.ancestral){
   log.info """ancestral       : $params.ancestral"""  
@@ -102,7 +108,7 @@ for (param in checkPathParamList) { if (param) { file(param, checkIfExists: true
 if (params.variants) { ch_var = file(params.variants) } else { exit 1, 'Vcf file not specified!' }
 if (params.idx) { ch_var_idx = file(params.idx) } else { exit 1, 'TBI file not specified!' }
 if (params.hal) { ch_hal = file(params.hal) } else { exit 1, 'Hal file not specified!' }
-
+if (params.hal4d && !params.exon_bed) { exit 1, 'Requested hal4d algorithm, but no bed with exons specified!' }
 // algorithms = params.algorithm?.tokenize(',').flatten()
 
 /*
@@ -115,7 +121,9 @@ include { RELATE } from './include/workflow/relate' params(params)
 include { SDM } from './include/workflow/sdm' params(params)
 include { GONE } from './include/workflow/gone' params(params)
 include { IBD } from './include/workflow/ibd' params(params)
+include { CONSTRAINED } from './include/workflow/phylop' params(params)
 include { get_masks } from './include/process/prerun' 
+include { get_hal } from './include/process/dependencies'
 // if ( params.algorithm == 'mutyper' ) {
 //     include { MUTYPER as PROCESS } from './include/workflow/mutyper' params(params)
 // } else if ( params.algorithm == 'relate' ) {
@@ -128,8 +136,8 @@ include { get_masks } from './include/process/prerun'
 // Run workflows
 workflow {
     // Generate the ancestral fasta
-    ANCESTRAL()
-
+    get_hal()
+    ANCESTRAL(get_hal.out)
 
     if (!params.ancestral_only){
       // Fetch mask files
@@ -142,6 +150,15 @@ workflow {
 
       // Pre-process the variants of interest
       PREPROCESS ( ch_var, ch_var_idx, ANCESTRAL.out[2], ANCESTRAL.out[3] )
+      ch_var_new = PREPROCESS.out[0]
+      ch_var_idx_new = PREPROCESS.out[1]
+
+      // Get constrined elements and remove variants in them
+      if ( params.phast || params.hal4d ){
+        CONSTRAINED(get_hal.out, ch_var_new, ch_var_idx_new, PREPROCESS.out[2])
+        ch_var_new = CONSTRAINED.out[0]
+        ch_var_idx_new = CONSTRAINED.out[1]
+      } 
 
       // Generate IBDs if requested
       if (params.compute_ibd){
@@ -150,25 +167,15 @@ workflow {
 
       // Run the actual mutation spectra
       if (params.algorithm =~ 'relate'){
-          RELATE( PREPROCESS.out[0], PREPROCESS.out[1], ANCESTRAL.out[0], ANCESTRAL.out[1], ANCESTRAL.out[2], ANCESTRAL.out[3], PREPROCESS.out[2], ch_masks )
+          RELATE( ch_var_new, ch_var_idx_new, ANCESTRAL.out[0], ANCESTRAL.out[1], ANCESTRAL.out[2], ANCESTRAL.out[3], PREPROCESS.out[2], ch_masks )
       }
       if (params.algorithm =~ 'mutyper'){
-          GONE( PREPROCESS.out[0], PREPROCESS.out[1] )
-          MUTYPER( PREPROCESS.out[0], PREPROCESS.out[1], ANCESTRAL.out[0], ANCESTRAL.out[1], PREPROCESS.out[2], ch_masks, GONE.out )
+          GONE( ch_var_new, ch_var_idx_new )
+          MUTYPER( ch_var_new, ch_var_idx_new, ANCESTRAL.out[0], ANCESTRAL.out[1], PREPROCESS.out[2], ch_masks, GONE.out )
       } 
       if (params.algorithm =~ 'sdm'){
-          SDM( PREPROCESS.out[0], PREPROCESS.out[1], ANCESTRAL.out[0], ANCESTRAL.out[1], ANCESTRAL.out[2], ANCESTRAL.out[3], ch_masks, PREPROCESS.out[2] )
+          SDM( ch_var_new, ch_var_idx_new, ANCESTRAL.out[0], ANCESTRAL.out[1], ANCESTRAL.out[2], ANCESTRAL.out[3], ch_masks, PREPROCESS.out[2] )
       }
-      //PROCESS ( PREPROCESS.out[0], PREPROCESS.out[1], ANCESTRAL.out[0], ANCESTRAL.out[1] )
-      // if (params.prefilter){
-      //     // Pre-process vcf file filtering variants/individuals and then annotating through VEP
-      //     // Process variants
-      //     PROCESS ( PREPROCESS.out[0], PREPROCESS.out[1] )
-
-      // } else {
-      //     // Process variants
-      //     PROCESS ( ch_var, ch_var_idx )
-      // }
     }
 
 }
