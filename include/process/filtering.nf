@@ -141,3 +141,42 @@ process apply_filter {
     tabix -p vcf filtered.vcf.gz
     """
 }
+
+
+process select_noncoding {
+    tag "ncd"
+    label "small"
+
+    input:
+        path vcf
+        path tbi
+
+    output:
+        path "${vcf.simpleName}.noncoding.vcf.gz"
+        path "${vcf.simpleName}.noncoding.vcf.gz.tbi"
+
+    script:
+    """
+    bcftools view -O z -i 'CSQ[*] ~ "intergenic_variant" || CSQ[*] ~ "intron_variant"' ${vcf} > ${vcf.simpleName}.noncoding.vcf.gz && \
+        tabix -p vcf ${vcf.simpleName}.noncoding.vcf.gz
+    """
+}
+
+process select_coding {
+    tag "cd"
+    label "small"
+
+    input:
+        path vcf
+        path tbi
+
+    output:
+        path "${vcf.simpleName}.coding.vcf.gz"
+        path "${vcf.simpleName}.coding.vcf.gz.tbi"
+
+    script:
+    """
+    bcftools view -O z -e 'CSQ[*] ~ "intergenic_variant" || CSQ[*] ~ "intron_variant"' ${vcf} > ${vcf.simpleName}.coding.vcf.gz && \
+        tabix -p vcf ${vcf.simpleName}.coding.vcf.gz
+    """
+}

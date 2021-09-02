@@ -1,5 +1,5 @@
 
-include { filtering; apply_filter; extract; exclude; extract_exclude } from '../process/filtering'
+include { filtering; apply_filter; extract; exclude; extract_exclude; select_noncoding; select_coding } from '../process/filtering'
 include { vep } from '../process/annotate'
 include { shapeit4; beagle; chromosomeList; combine } from '../process/prerun'
 include { get_beagle; get_vep_cache } from '../process/dependencies'
@@ -56,17 +56,28 @@ workflow PREPROCESS {
             vep( shapeit4.out, ch_ref, ch_ref_fai, annot_ch )
         }
         // Annotate the output VCFs
-        // vep( vcf_ch, ch_ref, ch_ref_fai, vep_cache )
         vcf_ch = vep.out[0]
         tbi_ch = vep.out[1]
 
         // Combine results
         combine( vcf_ch.collect(), tbi_ch.collect() )
-        vcf_ch = combine.out[0]
-        tbi_ch = combine.out[1]
+
+        // Annotate the output VCFs
+        if (params.coding && !params.noncoding){
+            select_coding( combine.out[0], combine.out[1] )
+            vcf_ch = select_coding.out[0]
+            vcf_ch = select_coding.out[1]
+        } else if (params.noncoding && !params.coding) {
+            select_noncoding( combine.out[0], combine.out[1] )
+            vcf_ch = select_noncoding.out[0]
+            vcf_ch = select_noncoding.out[1]
+        } else {
+            vcf_ch = combine.out[0]
+            tbi_ch = combine.out[1]
+        }
 
         // Filter if requested
-        if (params.filter == 'y'){
+        if (params.filter){
             filtering(vcf_ch, tbi_ch)
             apply_filter(vcf_ch, tbi_ch, filtering.out)
             vcf_ch = apply_filter.out[0]
