@@ -28,7 +28,7 @@ workflow RELATE {
 
         // check if there is a popfile, otherwise create one
         if (params.poplabels) {
-            popfile_ch = file(params.poplabels)
+            popfile_ch = Channel.fromPath(params.poplabels)
         } else {
             makepopfile( file(params.pops_folder) )
             popfile_ch = makepopfile.out

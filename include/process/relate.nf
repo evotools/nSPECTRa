@@ -136,6 +136,7 @@ process relate {
     output:
     path "relate_chr${contig}.anc"
     path "relate_chr${contig}.mut"
+    val contig
 
     stub:
     """
@@ -410,7 +411,6 @@ process relate_mut_finalise {
 
 
 process relate_ne {
-    label "renv_multi"
     publishDir "${params.outdir}/relate/ne", mode: "${params.publish_dir_mode}", overwrite: true
 
     input:
