@@ -54,7 +54,7 @@ process phyloFit {
     if (params.hal4d)
     """
     mytree=`${HAL}/bin/halStats --tree ${params.hal} | python -c "import sys, re; pattern = r'Inner[0-9]*'; sys.stdout.write( re.sub(r':[0-9].[0-9]*', '', re.sub(pattern,'', sys.stdin.readline()).replace(':0)Anc00',''))[1:] ) "`
-    phyloFit --tree \$mytree --subst-mod SSREV --sym-freqs ${input} --precision MED --out-root neutralModel
+    phyloFit --tree \$mytree --msa-format SS --subst-mod SSREV --sym-freqs --precision HIGH --out-root neutralModel ${input} 
     """
     else
     """
@@ -151,6 +151,7 @@ process make4dmaf {
         --refGenome ${params.reference} \
         --refTargets ${bedfile} \
         --hdf5InMemory ${params.hal} 4d.maf
+    sed -i -e 2d 4d.maf
     """
 }
 
@@ -178,8 +179,7 @@ process msa_view {
     export PYTHONPATH=${HAL}/lib:${HAL}/submodules/sonLib/src
     export PATH=\$PATH:${HAL}/bin
     genomes=`${HAL}/bin/halStats ${params.hal} --genomes | python -c 'import sys; a = [i for i in sys.stdin.readline().split() if "Inner" not in i and "Anc" not in i]; print(",".join(a))'`
-    sed "/# hal/d" $maf > ${maf.simpleName}.fix.maf
-    msa_view -o SS -z --in-format MAF --aggregate \$genomes ${maf.simpleName}.fix.maf > ${maf.simpleName}.ss
+    msa_view -o SS -z --in-format MAF --aggregate \$genomes ${maf} > ${maf.simpleName}.ss
     """
 }
 
