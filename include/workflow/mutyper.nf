@@ -13,7 +13,7 @@ workflow MUTYPER {
         anc_fai
         chromosomeList
         masks_ch
-        ne_time_ch
+        // ne_time_ch
 
     main:
         // Get chromosome list
