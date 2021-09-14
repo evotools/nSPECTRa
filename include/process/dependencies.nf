@@ -22,6 +22,7 @@ process get_hal {
     wget -O - ${params.cactus_url} > cactus.tar.gz
     tar xvfz cactus.tar.gz && mv cactus-*/ cactus/ && rm cactus.tar.gz
     """
+}
 
 // Download beagle
 process get_beagle {
