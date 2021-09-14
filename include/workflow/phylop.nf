@@ -2,7 +2,7 @@
 include {hal4d; phyloFit; phyloPtrain; combine_bed } from '../process/phylop'
 include {phyloP; bigWigToBed; filter; phastCons} from '../process/phylop'
 include {make4dmaf; msa_view; makeMaf; collect; combine_mafs} from '../process/phylop'
-include {get_phast; get_hal} from '../process/dependencies' 
+include {get_hal} from '../process/dependencies' 
 
 workflow CONSTRAINED {
     take:
@@ -34,7 +34,9 @@ workflow CONSTRAINED {
             model_ch = phyloFit.out
         }
         // Run PhyloP
-        //phyloP(hal, model_ch, chromosomes_ch)
+        phyloP(hal, model_ch, chromosomes_ch)
+        
+        // Run phastCons
         phastCons(hal, makeMaf.out, model_ch)
 
         // Collect bed
