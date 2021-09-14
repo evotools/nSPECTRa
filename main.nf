@@ -124,14 +124,6 @@ include { IBD } from './include/workflow/ibd' params(params)
 include { CONSTRAINED } from './include/workflow/phylop' params(params)
 include { get_masks } from './include/process/prerun' 
 include { get_hal } from './include/process/dependencies'
-// if ( params.algorithm == 'mutyper' ) {
-//     include { MUTYPER as PROCESS } from './include/workflow/mutyper' params(params)
-// } else if ( params.algorithm == 'relate' ) {
-//     include { RELATE as PROCESS } from './include/workflow/relate' params(params)
-// } else {
-//     include { DINUC as PROCESS } from './include/workflow/custom' params(params)
-// }
-
 
 // Run workflows
 workflow {
@@ -165,13 +157,18 @@ workflow {
         IBD()
       }
 
+      // Run GONE to calculate Ne, if requested
+      if (params.gone){
+        GONE( ch_var_new, ch_var_idx_new )
+      }
+
       // Run the actual mutation spectra
       if (params.algorithm =~ 'relate'){
           RELATE( ch_var_new, ch_var_idx_new, ANCESTRAL.out[0], ANCESTRAL.out[1], ANCESTRAL.out[2], ANCESTRAL.out[3], PREPROCESS.out[2], ch_masks )
       }
       if (params.algorithm =~ 'mutyper'){
-          GONE( ch_var_new, ch_var_idx_new )
-          MUTYPER( ch_var_new, ch_var_idx_new, ANCESTRAL.out[0], ANCESTRAL.out[1], PREPROCESS.out[2], ch_masks, GONE.out )
+          MUTYPER( ch_var_new, ch_var_idx_new, ANCESTRAL.out[0], ANCESTRAL.out[1], PREPROCESS.out[2], ch_masks )
+          // MUTYPER( ch_var_new, ch_var_idx_new, ANCESTRAL.out[0], ANCESTRAL.out[1], PREPROCESS.out[2], ch_masks, GONE.out )
       } 
       if (params.algorithm =~ 'sdm'){
           SDM( ch_var_new, ch_var_idx_new, ANCESTRAL.out[0], ANCESTRAL.out[1], ANCESTRAL.out[2], ANCESTRAL.out[3], ch_masks, PREPROCESS.out[2] )
