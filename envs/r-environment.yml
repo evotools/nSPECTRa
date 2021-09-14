@@ -7,8 +7,10 @@ dependencies:
   - bioconda::bcftools
   - bioconda::samtools
   - conda-forge::r-base<4
+  - conda-forge::r-cowplot
   - conda-forge::r-tidyverse
   - conda-forge::r-reshape2
   - conda-forge::r-ggfortify
-  - conda-forge::r-lazyeval 
+  - conda-forge::r-ggforce
+  - conda-forge::r-lazyeval
   - conda-forge::r-plyr

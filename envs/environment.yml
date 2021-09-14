@@ -1,4 +1,4 @@
-name: nspectr
+name: nspectra
 channels:
   - bioconda
   - conda-forge
@@ -16,5 +16,7 @@ dependencies:
   - bioconda::shapeit4
   - bioconda::ucsc-fatotwobit 
   - bioconda::ucsc-twobitinfo 
+  - bioconda::ucsc-bigwigtobedgraph
+  - bioconda::phast=1.5
   - pip:
     - mutyper
