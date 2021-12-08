@@ -125,7 +125,7 @@ process combine_mafs {
 process make4dmaf {
     tag "maf"
     publishDir "${params.outdir}/PHYLOP/MAF", mode: "${params.publish_dir_mode}", overwrite: true
-    label "medium_largemem"
+    label "medium_vlargemem"
     conda "${baseDir}/envs/phast_environment.yml"
 
     input:
