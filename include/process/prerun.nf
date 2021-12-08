@@ -21,11 +21,7 @@ process chromosomeList {
 
     script:
     """
-    bcftools view ${ch_vcf} |\
-        awk '\$1!~"#" {print \$1}' | \
-        sort -T . | \
-        uniq | \
-        awk 'BEGIN{OFS=","};{print NR, \$0}' > sequences.csv 
+    tabix -l ${ch_vcf} | awk 'BEGIN{OFS=","};{print NR, \$0}' > sequences.csv 
     """
 }
 
