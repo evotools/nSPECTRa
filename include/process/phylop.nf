@@ -9,7 +9,7 @@ process hal4d {
     tag "h4d"
     publishDir "${params.outdir}/PHYLOP/NEUTRAL", mode: "${params.publish_dir_mode}", overwrite: true
     label "large_onecore"
-    conda "${baseDir}/envs/phast_environment.yml"
+    conda (params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null)
 
     input:
     path HAL
@@ -34,7 +34,7 @@ process phyloFit {
     tag "pFit"
     publishDir "${params.outdir}/PHYLOP/NEUTRAL", mode: "${params.publish_dir_mode}", overwrite: true
     label "largemem"
-    conda "${baseDir}/envs/phast_environment.yml"
+    conda (params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null)
 
     input:
     path input
@@ -66,7 +66,7 @@ process phyloFit {
 process makeMaf {
     tag "maf"
     publishDir "${params.outdir}/PHYLOP/MAF/CHROM", mode: "${params.publish_dir_mode}", overwrite: true
-    conda "${baseDir}/envs/phast_environment.yml"
+    conda (params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null)
 
     input:
     path HAL
@@ -94,7 +94,7 @@ process makeMaf {
 process combine_mafs {
     tag "combmaf"
     publishDir "${params.outdir}/PHYLOP/MAF", mode: "${params.publish_dir_mode}", overwrite: true
-    conda "${baseDir}/envs/phast_environment.yml"
+    conda (params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null)
 
     input:
     path mafs
@@ -126,7 +126,7 @@ process make4dmaf {
     tag "maf"
     publishDir "${params.outdir}/PHYLOP/MAF", mode: "${params.publish_dir_mode}", overwrite: true
     label "medium_vlargemem"
-    conda "${baseDir}/envs/phast_environment.yml"
+    conda (params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null)
 
     input:
     path bedfile
@@ -159,7 +159,7 @@ process msa_view {
     tag "msa"
     publishDir "${params.outdir}/PHYLOP/MSA", mode: "${params.publish_dir_mode}", overwrite: true
     label "medium_largemem"
-    conda "${baseDir}/envs/phast_environment.yml"
+    conda (params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null)
 
     input:
     path maf
@@ -188,7 +188,7 @@ process phastCons {
     tag "pcon"
     publishDir "${params.outdir}/PHYLOP/PHASTCONS/CHR", mode: "${params.publish_dir_mode}", overwrite: true
     label "medium_multi"
-    conda "${baseDir}/envs/phast_environment.yml"
+    conda (params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null)
 
     input:
     path HAL
@@ -218,7 +218,7 @@ process collect{
     tag "col"
     publishDir "${params.outdir}/PHYLOP/PHASTCONS", mode: "${params.publish_dir_mode}", overwrite: true
     label "medium_multi"
-    conda "${baseDir}/envs/phast_environment.yml"
+    conda (params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null)
 
     input:
     path beds
@@ -243,7 +243,7 @@ process phyloPtrain {
     tag "pptrain"
     publishDir "${params.outdir}/PHYLOP/NEUTRAL", mode: "${params.publish_dir_mode}", overwrite: true
     label "medium_multi"
-    conda "${baseDir}/envs/phast_environment.yml"
+    conda (params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null)
 
     input:
     path HAL
@@ -270,7 +270,7 @@ process phyloPtrain {
 process phyloP {
     tag "ppmp"
     publishDir "${params.outdir}/PHYLOP/BED/CHR", mode: "${params.publish_dir_mode}", overwrite: true
-    conda "${baseDir}/envs/phast_environment.yml"
+    conda (params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null)
 
     input:
     path HAL
@@ -306,7 +306,7 @@ process bigWigToBed {
     tag "bw2bed"
     publishDir "${params.outdir}/PHYLOP/BED/CHR", mode: "${params.publish_dir_mode}", overwrite: true
     label "largemem"
-    conda "${baseDir}/envs/phast_environment.yml"
+    conda (params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null)
 
     input:
     path bw
@@ -330,7 +330,7 @@ process combine_bed {
     tag "bed"
     publishDir "${params.outdir}/PHYLOP/BED", mode: "${params.publish_dir_mode}", overwrite: true
     label "largemem"
-    conda "${baseDir}/envs/phast_environment.yml"
+    conda (params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null)
 
     input:
     path beds
@@ -355,7 +355,7 @@ process get_constrained {
     tag "constr"
     publishDir "${params.outdir}/PHYLOP/CONSTRAINED", mode: "${params.publish_dir_mode}", overwrite: true
     label "largemem"
-    conda "${baseDir}/envs/phast_environment.yml"
+    conda (params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null)
 
     input:
     path bed

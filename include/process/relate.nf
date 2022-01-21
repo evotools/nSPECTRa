@@ -58,6 +58,7 @@ process chromosomeList {
 // Relate format inputs by breed
 process relate_format {
     label "renv"
+    conda (params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null)
 
     input:
     path vcf
@@ -106,6 +107,7 @@ process relate_format {
 
 process make_relate_map {
     label "renv"
+    conda (params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null)
 
     input:
     tuple val(contig), path(haps), path(sample), path(dist), path(annot)
@@ -457,13 +459,6 @@ process relate_ne {
 
     # Generate single-pop Ne values
     coal2ne relate_mut_ne.pairwise.coal > relate_mut_ne.pairwise.ne
-
-    #${params.relate}/bin/RelateCoalescentRate \
-    #            --mode FinalizePopulationSize\
-    #            --poplabels ${poplabels} \
-    #            --chr chroms.txt \
-    #            -i relate \
-    #            -o relate 
     """
 }
 
@@ -545,6 +540,7 @@ process relate_chr_pop_mut_finalise {
 process relate_plot_pop {
     label "renv"
     publishDir "${params.outdir}/relate/plot", mode: "${params.publish_dir_mode}", overwrite: true
+    conda (params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null)
 
     input:
     path rates 

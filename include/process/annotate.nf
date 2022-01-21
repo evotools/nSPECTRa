@@ -70,6 +70,8 @@ process vep {
     tag "vep"
     label "vep"
 
+    conda (params.enable_conda ? "bioconda::ensembl-vep=${params.vep_release_maj}" : null)
+
     input:
     tuple val(chrom), file(vcf)
     path reffasta
