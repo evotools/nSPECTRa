@@ -29,7 +29,7 @@ process get_beagle {
     label "compile"
 
     output:
-    path "beagle.21Apr21.304.jar"
+    path "beagle*jar"
 
     stub:
     """
