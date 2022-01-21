@@ -38,7 +38,7 @@ process get_beagle {
 
     script:
     """
-    wget https://faculty.washington.edu/browning/beagle/beagle.21Apr21.304.jar
+    wget --no-check-certificate ${params.beagle_url}
     """
 
 }
