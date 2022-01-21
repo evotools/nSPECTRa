@@ -20,6 +20,7 @@ dependencies:
   - matplotlib
   - numpy
   - pandas
+  - java-jdk=8.0.92
   - bioconda::perl-bioperl 
   - bioconda::perl-bio-db-hts 
   - bioconda::tabix
