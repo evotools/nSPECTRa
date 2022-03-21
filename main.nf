@@ -75,6 +75,9 @@ relate          : $params.relate"""
 if (params.ancestral){
   log.info """ancestral       : $params.ancestral"""  
 }
+if (params.ref_fasta){
+  log.info """refernece fasta : $params.ref_fasta"""  
+}
 if (params.mask){
   log.info """mask            : $params.mask"""  
 }
@@ -99,15 +102,16 @@ if (params.ancestral_only){
 
 // Check parameters
 checkPathParamList = [
-    params.variants, params.idx, params.hal
-    ]
+    params.variants, params.idx, 
+  ]
 //    params.vcf, params.tbi ]
 for (param in checkPathParamList) { if (param) { file(param, checkIfExists: true) } }
 
 /* Check mandatory params */
 if (params.variants) { ch_var = file(params.variants) } else { exit 1, 'Vcf file not specified!' }
 if (params.idx) { ch_var_idx = file(params.idx) } else { exit 1, 'TBI file not specified!' }
-if (params.hal) { ch_hal = file(params.hal) } else { exit 1, 'Hal file not specified!' }
+if (!params.hal) { exit 1, 'Hal file not specified and ancestral not specified!' }
+if (!params.hal && !params.ref_fasta && !params.ancestral) { exit 1, 'Ancestral and reference genomes not specified!' }
 if (params.hal4d && !params.exon_bed) { exit 1, 'Requested hal4d algorithm, but no bed with exons specified!' }
 // algorithms = params.algorithm?.tokenize(',').flatten()
 
@@ -141,20 +145,25 @@ workflow {
       }
 
       // Pre-process the variants of interest
-      PREPROCESS ( ch_var, ch_var_idx, ANCESTRAL.out[2], ANCESTRAL.out[3] )
-      ch_var_new = PREPROCESS.out[0]
-      ch_var_idx_new = PREPROCESS.out[1]
+      if (!params.vcf_is_filtered){
+        PREPROCESS ( ch_var, ch_var_idx, ANCESTRAL.out[2], ANCESTRAL.out[3] )
+        ch_var_new = PREPROCESS.out[0]
+        ch_var_idx_new = PREPROCESS.out[1]
 
-      // Get constrined elements and remove variants in them
-      if ( params.phast || params.hal4d ){
-        CONSTRAINED(get_hal.out, ch_var_new, ch_var_idx_new, PREPROCESS.out[2])
-        ch_var_new = CONSTRAINED.out[0]
-        ch_var_idx_new = CONSTRAINED.out[1]
-      } 
+        // Get constrined elements and remove variants in them
+        if ( params.phast || params.hal4d ){
+          CONSTRAINED(get_hal.out, ch_var_new, ch_var_idx_new, PREPROCESS.out[2])
+          ch_var_new = CONSTRAINED.out[0]
+          ch_var_idx_new = CONSTRAINED.out[1]
+        } 
 
-      // Generate IBDs if requested
-      if (params.compute_ibd){
-        IBD()
+        // Generate IBDs if requested
+        if (params.compute_ibd){
+          IBD()
+        }
+      } else {
+        ch_var_new = ch_var
+        ch_var_idx_new = ch_var_idx
       }
 
       // Run GONE to calculate Ne, if requested
