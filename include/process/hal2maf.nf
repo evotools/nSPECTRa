@@ -10,6 +10,7 @@ process hal2maf {
 
     input:
     path HAL
+    path CACTUS
 
     output:
     path "${params.reference}_${params.target}.maf"  
@@ -22,10 +23,10 @@ process hal2maf {
 
     script:
     """
-    ${HAL}/bin/hal2maf \
+    ${CACTUS}/bin/hal2maf \
         --refGenome ${params.reference} \
         --targetGenomes ${params.target} \
-        --hdf5InMemory ${params.hal} ${params.reference}_${params.target}.maf
+        --hdf5InMemory ${HAL} ${params.reference}_${params.target}.maf
     """
 }
 
@@ -40,6 +41,7 @@ process hal2chain {
     path reference
     path target
     path HAL
+    path CACTUS
 
     output:
     path "${params.target}_${params.reference}.chain"  
@@ -52,10 +54,10 @@ process hal2chain {
 
     script:
     """
-    ${HAL}/bin/hal2maf \
+    ${CACTUS}/bin/hal2maf \
         --refGenome ${params.target} \
         --targetGenomes ${params.reference} \
-        --hdf5InMemory ${params.hal} stdout | \
+        --hdf5InMemory ${HAL} stdout | \
             maf-convert chain - > ${params.target}_${params.reference}.chain
     """
 }
@@ -69,6 +71,7 @@ process halSnps {
     
     input:
     path HAL
+    path CACTUS
 
     output:
     path "SNPs_${params.reference}_${params.target}.tsv"  
@@ -81,7 +84,7 @@ process halSnps {
 
     script:
     """
-    ${HAL}/bin/halSnps ${params.hal} ${params.reference} ${params.target} \
+    ${CACTUS}/bin/halSnps ${HAL} ${params.reference} ${params.target} \
         --tsv SNPs_${params.reference}_${params.target}.tsv --hdf5InMemory && \
         rm ./\${halname}.hal
     """
