@@ -1,7 +1,7 @@
 
 include { hal2maf } from '../process/hal2maf'
 include {maf2bed; bed2vbed; bed2ancfa; collectAncfa } from '../process/maf2fasta'
-include { makeRefTgtFasta; splitfasta; makefai } from '../process/maf2fasta'
+include { makeRefTgtFasta; splitfasta; makefai; makefai as makefai_ref } from '../process/maf2fasta'
 include { liftToAncestor; makeAncestralSequence } from '../process/liftToAncestor'
 include { makeAnnotation } from '../process/annotate'
 include { chromosomeList } from '../process/prerun'
@@ -10,12 +10,11 @@ include { get_hal } from '../process/dependencies'
 // Workflow
 workflow ANCESTRAL {
     take:
-        hal
+        cactus
         
     main:
         /*Create ancestral fasta file*/
         // hal to maf, needed for constrained elements
-        hal2maf( hal )
 
         if (params.ancestral){
             // Import ancestral fasta
@@ -24,13 +23,29 @@ workflow ANCESTRAL {
             anc_fai = makefai.out
             
             // Extract the different genomes and split it into chunks to speed up the process
-            makeRefTgtFasta( hal )
+            if (params.ref_fasta){
+                ch_ref = file(params.ref_fasta)
+                makefai_ref(ch_ref)
+                ch_ref_fai = makefai_ref.out
+            } else {
+                if (params.hal) { ch_hal = file(params.hal) } else { exit 1, 'Hal file not specified!' }
+                hal2maf( ch_hal, cactus )
+                makeRefTgtFasta( ch_hal, cactus )
+                ch_ref = makeRefTgtFasta.out[0]
+                ch_ref_fai = makeRefTgtFasta.out[2]
+            }
         } else {
+            if (params.hal) { ch_hal = file(params.hal) } else { exit 1, 'Hal file not specified!' }
+            hal2maf( ch_hal, cactus )
+
             // maf to bed
             maf2bed(hal2maf.out)
 
             // Extract the different genomes and split it into chunks to speed up the process
-            makeRefTgtFasta( hal )
+            makeRefTgtFasta( ch_hal, cactus )
+            ch_ref = makeRefTgtFasta.out[0]
+            ch_ref_fai = makeRefTgtFasta.out[2]
+
             splitfasta(makeRefTgtFasta.out[0], makeRefTgtFasta.out[2])
             //chunked_ref = maf2bed.out.combine(splitfasta.out)
             
@@ -47,6 +62,6 @@ workflow ANCESTRAL {
     emit:
         anc_fa
         anc_fai
-        makeRefTgtFasta.out[0]
-        makeRefTgtFasta.out[2]
+        ch_ref
+        ch_ref_fai
 }
