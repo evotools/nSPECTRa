@@ -68,6 +68,7 @@ process relate_format {
     path maskfa
     path maskfai
     path poplabels
+    path relate
     tuple val(idx), val(contig)
 
 
@@ -91,11 +92,11 @@ process relate_format {
 
     bcftools view -r ${contig} --force-samples -O z ${vcf} > ${contig}.RECODE.vcf.gz
 
-    ${params.relate}/bin/RelateFileFormats --mode ConvertFromVcf -i ${contig}.RECODE \
+    ${relate}/bin/RelateFileFormats --mode ConvertFromVcf -i ${contig}.RECODE \
         --haps ${contig}.INPUT.haps \
         --sample ${contig}.INPUT.sample && rm ${contig}.RECODE.vcf.gz
 
-    ${params.relate}/scripts/PrepareInputFiles/PrepareInputFiles.sh \
+    ${relate}/scripts/PrepareInputFiles/PrepareInputFiles.sh \
                     --haps ${contig}.INPUT.haps \
                     --sample ${contig}.INPUT.sample \
                     --ancestor anc.${contig}.fa \
@@ -134,6 +135,7 @@ process relate {
 
     input:
     tuple val(contig), path(haps), path(sample), path(map), path(dist), path(annot)
+    path relate
 
     output:
     path "relate_chr${contig}.anc"
@@ -149,7 +151,7 @@ process relate {
     script:
     if (task.cpus == 1)
     """
-    ${params.relate}/bin/Relate --mode All \
+    ${relate}/bin/Relate --mode All \
         --mode All \
         -m ${params.mutation_rate} \
         -N ${params.neval} \
@@ -163,7 +165,7 @@ process relate {
     """
     else 
     """
-    ${params.relate}/scripts/RelateParallel/RelateParallel.sh \
+    ${relate}/scripts/RelateParallel/RelateParallel.sh \
         --mode All \
         -m ${params.mutation_rate} \
         -N ${params.neval} \
@@ -187,6 +189,7 @@ process relate_avg_mut {
     tuple path(ancs), path(muts), path(dist)
     path contig_csv
     path poplabels
+    path relate
 
     output:
     path "relate_mut_gen_avg.rate"
@@ -205,7 +208,7 @@ process relate_avg_mut {
     awk 'BEGIN{FS=","};{print \$NF}' ${contig_csv} > chroms.txt 
 
     # Run average mutation rate
-    ${params.relate}/bin/RelateMutationRate \
+    ${relate}/bin/RelateMutationRate \
                 --mode Avg \
                 --chr chroms.txt \
                 --years_per_gen ${params.intergen_time} \
@@ -252,6 +255,7 @@ process relate_mut {
     path maskfa
     path maskfai
     path poplabels
+    path relate
 
     output:
     path "ANCMUT/relate_mut_ne*"
@@ -274,7 +278,7 @@ process relate_mut {
     cp relate_mut_ne* ANCMUT/
 
     # Run relate mutation spectra
-    ${params.relate}/bin/RelateMutationRate \
+    ${relate}/bin/RelateMutationRate \
                 --mode WithContext \
                 --ancestor ${ancestral} \
                 --mask ${maskfa} \
@@ -298,6 +302,7 @@ process relate_mut_chr {
     path maskfa
     path maskfai
     path poplabels
+    path relate
 
     output:
     tuple val(contig), path("ANCMUT/relate_mut_ne_chr${contig}.anc*"), path("ANCMUT/relate_mut_ne_chr${contig}.mut*"), path("ANCMUT/relate_mut_ne_chr${contig}_mut.bin"), path("ANCMUT/relate_mut_ne_chr${contig}_opp.bin")
@@ -322,7 +327,7 @@ process relate_mut_chr {
     cp relate_mut_ne_chr${contig}.* ANCMUT/
 
     # Run relate mutation spectra
-    ${params.relate}/bin/RelateMutationRate \
+    ${relate}/bin/RelateMutationRate \
                 --mode WithContextForChromosome \
                 --ancestor anc.${contig}.fa \
                 --mask mask.${contig}.fa \
@@ -345,6 +350,7 @@ process relate_mut_chr_finalise {
     tuple val(contig), path(anc), path(mut), path(mutbin), path(oppbin)
     path contig_csv
     path poplabels
+    path relate
 
     output:
     tuple path("FIN/relate_mut_ne_chr${contig}.anc*"), path("FIN/relate_mut_ne_chr${contig}.mut*"), path("FIN/relate_mut_ne_chr${contig}_mut.bin"), path("FIN/relate_mut_ne_chr${contig}_opp.bin"), path("FIN/relate_mut_ne_chr${contig}.rate")
@@ -365,7 +371,7 @@ process relate_mut_chr_finalise {
 
     mkdir FIN
     cp relate_mut_ne_chr${contig}* FIN/
-    ${params.relate}/bin/RelateMutationRate \
+    ${relate}/bin/RelateMutationRate \
                 --mode Finalize \
                 --poplabels ${poplabels} \
                 --years_per_gen ${params.intergen_time} \
@@ -384,6 +390,7 @@ process relate_mut_finalise {
     //tuple path(ancs), path(muts), path(mutbins), path(oppbins), path(rates)
     path contig_csv
     path poplabels
+    path relate
 
     output:
     path "relate_mut_ne.rate"
@@ -401,7 +408,7 @@ process relate_mut_finalise {
     """
     awk 'BEGIN{FS=","};{print \$NF}' ${contig_csv} | sort -nk1,1 > chroms.txt 
 
-    ${params.relate}/bin/RelateMutationRate \
+    ${relate}/bin/RelateMutationRate \
                 --mode Finalize \
                 --poplabels ${poplabels} \
                 --chr chroms.txt \
@@ -420,6 +427,7 @@ process relate_ne {
     path muts
     path contig_csv
     path poplabels
+    path relate
 
     output:
     tuple path("relate_mut_ne_chr*.anc.gz"), path("relate_mut_ne_chr*.mut.gz"), path("relate_mut_ne_chr*.dist")
@@ -448,7 +456,7 @@ process relate_ne {
     awk 'BEGIN{FS=","};{print \$NF}' ${contig_csv} > chroms.txt 
 
     # Run relate mutation spectra    
-    ${params.relate}/scripts/EstimatePopulationSize/EstimatePopulationSize.sh \
+    ${relate}/scripts/EstimatePopulationSize/EstimatePopulationSize.sh \
             -i relate \
             --chr chroms.txt \
             --poplabels ${poplabels} \
@@ -474,6 +482,7 @@ process relate_mut_chr_pop {
     path maskfa
     path maskfai
     path poplabels
+    path relate
 
     output:
     tuple val(pop), path("relate_mut_ne_${pop}_chr${contig}_mut.bin"), path("relate_mut_ne_${pop}_chr${contig}_opp.bin")
@@ -491,7 +500,7 @@ process relate_mut_chr_pop {
     samtools faidx ${maskfa} ${contig} > mask.${contig}.fa
 
     # Run relate mutation spectra
-    ${params.relate}/bin/RelateMutationRate \
+    ${relate}/bin/RelateMutationRate \
         --mode ForCategoryForPopForChromosome \
         --ancestor anc.${contig}.fa \
         --mask mask.${contig}.fa \
@@ -515,6 +524,7 @@ process relate_chr_pop_mut_finalise {
     input:
     tuple val(pop), path(muts), path(opps)
     path contig_csv
+    path relate
 
     output:
     path "relate_mut_ne_${pop}*"
@@ -531,8 +541,8 @@ process relate_chr_pop_mut_finalise {
     """
     awk 'BEGIN{FS=","};{print \$NF}' ${contig_csv} | sort -nk1,1 > chroms.txt 
 
-    ${params.relate}/bin/RelateMutationRate --mode SummarizeForGenomeForCategory --chr chroms.txt -o relate_mut_ne_${pop}
-    ${params.relate}/bin/RelateMutationRate --mode FinalizeForCategory -i relate_mut_ne_${pop} -o relate_mut_ne_${pop}
+    ${relate}/bin/RelateMutationRate --mode SummarizeForGenomeForCategory --chr chroms.txt -o relate_mut_ne_${pop}
+    ${relate}/bin/RelateMutationRate --mode FinalizeForCategory -i relate_mut_ne_${pop} -o relate_mut_ne_${pop}
     """
 }
 
@@ -557,5 +567,114 @@ process relate_plot_pop {
     script:
     """
     relate_plot_pop ${baseDir}/assets/k3.mutcat ${params.intergen_time} ${poplabels}
+    """
+}
+
+/*
+Create modules to run relate Ne faster
+*/
+
+process ne_removetreeswithfewmutations {
+    label "renv_many"
+    conda (params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null)
+
+    input:
+    path ancs
+    path muts
+    val contig
+
+    output:
+    tuple val(contig), path("relate_mut_ne_subset_chr${contig}.anc.gz"), path("relate_mut_ne_subset_chr${contig}.mut.gz")
+    
+    stub:
+    """
+    touch relate_mut_ne_subset_chr${contig}.anc.gz
+    touch relate_mut_ne_subset_chr${contig}.mut.gz
+    """
+
+    script:
+    """
+    # Run relate mutation spectra    
+    ${params.relate}/bin/RelateExtract \
+        --mode RemoveTreesWithFewMutations \
+        --threshold ${params.relate_mutation_threshold} \
+        --anc relate_chr${contig}.anc \
+        --mut relate_chr${contig}.mut \
+        -o relate_mut_ne_subset_chr${contig} 2> relate_mut_ne_subset_chr${contig}.log
+    gzip relate_mut_ne_subset_chr${contig}.anc
+    gzip relate_mut_ne_subset_chr${contig}.mut
+    """
+}
+
+process ne_ConstRate {
+    label "renv_many"
+    publishDir "${params.outdir}/relate/ne", mode: "${params.publish_dir_mode}", overwrite: true
+    conda (params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null)
+
+    input:
+    path ancs
+    path muts
+
+    output:
+    path "relate_mut_ne.coal"
+    path "relate_mut_ne.pdf"
+
+
+    stub:
+    """
+    touch relate_mut_ne.coal
+    touch relate_mut_ne.pdf
+    """
+
+    script:
+    """
+    # Get chromosome list
+    awk 'BEGIN{FS=","};{print \$NF}' ${contig_csv} > chroms.txt 
+
+    # Run relate mutation spectra    
+    ${params.relate}/bin/RelateCoalescentRate \
+        --mode GenerateConstCoalFile \
+        --years_per_gen ${params.intergen_time} \
+        -i 30000 \
+        -o relate_mut_ne
+    coal2ne relate_mut_ne.coal
+    """
+}
+
+process ne_Iterate {
+    label "renv_many"
+    executor 'local'
+    publishDir "${params.outdir}/relate/ne/it", mode: "${params.publish_dir_mode}", overwrite: true
+    conda (params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null)
+
+    input:
+    tuple val(contig), path(anc), path(mut)
+
+    output:
+    path "./OUT/*.anc"
+    path "./OUT/*.mut"
+
+
+    stub:
+    """
+    touch relate_mut_ne.coal
+    touch relate_mut_ne.pdf
+    """
+
+    script:
+    """
+    runN=1
+    maxN=${params.n_iterations}
+    while [ "\$runN" -le "\$maxN" ]; do
+        nextflow run ${params.baseDir}/include/iterate/relate_iterate.nf \
+            --runN "\$runN" \
+            --maxN "\$maxN" \
+            --relate ${params.relate} \
+            --work_path \$PWD
+            --base_name relate_mut_ne_subset_chr${contig}
+            --outdir \$PWD/OUT
+            -profile ${workflow.profile}
+        runN=\$((runN + 1))
+    done
     """
 }
