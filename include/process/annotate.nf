@@ -86,6 +86,7 @@ process vep {
     stub:
     """
     touch genotypes.${chrom}.vep.vcf.gz
+    touch genotypes.${chrom}.vep.vcf.gz.tbi
     """
 
     script:
