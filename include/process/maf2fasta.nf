@@ -95,6 +95,7 @@ process makeRefTgtFasta {
 
     input:
     path HAL
+    path CACTUS
 
     output:
     path "${params.reference}.fasta", emit: reffasta
@@ -113,8 +114,8 @@ process makeRefTgtFasta {
 
     script:
     """
-    ${HAL}/bin/hal2fasta --hdf5InMemory ${params.hal} ${params.target} > ${params.target}.fasta
-    ${HAL}/bin/hal2fasta --hdf5InMemory ${params.hal} ${params.reference} > ${params.reference}.fasta
+    ${CACTUS}/bin/hal2fasta --hdf5InMemory ${HAL} ${params.target} > ${params.target}.fasta
+    ${CACTUS}/bin/hal2fasta --hdf5InMemory ${HAL} ${params.reference} > ${params.reference}.fasta
     samtools faidx ${params.target}.fasta
     samtools faidx ${params.reference}.fasta
     """
