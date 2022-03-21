@@ -32,10 +32,11 @@ RUN /venv/bin/conda-unpack
 FROM debian:buster AS runtime
 
 # Install procps in debian to make it compatible with reporting
-RUN apt-get update && apt install -y procps g++ curl wget && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-RUN curl -o datasets 'https://ftp.ncbi.nlm.nih.gov/pub/datasets/command-line/LATEST/linux-amd64/datasets' && \
-  mv datasets /usr/local/bin && \
-  chmod a+x /usr/local/bin/datasets
+RUN apt-get update && apt install -y file procps g++ curl wget && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Install datasets
+ADD https://ftp.ncbi.nlm.nih.gov/pub/datasets/command-line/LATEST/linux-amd64/datasets /usr/local/bin/datasets 
+RUN chmod a+x /usr/local/bin/datasets
 
 # Copy /venv from the previous stage:
 COPY --from=build /venv /venv
