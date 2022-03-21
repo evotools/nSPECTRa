@@ -24,6 +24,21 @@ To run the workflow effectively, you'll need:
 
 To generate the HAL alignment archive, we suggest to use [cactus](https://github.com/ComparativeGenomicsToolkit/cactus) which automatically infers the ancestral sequence.
 
+## Workflow overview
+The workflow constitutes of five separate components, repesented in figure below:
+
+![Flowchart](https://raw.githubusercontent.com/evotools/nSPECTRa/master/imgs/WorkflowComponents.png)
+
+In short, there are six separate units:
+1. VCF preprocessing: the vcf file gets imputed using either Beagle or SHAPEIT4, and then annotated using the VEP.
+2. Ancestral genome generation: the workflow generate a version of the reference genome carrying the ancestral allele estimated by [cactus](https://github.com/ComparativeGenomicsToolkit/cactus)
+3. Exclude constrained elements: the workflow extract the constrained elements using halPhyloP from the [HAL suite](https://github.com/ComparativeGenomicsToolkit/hal) alignments.
+4. K-mer mutation spectra: compute the mutation spectra for each individual at different K-mers using [mutyper](https://github.com/harrispopgen/mutyper/)
+5. Sequential dinucleotide mutation: compute the sequential dinucleotide mutation (SDM) spectra for the different individuals
+6. Compute the mutation spectra evolution: compute the trend of the different mutation classes in the different populations using [relate](https://myersgroup.github.io/relate/)
+
+The different components can be switches off depending on the analytical requirements and public resources available.
+
 ## Algorithm choice
 The user can choose between two different imputation algorithms and three algorithms to compute the mutation spectra.
 
