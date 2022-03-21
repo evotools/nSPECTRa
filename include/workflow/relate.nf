@@ -20,11 +20,7 @@ workflow RELATE {
         bedmask
 
     main:
-        // Split variants in chromosomes and impute them
-        // chromosomeList( vcf, tbi )
-        // chromosomes_ch = chromosomeList.out
-        //     .splitCsv(header: ['N','chrom'])
-        //     .map{ row-> tuple(row.N, row.chrom) }
+        ch_relate = file(params.relate)
 
         // check if there is a popfile, otherwise create one
         if (params.poplabels) {
@@ -54,43 +50,48 @@ workflow RELATE {
 
         // Prepare data for relate
         // relate_format(vcf, tbi, breeds_ch, chromosomes_ch)
-        relate_format(vcf, tbi, anc_fa, anc_fai, make_mask.out, makefai.out, popfile_ch, chromosomes_ch)
+        relate_format(vcf, tbi, anc_fa, anc_fai, make_mask.out, makefai.out, popfile_ch, ch_relate, chromosomes_ch)
 
         // Create relate map files
         make_relate_map( relate_format.out )
 
         // Run relate
-        relate( make_relate_map.out )
+        relate( make_relate_map.out, ch_relate )
 
         // Run relate Ne
-        relate_ne( relate.out[0].collect(), relate.out[1].collect(), chromosomeList, popfile_ch )
+        relate_ne( relate.out[0].collect(), relate.out[1].collect(), chromosomeList, popfile_ch, ch_relate )
+        ne_out = relate_ne.out
 
         // Estimate mutation spectra
         //relate_mut( chromosomeList, relate_ne.out[0].collect(), anc_fa, anc_fai, make_mask.out, makefai.out, popfile_ch )
         
         // Estimate mutation spectra (single chr)
-        relate_mut_chr( chromosomes_ch, relate_ne.out[0].collect(), anc_fa, anc_fai, make_mask.out, makefai.out, popfile_ch )
+        relate_mut_chr( chromosomes_ch, ne_out[0].collect(), anc_fa, anc_fai, make_mask.out, makefai.out, popfile_ch, ch_relate )
+        //relate_mut_chr( chromosomes_ch, relate_ne.out[0].collect(), anc_fa, anc_fai, make_mask.out, makefai.out, popfile_ch )
 
         // Finalize per-contig mutation rates
-        relate_mut_chr_finalise( relate_mut_chr.out, chromosomeList, popfile_ch )
+        relate_mut_chr_finalise( relate_mut_chr.out, chromosomeList, popfile_ch, ch_relate )
 
         // Collect finalised values
-        relate_mut_finalise( relate_mut_chr_finalise.out.collect(), chromosomeList, popfile_ch )
+        relate_mut_finalise( relate_mut_chr_finalise.out.collect(), chromosomeList, popfile_ch, ch_relate )
 
         // Run relate mutation by breed by chr
-        relate_mut_chr_pop( combined_ch, relate_ne.out[0].collect(), anc_fa, anc_fai, make_mask.out, makefai.out, popfile_ch )
+        //relate_mut_chr_pop( combined_ch, relate_ne.out[0].collect(), anc_fa, anc_fai, make_mask.out, makefai.out, popfile_ch )
+        relate_mut_chr_pop( combined_ch, ne_out[0].collect(), anc_fa, anc_fai, make_mask.out, makefai.out, popfile_ch, ch_relate )
 
         // Finalize per-contig mutation rates
-        relate_chr_pop_mut_finalise( relate_mut_chr_pop.out.groupTuple(by: 0), chromosomeList )
+        relate_chr_pop_mut_finalise( relate_mut_chr_pop.out.groupTuple(by: 0), chromosomeList, ch_relate )
 
         // Calculate average mutation rate for population
-        relate_avg_mut( relate_ne.out[0].collect(), chromosomeList, popfile_ch )
+        //relate_avg_mut( relate_ne.out[0].collect(), chromosomeList, popfile_ch )
+        relate_avg_mut( ne_out[0].collect(), chromosomeList, popfile_ch, ch_relate )
 
         // Plot the relate results
         // relate_plot_pop( relate_chr_pop_mut_finalise.out.collect(), popfile_ch )
         
     emit:
-        relate_ne.out[2] 
+        //relate_ne.out[2] 
+        ne_out[2] 
         relate_avg_mut.out
 
 
