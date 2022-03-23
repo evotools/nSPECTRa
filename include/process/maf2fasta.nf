@@ -67,7 +67,7 @@ process bed2vbed{
     path contig
 
     output:
-    tuple path("./${contig.simpleName}_ancestral_states.bed.gz"), path(contig)
+    tuple path("./${contig.baseName}_ancestral_states.bed.gz"), path(contig)
     
     
     stub:
@@ -77,12 +77,12 @@ process bed2vbed{
 
     script:
     """
-    awk -v chrid=${contig.simpleName} '\$1==chrid {print}' ${bed} > ./${contig.simpleName}.bed
-    BED2VBED -b ./${contig.simpleName}.bed | \
+    awk -v chrid=${contig.baseName} '\$1==chrid {print}' ${bed} > ./${contig.baseName}.bed
+    BED2VBED -b ./${contig.baseName}.bed | \
             sort --buffer-size=25G --parallel=${task.cpus} -T ./TMP/ -k1,1 -k2,2n - | \
             COMBINE -b - -f ${contig} | \
             CONSENSE -b - | \
-            bgzip -c > ${contig.simpleName}_ancestral_states.bed.gz && rm ./${contig.simpleName}.bed
+            bgzip -c > ${contig.baseName}_ancestral_states.bed.gz && rm ./${contig.baseName}.bed
     """
 }
 
