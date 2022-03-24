@@ -46,11 +46,14 @@ workflow ANCESTRAL {
             ch_ref = makeRefTgtFasta.out[0]
             ch_ref_fai = makeRefTgtFasta.out[2]
 
-            splitfasta(makeRefTgtFasta.out[0], makeRefTgtFasta.out[2])
+            sequences = makeRefTgtFasta.out[0]
+                                .splitFasta(record: [ id: true, header: true ], by: 1)
+            // splitfasta(makeRefTgtFasta.out[0], makeRefTgtFasta.out[2])
             //chunked_ref = maf2bed.out.combine(splitfasta.out)
             
             // Bed to vertical bed
-            bed2vbed( maf2bed.out, splitfasta.out.flatten() )
+            // bed2vbed( maf2bed.out, splitfasta.out.flatten() )
+            bed2vbed( maf2bed.out, makeRefTgtFasta.out[0], makeRefTgtFasta.out[2], sequences )
             // Bed to ancestral fasta
             bed2ancfa( bed2vbed.out )
             // Collect ancestral fasta

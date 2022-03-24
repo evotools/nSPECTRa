@@ -64,25 +64,28 @@ process bed2vbed{
 
     input:
     path bed
-    path contig
+    path fasta
+    path fai
+    tuple val(contig), val(header)
 
     output:
-    tuple path("./${contig.baseName}_ancestral_states.bed.gz"), path(contig)
+    tuple path("./${contig}_ancestral_states.bed.gz"), path("${contig}.fasta")
     
     
     stub:
     """
-    touch ./${contig.simpleName}_ancestral_states.bed.gz
+    touch ./${contig}_ancestral_states.bed.gz
     """
 
     script:
     """
-    awk -v chrid=${contig.baseName} '\$1==chrid {print}' ${bed} > ./${contig.baseName}.bed
-    BED2VBED -b ./${contig.baseName}.bed | \
+    samtools faidx ${fasta} ${contig} > ${contig}.fasta
+    awk -v chrid=${contig} '\$1==chrid {print}' ${bed} > ./${contig}.bed
+    BED2VBED -b ./${contig}.bed | \
             sort --buffer-size=25G --parallel=${task.cpus} -T ./TMP/ -k1,1 -k2,2n - | \
-            COMBINE -b - -f ${contig} | \
+            COMBINE -b - -f ${contig}.fasta | \
             CONSENSE -b - | \
-            bgzip -c > ${contig.baseName}_ancestral_states.bed.gz && rm ./${contig.baseName}.bed
+            bgzip -c > ${contig}_ancestral_states.bed.gz && rm ./${contig}.bed 
     """
 }
 
