@@ -27,7 +27,7 @@ To generate the HAL alignment archive, we suggest to use [cactus](https://github
 ## Workflow overview
 The workflow constitutes of five separate components, repesented in figure below:
 
-![Flowchart](https://raw.githubusercontent.com/evotools/nSPECTRa/blob/main/imgs/WorkflowComponents.png)
+![Flowchart](https://github.com/evotools/nSPECTRa/blob/bc8d089c75f8ca7625e8decb64058c1b6f230c5b/imgs/WorkflowComponents.png)
 
 In short, there are six separate units:
 1. VCF preprocessing: the vcf file gets imputed using either Beagle or SHAPEIT4, and then annotated using the VEP.
