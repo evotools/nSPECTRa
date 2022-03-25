@@ -39,6 +39,9 @@ def consense_query(input_alleles):
     seqs = np.array(list(input_alleles))
     r_allele, a_alleles = seqs[0], seqs[1:]
     a_alleles = a_alleles[np.char.upper(a_alleles) != "N"]
+    # if all alleles are N, return "-"
+    if len(a_alleles) == 0:
+        return "-"
     values, counts = np.unique(np.char.upper(a_alleles), return_counts=True)
     maxallele = np.max(counts)
     if len(values) == 1: 
