@@ -79,6 +79,7 @@ process bed2vbed{
 
     script:
     """
+    mkdir TMP/
     samtools faidx ${fasta} ${contig} > ${contig}.fasta
     awk -v chrid=${contig} '\$1==chrid {print}' ${bed} > ./${contig}.bed
     BED2VBED -b ./${contig}.bed | \
