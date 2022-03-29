@@ -186,6 +186,31 @@ process shapeit4 {
     """
 }
 
+// Split VCf by chromosome
+process split_vcf {
+    tag "split.${chrom}"
+    label "large_largemem"
+
+    input:
+    tuple val(idx), val(chrom)
+    path vcf
+    path tbi
+
+    output:
+    tuple val(chrom), file("prephase_${chrom}.vcf.gz")
+
+    
+    stub:
+    """
+    touch prephase_${chrom}.vcf.gz
+    """
+
+    script:
+    """
+    bcftools view -O z -r ${chrom} ${vcf} > prephase_${chrom}.vcf.gz
+    """
+}
+
 process combine {
     tag "combine"
     label 'medium'
