@@ -60,12 +60,7 @@ workflow PREPROCESS {
             beagle( chromosomes_ch, ch_var, ch_var_idx, beagle_ch )
             vep( beagle.out, ch_ref, ch_ref_fai, annot_ch )
         } else {
-            if (params.whatshap){
-                psfield_ch = '--use-PS 0.0001'
-            } else {
-                psfield_ch = ''
-            }
-            shapeit4( chromosomes_ch, ch_var, ch_var_idx, psfield_ch )
+            shapeit4( chromosomes_ch, ch_var, ch_var_idx )
             vep( shapeit4.out, ch_ref, ch_ref_fai, annot_ch )
         }
         // Annotate the output VCFs

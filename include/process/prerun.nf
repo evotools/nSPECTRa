@@ -164,7 +164,6 @@ process shapeit4 {
     tuple val(idx), val(chrom)
     path vcf
     path tbi
-    val psfield
 
     output:
     tuple val(chrom), file("prephase_${chrom}.vcf.gz")
@@ -176,6 +175,7 @@ process shapeit4 {
     """
 
     script:
+    def psfield = params.whatshap ? "--use-PS 0.0001" : null
     if (params.shapeit)
     """
     ${params.shapeit} --input ${vcf} -T ${task.cpus} --region ${chrom} --effective-size ${params.neval} --output prephase_${chrom}.vcf.gz --sequencing ${psfield}
