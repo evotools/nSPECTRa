@@ -30,6 +30,31 @@ process filtering {
     """
 }
 
+process keep_biallelic_snps {
+    tag "bisnp"
+    label "medium"
+
+    input:
+    path variants
+    path variants_idx 
+
+    output:
+    path "biallelic_snps.vcf.gz"
+    path "biallelic_snps.vcf.gz.tbi"
+
+    
+    stub:
+    """
+    touch biallelic_snps.vcf.gz
+    touch biallelic_snps.vcf.gz.tbi
+    """
+
+    script:
+    """
+    bcftools view -m 2 -M 2 -v snps -O z > biallelic_snps.vcf.gz && tabix -p vcf biallelic_snps.vcf.gz
+    """
+}
+
 process extract {
     tag "extract"
     label "medium"

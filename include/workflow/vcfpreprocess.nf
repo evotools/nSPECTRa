@@ -1,5 +1,6 @@
 
 include { filtering; apply_filter; extract; exclude; extract_exclude; select_noncoding; select_coding } from '../process/filtering'
+include { keep_biallelic_snps } from '../process/filtering'
 include { vep } from '../process/annotate'
 include { shapeit4; beagle; chromosomeList; combine } from '../process/prerun'
 include { get_beagle; get_vep_cache } from '../process/dependencies'
@@ -13,6 +14,11 @@ workflow PREPROCESS {
         ch_ref
         ch_ref_fai
     main:
+        // Keep biallelic SNPs only
+        keep_biallelic_snps(ch_var, ch_var_idx)
+        ch_var = keep_biallelic_snps.out[0]
+        ch_var_idx = keep_biallelic_snps.out[1]
+
         // Split variants in chromosomes and impute them
         if (params.chr_list){
             Channel
