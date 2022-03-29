@@ -58,12 +58,14 @@ workflow PREPROCESS {
                 beagle_ch = get_beagle.out
             }
             beagle( chromosomes_ch, ch_var, ch_var_idx, beagle_ch )
+            phased_vcf = beagle.out
             vep( beagle.out, ch_ref, ch_ref_fai, annot_ch )
         } else {
             shapeit4( chromosomes_ch, ch_var, ch_var_idx )
-            vep( shapeit4.out, ch_ref, ch_ref_fai, annot_ch )
+            phased_vcf = shapeit4.out
         }
         // Annotate the output VCFs
+        vep( phased_vcf, ch_ref, ch_ref_fai, annot_ch )
         vcf_ch = vep.out[0]
         tbi_ch = vep.out[1]
 
