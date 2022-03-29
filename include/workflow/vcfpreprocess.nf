@@ -49,21 +49,27 @@ workflow PREPROCESS {
             annot_ch = get_vep_cache() 
         }
 
-        // Impute with beagle or shapeit4
-        if (params.imputation == 'beagle'){
-            if (params.beagle){ 
-                beagle_ch = file(params.beagle) 
-            } else {
-                get_beagle()
-                beagle_ch = get_beagle.out
-            }
-            beagle( chromosomes_ch, ch_var, ch_var_idx, beagle_ch )
-            phased_vcf = beagle.out
-            vep( beagle.out, ch_ref, ch_ref_fai, annot_ch )
+        if (params.imputed){
+            split_vcf( chromosomes_ch, ch_var, ch_var_idx )
+            phased_vcf = split_vcf.out
         } else {
-            shapeit4( chromosomes_ch, ch_var, ch_var_idx )
-            phased_vcf = shapeit4.out
+            // Impute with beagle or shapeit4
+            if (params.imputation == 'beagle'){
+                if (params.beagle){ 
+                    beagle_ch = file(params.beagle) 
+                } else {
+                    get_beagle()
+                    beagle_ch = get_beagle.out
+                }
+                beagle( chromosomes_ch, ch_var, ch_var_idx, beagle_ch )
+                phased_vcf = beagle.out
+                vep( beagle.out, ch_ref, ch_ref_fai, annot_ch )
+            } else {
+                shapeit4( chromosomes_ch, ch_var, ch_var_idx )
+                phased_vcf = shapeit4.out
+            }
         }
+        
         // Annotate the output VCFs
         vep( phased_vcf, ch_ref, ch_ref_fai, annot_ch )
         vcf_ch = vep.out[0]
