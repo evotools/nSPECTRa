@@ -51,7 +51,7 @@ process keep_biallelic_snps {
 
     script:
     """
-    bcftools view -m 2 -M 2 -v snps -O z > biallelic_snps.vcf.gz && tabix -p vcf biallelic_snps.vcf.gz
+    bcftools view -m 2 -M 2 -v snps -O z ${variants} > biallelic_snps.vcf.gz && tabix -p vcf biallelic_snps.vcf.gz
     """
 }
 
