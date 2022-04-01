@@ -90,6 +90,7 @@ process vep {
     """
 
     script:
+    def cachev = params.vep_cache_version ? "--cache_version ${params.vep_cache_version}" : ""
     if (params.custom_vep)
     """
     if [ ! -e ${input_annot.simpleName}.tbi ]; then tabix -p gff ${input_annot}; fi
@@ -98,7 +99,7 @@ process vep {
     """
     else
     """
-    vep -i ${vcf} -o stdout --vcf --fork ${task.cpus} --species ${params.species} --variant_class --sift b --nearest symbol --distance 200 --offline --dir_cache ${input_annot} | bgzip -c > genotypes.${chrom}.vep.vcf.gz
+    vep -i ${vcf} -o stdout --vcf --fork ${task.cpus} --species ${params.species} --variant_class --sift b --nearest symbol --distance 200 --offline --dir_cache ${input_annot} ${cachev} | bgzip -c > genotypes.${chrom}.vep.vcf.gz
     tabix -p vcf genotypes.${chrom}.vep.vcf.gz
     """
 }
