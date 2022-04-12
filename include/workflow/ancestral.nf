@@ -1,5 +1,6 @@
 
 include { hal2maf } from '../process/hal2maf'
+include { rename_fasta as rename_ref; rename_fasta as rename_anc } from '../process/maf2fasta'
 include {maf2bed; bed2vbed; bed2ancfa; collectAncfa } from '../process/maf2fasta'
 include { makeRefTgtFasta; splitfasta; makefai; makefai as makefai_ref } from '../process/maf2fasta'
 include { liftToAncestor; makeAncestralSequence } from '../process/liftToAncestor'
@@ -60,6 +61,19 @@ workflow ANCESTRAL {
             collectAncfa( bed2ancfa.out.collect() )
             anc_fa = collectAncfa.out[0]
             anc_fai = collectAncfa.out[1]
+
+            // Rename sequences after being extracted from the HAL 
+            // archive to match names in the VCF/VEP cache
+            if (params.rename_hal_sequences){
+                conversion_table = file( params.rename_hal_sequences )
+                rename_ref(ch_ref, conversion_table)
+                rename_anc(anc_fa, conversion_table)
+                ch_ref = rename_ref.out[0]
+                ch_ref_fai = rename_ref.out[1]
+                anc_fa = rename_anc.out[0]
+                anc_fai = rename_anc.out[1]
+            }
+
         }
         
     emit:

@@ -223,3 +223,30 @@ process makefai {
     samtools faidx ${ancfa}
     """
 }
+
+// Rename fasta file if requested
+process rename_fasta {
+    label "small"
+    publishDir "${params.outdir}/ancestral/ancestral_genome_renamed", mode: "${params.publish_dir_mode}", overwrite: true
+
+    input:
+    path fasta
+    path conversion_table
+
+    output:
+    path "${fasta.simpleName}.renamed.fasta"
+    path "${fasta.simpleName}.renamed.fasta.fai"
+
+    
+    stub:
+    """
+    touch ${fasta.simpleName}.renamed.fasta
+    touch ${fasta.simpleName}.renamed.fasta.fai
+    """
+
+    script:
+    """
+    FASTA_REHEADER ${fasta} ${conversion_table} > ${fasta.simpleName}.renamed.fasta
+    samtools faidx ${fasta.simpleName}.renamed.fasta
+    """
+}
