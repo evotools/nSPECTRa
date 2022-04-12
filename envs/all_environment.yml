@@ -19,6 +19,7 @@ dependencies:
   - bioconda::ucsc-fatotwobit 
   - bioconda::ucsc-twobitinfo 
   - matplotlib
+  - meryl
   - numpy
   - pandas
   - java-jdk=8.0.92
