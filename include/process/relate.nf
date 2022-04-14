@@ -130,7 +130,7 @@ process make_relate_map {
 
 // Relate main process
 process relate {
-    label "medium_mem"
+    label "medium_largemem"
     publishDir "${params.outdir}/relate/relate", mode: "${params.publish_dir_mode}", overwrite: true
 
     input:
