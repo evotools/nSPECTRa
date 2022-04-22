@@ -2,6 +2,7 @@
 include { chromosomeList } from '../process/prerun'
 include { mutyper; group_results; plot_results } from '../process/mutyper'
 include { mutyper_full; ksfs } from '../process/mutyper'
+include { kmercount; normalize_results } from '../process/mutyper'
 
 
 // Workflow
@@ -29,6 +30,9 @@ workflow MUTYPER {
         // chromosomeList( vcf, tbi )
         combined_ch = chromosomes_ch.combine(k_list)
 
+        // Run meryl counter
+        kmercount( anc_fa, anc_fai, Channel.from(k_list) ) 
+
         /* Generate mutyper-annotated vcf */
         mutyper_full( vcf, tbi, anc_fa, anc_fai, masks_ch, Channel.from(k_list) )
 
@@ -38,6 +42,9 @@ workflow MUTYPER {
         /* Collect outputs */
         group_results( mutyper.out.groupTuple(by : 0) )
         plot_results( group_results.out )
+
+        // Normalize results
+        normalize_results( group_results.out, kmercount.out.collect() )
 
         // Grep list of samples, and drop smallest groups
         ksfs_inputs = Channel

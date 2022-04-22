@@ -235,3 +235,51 @@ process ksfs {
         mutyper ksfs - > ksfs_${samplename}_${k}.tsv
     """
 }
+
+process kmercount {
+    tag 'kcnt'
+    label 'large'
+    publishDir "${params.outdir}/mutyper/kmer_counts", mode: "${params.publish_dir_mode}", overwrite: true
+
+    input:
+    path ancfa
+    path ancfai
+    val k
+
+    output:
+    path "K${k}_counts.txt"
+
+    stub:
+    """
+    touch K${k}_counts.txt
+    """
+
+    script:
+    """
+    jellyfish count -t 4 -m ${k} -s 3G ${ancfa} -o K${k}.jf
+    jellyfish dump -o K${k}_counts.txt -c K${k}.jf && rm K${k}.jf
+    """
+}
+
+process normalize_results {
+    tag 'kcnt'
+    label 'large'
+    publishDir "${params.outdir}/mutyper/results_corrected", mode: "${params.publish_dir_mode}", overwrite: true
+
+    input:
+    tuple val(k), path(counts)
+    path normalizers
+
+    output:
+    path "${counts.baseName}.norm.csv"
+
+    stub:
+    """
+    touch ${counts.baseName}.norm.csv
+    """
+
+    script:
+    """
+    CORRECT_COUNTS ${counts} K${k}_counts.txt > ${counts.baseName}.norm.csv
+    """
+}
