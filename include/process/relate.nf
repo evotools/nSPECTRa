@@ -130,7 +130,7 @@ process make_relate_map {
 
 // Relate main process
 process relate {
-    label "medium_largemem"
+    label "large_long_smallmem"
     publishDir "${params.outdir}/relate/relate", mode: "${params.publish_dir_mode}", overwrite: true
 
     input:
@@ -149,34 +149,22 @@ process relate {
     """
 
     script:
-    if (task.cpus == 1)
+    // Define effective population size.
+    def ne = params.neval ? "-N ${params.neval}" : "-N 30000"
+    // Define resources and executable
+    // based on core count.
+    def relate = task.cpus == 1 ? "${params.relate}/bin/Relate" : "${params.relate}/scripts/RelateParallel/RelateParallel.sh"
+    def resources = task.cpus == 1 ? "--memory ${task.memory}" : "--threads ${task.cpus} --memory ${task.memory}"
     """
-    ${relate}/bin/Relate --mode All \
+    ${relate} --mode All \
         --mode All \
         -m ${params.mutation_rate} \
-        -N ${params.neval} \
         --haps ${haps} \
         --sample ${sample} \
         --map ${map} \
         --annot ${annot} \
         --dist ${dist} \
-        --memory ${task.memory} \
-        -o relate_chr${contig} 
-    """
-    else 
-    """
-    ${relate}/scripts/RelateParallel/RelateParallel.sh \
-        --mode All \
-        -m ${params.mutation_rate} \
-        -N ${params.neval} \
-        --haps ${haps} \
-        --sample ${sample} \
-        --map ${map} \
-        --annot ${annot} \
-        --dist ${dist} \
-        --threads ${task.cpus} \
-        --memory ${task.cpus * task.memory} \
-        -o relate_chr${contig} 
+        -o relate_chr${contig} ${ne} ${resources}
     """
 }
 
