@@ -49,10 +49,6 @@ process get_masks{
 }
 
 
-
-
-
-
 // Split vcf by chromosome
 process splitvcf {
     tag "split"
@@ -150,9 +146,10 @@ process beagle {
     """
 
     script:
+    def ne = params.neval ? "ne=${params.neval}" : ""
     """
     javamem=`python -c "import sys; maxmem=int(sys.argv[1]); print( maxmem - int(maxmem * .1) )" ${task.memory.toGiga()}`
-    java -jar -Xmx\${javamem}G ${beagle} gt=${vcf} ne=${params.neval} chrom=${chrom} out=prephase_${chrom} nthreads=${task.cpus}
+    java -jar -Xmx\${javamem}G ${beagle} gt=${vcf} ${ne} chrom=${chrom} out=prephase_${chrom} nthreads=${task.cpus}
     """
 }
 
@@ -176,14 +173,19 @@ process shapeit4 {
 
     script:
     def psfield = params.whatshap ? "--use-PS 0.0001" : null
-    if (params.shapeit)
+    def shapeit = params.shapeit ? "${params.shapeit}" : "shapeit"
+    def ne = params.neval ? "--effective-size ${params.neval}" : ""
     """
-    ${params.shapeit} --input ${vcf} -T ${task.cpus} --region ${chrom} --effective-size ${params.neval} --output prephase_${chrom}.vcf.gz --sequencing ${psfield}
+    ${shapeit} --input ${vcf} -T ${task.cpus} --region ${chrom} ${ne} --output prephase_${chrom}.vcf.gz --sequencing ${psfield}
     """
-    else
-    """
-    shapeit4 --input ${vcf} -T ${task.cpus} --region ${chrom} --effective-size ${params.neval} --output prephase_${chrom}.vcf.gz --sequencing ${psfield}
-    """
+    // if (params.shapeit)
+    // """
+    // ${params.shapeit} --input ${vcf} -T ${task.cpus} --region ${chrom} --effective-size ${params.neval} --output prephase_${chrom}.vcf.gz --sequencing ${psfield}
+    // """
+    // else
+    // """
+    // shapeit4 --input ${vcf} -T ${task.cpus} --region ${chrom} --effective-size ${params.neval} --output prephase_${chrom}.vcf.gz --sequencing ${psfield}
+    // """
 }
 
 // Split VCf by chromosome
