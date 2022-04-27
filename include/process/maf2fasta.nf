@@ -159,17 +159,17 @@ process bed2ancfa {
     tuple path(bedfile), path(reffa)
 
     output:
-    path "${reffa.simpleName}.anc.fa"
+    path "${reffa.baseName}.anc.fa"
 
     
     stub:
     """
-    touch ${reffa.simpleName}.anc.fa
+    touch ${reffa.baseName}.anc.fa
     """
 
     script:
     """
-    BED2ANCFASTA -b ${bedfile} -f ${reffa} -o ${reffa.simpleName}.anc.fa
+    BED2ANCFASTA -b ${bedfile} -f ${reffa} -o ${reffa.baseName}.anc.fa
     """
 }
 
