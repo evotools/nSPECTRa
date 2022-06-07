@@ -53,7 +53,6 @@ target          : $params.target
 procedure       : $params.algorithm
 species         : $params.species
 k               : $params.k
-Ne value        : $params.neval
 Ne subset       : $params.ne_subset
 Intergen. time  : $params.intergen_time
 Mut. rate       : $params.mutation_rate
@@ -72,6 +71,9 @@ phast           : $params.phast
 exons           : $params.exon_bed 
 hal4d           : $params.hal4d 
 relate          : $params.relate""" 
+if (params.neval){
+  log.info """Ne value        : $params.neval"""  
+}
 if (params.ancestral){
   log.info """ancestral       : $params.ancestral"""  
 }
