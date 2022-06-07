@@ -37,6 +37,7 @@ params {
       --target [ancestralID]          Ancestral genome id present into the hal archive
       --pops_folder [PATH]            Path to folder with lists of samples in each population (relate workflow)
       --annotation [PATH]             Path to a bed file with the negative strands section (for mutyper) 
+      --ancestral [PATH]              Provide pre-computed ancestral genome to use instead of the hal file
     
     Algorithms selection:
       --algorithm [name]              Name of the algorithm to use for the mutation spectra definition (Default: mutyper; options: mutyper, relate, sdm)
@@ -44,7 +45,7 @@ params {
       --species [name]                Species ID for VEP (e.g. 'bos_taurus')
 
     Imputation refinement:
-      --neval [int]                   Effective population size to use for the imputation (Default: 10000)
+      --neval [int]                   Effective population size to use for the imputation (Default: null)
     
     Effective population size estimates
       --ne_subset [int]               Number of markers to consider for Ne estimation in GONE (Default: 50000)
@@ -56,6 +57,7 @@ params {
 
     VEP custom annotation:
       --download_cache                Download VEP cache for the given species (Default: false; if no cache and GFF are specified, it will try to download anyway)
+      --no_sift                       This option disable the "--sift b" option in VEP (Default: false)
       --vep_cache                     Run VEP using local cache into path (Default: false; mandatory)
       --custom_vep                    Run VEP with provided fasta and gff files (Default: false)
       --gff [FILE.gff.gz]             Specify annotation GFF file for VEP (must match chromosome code in the fasta and the hal, and be sorted and bgzipped)
@@ -70,6 +72,8 @@ params {
       --mergeibd                      Path to merge-ibd jar (No default, if unspecified will download version 17Jan20.102)
      
     Filtering parameters:
+      --vcf_is_filtered               The VCF file provided is pre-filtered (skip filtering)
+      --imputed                       The VCF file provided is pre-imputed (skip imputation)
       --extract [BED]                 Limit to variants in given regions (bed format) 
       --exclude [BED]                 Limit to variants not in given regions (bed format) 
       --filter                        Filter data after imputation
@@ -84,6 +88,7 @@ params {
       --intergen_time [value]         Define intergeneration time for the species (Default is 28, as in relate)
       --mutation_rate                 Define mutation rate for the species (Default: 1.25e-8)
       --cactus_url                    Provide url for the desired cactus release
+      --rename_hal_sequences [file]   Rename sequences extracted from the cactus archive using this file
 
     Constrained elements detection
       --gone                          Run GONE to calculate effective population size (Default: false)
