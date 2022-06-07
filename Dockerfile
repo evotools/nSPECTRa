@@ -32,12 +32,7 @@ RUN /venv/bin/conda-unpack
 FROM debian:buster AS runtime
 
 # Install procps in debian to make it compatible with reporting
-RUN apt-get update && apt install -y file procps g++ curl wget && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
-RUN wget https://github.com/marbl/meryl/releases/download/v1.3/meryl-1.3.Linux-amd64.tar.xz && \
-  tar xJf meryl-1.3.Linux-amd64.tar.xz && \
-  mv meryl-1.3/ meryl/ && \
-  rm meryl-1.3.Linux-amd64.tar.xz
+RUN apt-get update && apt install -y file jellyfish procps g++ curl git wget && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Install datasets
 ADD https://ftp.ncbi.nlm.nih.gov/pub/datasets/command-line/LATEST/linux-amd64/datasets /usr/local/bin/datasets 
@@ -48,5 +43,5 @@ COPY --from=build /venv /venv
 
 # When image is run, run the code with the environment
 # activated:
-ENV PATH /venv/bin/:/meryl/bin/:$PATH
+ENV PATH /venv/bin/:$PATH
 SHELL ["/bin/bash", "-c"]
