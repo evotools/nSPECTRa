@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import sys
 import numpy as np
-from shutil import copyfile
+# from shutil import copyfile
 
 def parse_args():
     import argparse
@@ -36,12 +36,25 @@ def parse_fai(fai):
 
 # Define consensus allele
 def consense_query(input_alleles):
-    # if all alleles are N, return "-"
-    if len(set(input_alleles)) == 1 and list(set(input_alleles))[0].upper() == 'N':
+    # If reference is N, continue:
+    if input_alleles[0] in 'N': 
         return "-"
+    # if all alleles are "N/-/.", return "-"
+    if len( set( ''.join(input_alleles).upper() ) ) == 1 and list(set(input_alleles))[0].upper() in ['N', '-', "."]:
+        return "-"
+
+    # Extract ref/alt alleles from the input
     seqs = np.array(list(input_alleles))
     r_allele, a_alleles = seqs[0], seqs[1:]
-    a_alleles = a_alleles[np.char.upper(a_alleles) != "N"]
+
+    # Drop "N/-/." from alt alleles from the input
+    a_alleles = a_alleles[np.invert(np.isin(np.char.upper(a_alleles), ["-", ".", "N"])) ]
+
+    # if no ALT alleles are left are dropping "N/-/.", return "-"
+    if len(a_alleles) == 0:
+        return "-"
+    
+    # Progress to defining the ancestral state
     values, counts = np.unique(np.char.upper(a_alleles), return_counts=True)
     maxallele = np.max(counts)
     if len(values) == 1: 
@@ -71,15 +84,6 @@ def main():
     # Parse bed file and get multiple bases
     for itv in parse_bed(args.bed):
         print( '\t'.join([ itv[0], str(itv[1]), str(itv[2]), itv[-1], consense_query(np.array(list(itv[-1]))) ]) )
-        
-
-    # make a copy to build our ancestor for this chromosome
-    # print(f"Copy {args.fasta}...")
-    # copyfile(args.fasta, args.outname)
-    # anc = pyfaidx.Fasta(args.outname, read_ahead=10000, mutable=True)
-
-    # Generate sequences
-    
 
     # Process bed
     return 0
