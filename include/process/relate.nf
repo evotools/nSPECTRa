@@ -164,6 +164,7 @@ process relate {
         --map ${map} \
         --annot ${annot} \
         --dist ${dist} \
+        --memory ${params.relate_memory} \
         -o relate_chr${contig} ${ne} ${resources}
     """
 }
