@@ -151,10 +151,11 @@ process relate {
     script:
     // Define effective population size.
     def ne = params.neval ? "-N ${params.neval}" : "-N 30000"
-    // Define resources and executable
-    // based on core count.
+    // Define executable
     def relate = task.cpus == 1 ? "${params.relate}/bin/Relate" : "${params.relate}/scripts/RelateParallel/RelateParallel.sh"
-    def resources = task.cpus == 1 ? "--memory ${task.memory}" : "--threads ${task.cpus} --memory ${task.memory}"
+    // Define resources on core count.
+    def cores = task.cpus == 1 ? "" : "--threads ${task.cpus}"
+    def memory = params.relate_memory ? "--memory ${params.relate_memory}" : ""
     """
     ${relate} --mode All \
         --mode All \
@@ -164,8 +165,7 @@ process relate {
         --map ${map} \
         --annot ${annot} \
         --dist ${dist} \
-        --memory ${params.relate_memory} \
-        -o relate_chr${contig} ${ne} ${resources}
+        -o relate_chr${contig} ${ne} ${cores} ${memory}
     """
 }
 
