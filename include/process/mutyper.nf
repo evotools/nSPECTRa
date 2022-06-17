@@ -50,9 +50,62 @@ process mutyper {
 }
 
 
+process mutyper_full_parallel {
+    tag "mutyper_full"
+    label "large_multimem"
+    publishDir "${params.outdir}/mutyper/vcfs", mode: "${params.publish_dir_mode}", overwrite: true
+
+
+    input:
+    path vcf
+    path tbi
+    path ancfasta
+    path ancfai
+    path masks_ch
+    path regions
+    val k
+
+    output:
+    tuple val(k), path("mutyper_${params.reference}_${k}.vcf.gz"), path("mutyper_${params.reference}_${k}.vcf.gz.tbi")
+    
+    stub:
+    """
+    touch mutyper_${params.reference}_${k}.vcf.gz
+    touch mutyper_${params.reference}_${k}.vcf.gz.tbi
+    """
+
+    script:
+    if (params.annotation)
+    """
+    awk 'BEGIN{FS=","}; {print \$2}' $regions > chrs.txt
+    echo "Run mutyper (variants)"
+    parallel -j${task.cpus} "bcftools view -v snps -m2 -M2 -r {} ${vcf} | 
+        bedtools intersect -header -v -a - -b ${masks_ch} | 
+        sed 's/_pilon//g' | 
+        vcffixup - | 
+        mutyper variants --k ${k} --strand_file ${params.annotation} ${ancfasta} - | 
+        bgzip -c > mutyper_${params.reference}_${k}_chr{}.vcf.gz && tabix -p vcf mutyper_${params.reference}_${k}_chr{}.vcf.gz" ::: \$( while read p; do echo \$p; done < chrs.txt )
+    bcftools concat mutyper_${params.reference}_${k}_chr*.vcf.gz | bcftools sort -m 2G -O z -T ./ > mutyper_${params.reference}_${k}.vcf.gz && \
+    bcftools index -t mutyper_${params.reference}_${k}.vcf.gz
+    """
+    else
+    """
+    awk 'BEGIN{FS=","}; {print \$2}' $regions > chrs.txt
+    echo "Run mutyper (variants)"
+    parallel -j${task.cpus} "bcftools view -v snps -m2 -M2 -r {} ${vcf} | 
+        bedtools intersect -header -v -a - -b ${masks_ch} | 
+        sed 's/_pilon//g' | 
+        vcffixup - | 
+        mutyper variants --k ${k} ${ancfasta} - | 
+        bgzip -c > mutyper_${params.reference}_${k}_chr{}.vcf.gz && tabix -p vcf mutyper_${params.reference}_${k}_chr{}.vcf.gz" ::: \$( while read p; do echo \$p; done < chrs.txt )
+    bcftools concat mutyper_${params.reference}_${k}_chr*.vcf.gz | bcftools sort -m 2G -O z -T ./ > mutyper_${params.reference}_${k}.vcf.gz && \
+    bcftools index -t mutyper_${params.reference}_${k}.vcf.gz
+    """
+}
+
 process mutyper_full {
     tag "mutyper_full"
-    label "largemem"
+    label "longmem"
     publishDir "${params.outdir}/mutyper/vcfs", mode: "${params.publish_dir_mode}", overwrite: true
 
 
@@ -97,6 +150,31 @@ process mutyper_full {
     tabix -p vcf mutyper_${params.reference}_${k}.vcf.gz
     """
 }
+
+process count_mutations {
+    tag "count_mutations"
+    label "medium"
+    publishDir "${params.outdir}/mutyper/full_counts", mode: "${params.publish_dir_mode}", overwrite: true
+
+    input:
+    tuple val(k), val(vcf), path(tbi)
+
+    output:
+    tuple val(k), path("mutationSpectra_${params.reference}_${k}.tsv")
+
+    
+    stub:
+    """
+    touch mutationSpectra_${params.reference}_${k}.tsv
+    """
+
+    script:
+    """
+    compute_spectra ${vcf} ${baseDir}/assets/K${k}_mutations.txt > mutationSpectra_${params.reference}_${k}.tmp
+    transpose mutationSpectra_${params.reference}_${k}.tmp > mutationSpectra_${params.reference}_${k}.tsv
+    """
+}
+
 
 //
 // Group mutyper
@@ -263,7 +341,7 @@ process kmercount {
 
 process normalize_results {
     tag 'kcnt'
-    label 'large'
+    label 'medium'
     publishDir "${params.outdir}/mutyper/results_corrected", mode: "${params.publish_dir_mode}", overwrite: true
 
     input:

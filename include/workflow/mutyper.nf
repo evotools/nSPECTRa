@@ -2,6 +2,7 @@
 include { chromosomeList } from '../process/prerun'
 include { mutyper; group_results; plot_results } from '../process/mutyper'
 include { mutyper_full; ksfs } from '../process/mutyper'
+include { mutyper_full_parallel; count_mutations } from '../process/mutyper'
 include { kmercount; normalize_results } from '../process/mutyper'
 
 
@@ -34,7 +35,11 @@ workflow MUTYPER {
         kmercount( anc_fa, anc_fai, Channel.from(k_list) ) 
 
         /* Generate mutyper-annotated vcf */
-        mutyper_full( vcf, tbi, anc_fa, anc_fai, masks_ch, Channel.from(k_list) )
+        // mutyper_full( vcf, tbi, anc_fa, anc_fai, masks_ch, Channel.from(k_list) )
+        mutyper_full_parallel( vcf, tbi, anc_fa, anc_fai, masks_ch, chromosomeList, Channel.from(k_list) )
+
+        /* Generate the counts manually */
+        count_mutations( mutyper_full_parallel.out.filter{ it[0].toInteger() < 8 } )
 
         /* Start mutyper on each chromosome separately */
         mutyper( vcf, tbi, anc_fa, anc_fai, masks_ch, combined_ch )
@@ -52,7 +57,7 @@ workflow MUTYPER {
             .map { file -> tuple(file.simpleName, file, file.countLines() ) }
             .filter { it -> it[2] >= params.min_pop_size }
             .map { it -> tuple( it[0], it[1] ) }
-            .combine( mutyper_full.out )
+            .combine( mutyper_full_parallel.out )
 
         // Extract ksfs vector for each breed
         ksfs( ksfs_inputs )
