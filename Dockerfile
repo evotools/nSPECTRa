@@ -32,7 +32,7 @@ RUN /venv/bin/conda-unpack
 FROM debian:buster AS runtime
 
 # Install procps in debian to make it compatible with reporting
-RUN apt-get update && apt install -y file jellyfish procps g++ curl git wget && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN apt-get update && apt install -y file jellyfish procps g++ curl git wget parallel && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Install datasets
 ADD https://ftp.ncbi.nlm.nih.gov/pub/datasets/command-line/LATEST/linux-amd64/datasets /usr/local/bin/datasets 
