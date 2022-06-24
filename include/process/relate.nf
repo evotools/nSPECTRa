@@ -155,17 +155,17 @@ process relate {
     def relate = task.cpus == 1 ? "${params.relate}/bin/Relate" : "${params.relate}/scripts/RelateParallel/RelateParallel.sh"
     // Define resources on core count.
     def cores = task.cpus == 1 ? "" : "--threads ${task.cpus}"
-    def memory = params.relate_memory ? "--memory ${params.relate_memory}" : ""
+    def memory = params.relate_memory ? "--memory ${params.relate_memory}" : "--memory 5"
     """
     ${relate} --mode All \
-        --mode All \
         -m ${params.mutation_rate} \
         --haps ${haps} \
         --sample ${sample} \
         --map ${map} \
         --annot ${annot} \
         --dist ${dist} \
-        -o relate_chr${contig} ${ne} ${cores} ${memory}
+        ${ne} ${cores} ${memory} \
+        -o relate_chr${contig} 
     """
 }
 
