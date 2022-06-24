@@ -125,6 +125,32 @@ process makeRefTgtFasta {
     """
 }
 
+process filter_by_size {
+    tag "reffilt"
+    label "medium"
+
+    input:
+    path REF
+    path FAI
+
+    output:
+    path "${params.reference}.large.fasta", emit: reffasta
+    path "${params.reference}.large.fasta.fai", emit: reffai
+    
+    
+    stub:
+    """
+    touch ${params.reference}.large.fasta
+    touch ${params.reference}.large.fasta.fai
+    """
+
+    script:
+    """
+    samtools faidx ${REF} \$( awk -v size=${params.ref_min_size} '\$2>=size {print \$1}' ${FAI} ) > ${params.reference}.large.fasta && 
+        samtools faidx ${params.reference}.large.fasta
+    """
+}
+
 process splitfasta {
     label "medium"
 

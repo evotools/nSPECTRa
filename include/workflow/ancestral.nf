@@ -1,7 +1,7 @@
 
 include { hal2maf } from '../process/hal2maf'
 include { rename_fasta as rename_ref; rename_fasta as rename_anc } from '../process/maf2fasta'
-include {maf2bed; bed2vbed; bed2ancfa; collectAncfa } from '../process/maf2fasta'
+include {maf2bed; bed2vbed; bed2ancfa; collectAncfa; filter_by_size } from '../process/maf2fasta'
 include { makeRefTgtFasta; splitfasta; makefai; makefai as makefai_ref } from '../process/maf2fasta'
 include { liftToAncestor; makeAncestralSequence } from '../process/liftToAncestor'
 include { makeAnnotation } from '../process/annotate'
@@ -27,13 +27,25 @@ workflow ANCESTRAL {
             if (params.ref_fasta){
                 ch_ref = file(params.ref_fasta)
                 makefai_ref(ch_ref)
-                ch_ref_fai = makefai_ref.out
+                if (params.ref_min_size){
+                    filter_by_size(ch_ref, makefai_ref.out)
+                    ch_ref = filter_by_size.out[0]
+                    ch_ref_fai = filter_by_size.out[1]
+                } else {
+                    ch_ref_fai = makefai_ref.out
+                }
             } else {
                 if (params.hal) { ch_hal = file(params.hal) } else { exit 1, 'Hal file not specified!' }
                 hal2maf( ch_hal, cactus )
                 makeRefTgtFasta( ch_hal, cactus )
-                ch_ref = makeRefTgtFasta.out[0]
-                ch_ref_fai = makeRefTgtFasta.out[2]
+                if (params.ref_min_size){
+                    filter_by_size(makeRefTgtFasta.out[0], makeRefTgtFasta.out[2])
+                    ch_ref = filter_by_size.out[0]
+                    ch_ref_fai = filter_by_size.out[1]
+                } else {
+                    ch_ref = makeRefTgtFasta.out[0]
+                    ch_ref_fai = makeRefTgtFasta.out[2]
+                }
             }
         } else {
             if (params.hal) { ch_hal = file(params.hal) } else { exit 1, 'Hal file not specified!' }
@@ -44,11 +56,16 @@ workflow ANCESTRAL {
 
             // Extract the different genomes and split it into chunks to speed up the process
             makeRefTgtFasta( ch_hal, cactus )
-            ch_ref = makeRefTgtFasta.out[0]
-            ch_ref_fai = makeRefTgtFasta.out[2]
+            if (params.ref_min_size){
+                filter_by_size(makeRefTgtFasta.out[0], makeRefTgtFasta.out[2])
+                ch_ref = filter_by_size.out[0]
+                ch_ref_fai = filter_by_size.out[1]
+            } else {
+                ch_ref = makeRefTgtFasta.out[0]
+                ch_ref_fai = makeRefTgtFasta.out[2]
+            }
 
-            sequences = makeRefTgtFasta.out[0]
-                                .splitFasta(record: [ id: true, header: true ], by: 1)
+            sequences = ch_ref.splitFasta(record: [ id: true, header: true ], by: 1)
             // splitfasta(makeRefTgtFasta.out[0], makeRefTgtFasta.out[2])
             //chunked_ref = maf2bed.out.combine(splitfasta.out)
             
