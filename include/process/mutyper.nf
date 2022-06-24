@@ -349,8 +349,8 @@ process normalize_results {
     path normalizers
 
     output:
-    path "${counts.baseName}.Knorm.csv"
-    path "${counts.baseName}.KCnorm.csv"
+    path "${counts.baseName}.*.csv"
+    path "${counts.baseName}.*.csv"
 
     stub:
     """
@@ -360,7 +360,7 @@ process normalize_results {
 
     script:
     """
-    CORRECT_COUNTS ${counts} K${k}_counts.txt 1 > ${counts.baseName}.Knorm.csv
-    CORRECT_COUNTS ${counts} K${k}_counts.txt 2 > ${counts.baseName}.KCnorm.csv
+    CORRECT_COUNTS -s ${counts} -k K${k}_counts.txt -m 1 
+    CORRECT_COUNTS -s ${counts} -k K${k}_counts.txt -m 2 
     """
 }
