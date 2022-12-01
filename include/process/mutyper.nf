@@ -160,18 +160,18 @@ process count_mutations {
     tuple val(k), val(vcf), path(tbi)
 
     output:
-    tuple val(k), path("mutationSpectra_${params.reference}_${k}.tsv")
+    tuple val(k), path("mutationSpectra_${params.reference}_${k}.csv")
 
     
     stub:
     """
-    touch mutationSpectra_${params.reference}_${k}.tsv
+    touch mutationSpectra_${params.reference}_${k}.csv
     """
 
     script:
     """
     compute_spectra ${vcf} ${baseDir}/assets/K${k}_mutations.txt > mutationSpectra_${params.reference}_${k}.tmp
-    transpose mutationSpectra_${params.reference}_${k}.tmp > mutationSpectra_${params.reference}_${k}.tsv
+    transpose mutationSpectra_${params.reference}_${k}.tmp > mutationSpectra_${params.reference}_${k}.csv
     """
 }
 
