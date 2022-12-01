@@ -59,7 +59,14 @@ def main():
     # Apply DeSeq2 normalization first
     for colname in [c for c in indf.columns if ">" in c]:
         k = colname.split('>')[0]
-        indf[[colname]] = indf[[colname]] / kcounts.get(k, 0)
+        if k in kcounts:
+            indf[[colname]] = indf[[colname]] / kcounts.get(k, 0)
+        elif invert_kmer(k) in kcounts:
+            indf[[colname]] = indf[[colname]] / kcounts.get(invert_kmer(k), 0)
+        else:
+            import sys
+            print(kcounts)
+            sys.exit('K-mer {} does not exits'.format(k))
     indf.to_csv(args.spectra.replace('.csv', '.NKnorm.csv'), index = False)
 
     # Run normalizatio by column

@@ -175,6 +175,31 @@ process count_mutations {
     """
 }
 
+process count_mutations_csq {
+    tag "count_mutations"
+    label "medium"
+    publishDir "${params.outdir}/mutyper/full_counts_csq", mode: "${params.publish_dir_mode}", overwrite: true
+
+    input:
+    tuple val(k), val(vcf), path(tbi)
+
+    output:
+    tuple val(k), path("mutationSpectra_${params.reference}_${k}.tsv")
+
+    
+    stub:
+    """
+    touch mutationSpectra_${params.reference}_${k}.tsv
+    """
+
+    script:
+    """
+    bcftools +split-vep ${vcf} -d -f '%CHROM\t%POS\\t%INFO/mutation_type\\t%Consequence\\t[%GT\\t]\n' | bgzip -c > K${k}.csqs.tsv.gz
+    vcfsamplenames $i | awk 'NR==1 {print "CHROM\nPOS\nCHANGE\nCSQ"}; {print}' > K${k}.csqs.header
+    compute_spectra_class K${k}.csqs.tsv.gz K${k}.csqs.header ${baseDir}/assets/K${k}_mutations.txt ${baseDir}/assets/VEPpriority > mutationSpectra_${params.reference}_${k}.csq.tsv
+    """
+}
+
 
 //
 // Group mutyper

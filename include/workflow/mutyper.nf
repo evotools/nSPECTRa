@@ -40,6 +40,7 @@ workflow MUTYPER {
 
         /* Generate the counts manually */
         count_mutations( mutyper_full_parallel.out.filter{ it[0].toInteger() < 8 } )
+        count_mutations_csq( mutyper_full_parallel.out.filter{ it[0].toInteger() < 8 } )
 
         /* Start mutyper on each chromosome separately */
         mutyper( vcf, tbi, anc_fa, anc_fai, masks_ch, combined_ch )
@@ -49,7 +50,7 @@ workflow MUTYPER {
         plot_results( group_results.out )
 
         // Normalize results
-        normalize_results( group_results.out, kmercount.out.collect() )
+        // normalize_results( group_results.out, kmercount.out.collect() )
 
         // Grep list of samples, and drop smallest groups
         ksfs_inputs = Channel
