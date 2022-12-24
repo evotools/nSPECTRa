@@ -191,7 +191,7 @@ process shapeit4 {
 // Split VCf by chromosome
 process split_vcf {
     tag "split.${chrom}"
-    label "large_largemem"
+    label "small"
 
     input:
     tuple val(idx), val(chrom)
