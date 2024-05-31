@@ -325,3 +325,64 @@ process make_shapeit{
     """
 }
 
+
+// Compute derived allele freq.
+process daf {
+    tag "mutyper"
+    label "medium"
+    publishDir "${params.outdir}/mutyper/daf", mode: "${params.publish_dir_mode}", overwrite: true
+
+
+    input:
+    path vcf
+    path tbi
+
+    output:
+    path "daf.csv.gz"
+
+    
+    stub:
+    """
+    echo "" | bgzip -c > daf.csv.gz
+    """
+
+    script:
+    """
+    bcftools +fill-tags ${vcf} -- -t AF,AN,AC | bcftools query -H -f "%CHROM,%POS,%AF\n" | bgzip -c > daf.csv.gz
+    """
+}
+
+// Smile plot for the derived allele frequencies
+process smile {
+    label "renv"
+    publishDir "${params.outdir}/mutyper/smile", mode: "${params.publish_dir_mode}", overwrite: true
+
+    input:
+    path daf
+
+    output:
+    path "smile.pdf"
+    path "smile.png"
+
+    stub:
+    """
+    touch smile.pdf
+    touch smile.png
+    """
+
+    script:
+    """
+    #!/usr/bin/Rscript
+    if (TRUE){
+        library(tidyverse)
+        library(ggpubr)
+        library(ggsci)
+    }
+    setwd('~/Analysis/DAF/')
+    daf <- read_csv('${daf}', col_names = c('chrom', 'pos', 'af'), comment = '#')
+
+    p <- gghistogram(daf, x="af", bins=100, color = "#00AFBB", fill = "#00AFBB")
+    ggsave('smile.pdf', device = 'pdf', heigth=9, width=16)
+    ggsave('smile.png', device = 'png', heigth=9, width=16)
+    """
+}

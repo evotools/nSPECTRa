@@ -5,6 +5,7 @@ include { keep_biallelic_snps } from '../process/filtering'
 include { vep } from '../process/annotate'
 include { shapeit4; beagle; split_vcf} from '../process/prerun' 
 include { chromosomeList; combine } from '../process/prerun'
+include { daf; smile } from '../process/prerun'
 include { get_beagle; get_vep_cache } from '../process/dependencies'
 
 
@@ -117,6 +118,8 @@ workflow PREPROCESS {
             vcf_ch = extract_exclude.out[0]
             tbi_ch = extract_exclude.out[1]
         }
+
+        daf(vcf_ch, tbi_ch) | smile
 
     emit:
         vcf_ch
