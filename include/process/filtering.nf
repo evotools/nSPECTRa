@@ -205,3 +205,28 @@ process select_coding {
         tabix -p vcf ${vcf.simpleName}.coding.vcf.gz
     """
 }
+
+process daf_filter {
+    label "medium"
+
+    input:
+    path 'variants.vcf.gz'
+    path 'variants.vcf.gz.tbi'
+
+    output:
+    path "variants_DAF.vcf.gz"
+    path "variants_DAF.vcf.gz.tbi"
+
+    stub:
+    """
+    touch variants_DAF.vcf.gz
+    touch variants_DAF.vcf.gz.tbi
+    """
+
+    script:
+    """
+    bcftools +fill-tags test.vcf  -- -t AF,AC,AN variants.vcf.gz |\ 
+        bcftools view --threads ${task.cpus} -O z -Q ${params.max_derivate_allele_freq}:alt1 > variants_DAF.vcf.gz && \
+        bcftools index --threads ${task.cpus} -t variants_DAF.vcf.gz
+    """
+}
