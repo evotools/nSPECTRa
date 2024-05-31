@@ -30,7 +30,7 @@ process mutyper {
     if (params.annotation)
     """
     echo "Run mutyper (variants)"
-    bcftools view -v snps  -r ${region} -m2 -M2 ${vcf} |
+    bcftools view --threads ${task.cpus} -v snps  -r ${region} -m2 -M2 ${vcf} |
         bedtools intersect -header -v -a - -b ${masks_ch} |
         sed 's/_pilon//g' |
         vcffixup - | 
@@ -40,7 +40,7 @@ process mutyper {
     else
     """
     echo "Run mutyper (variants)"
-    bcftools view -v snps  -r ${region} -m2 -M2 ${vcf} |
+    bcftools view --threads ${task.cpus} -v snps  -r ${region} -m2 -M2 ${vcf} |
         bedtools intersect -header -v -a - -b ${masks_ch} | \
         sed 's/_pilon//g' |
         vcffixup - | 
@@ -130,7 +130,7 @@ process mutyper_full {
     if (params.annotation)
     """
     echo "Run mutyper (variants)"
-    bcftools view -v snps -m2 -M2 ${vcf} |
+    bcftools view --threads ${task.cpus} -v snps -m2 -M2 ${vcf} |
         bedtools intersect -header -v -a - -b ${masks_ch} | 
         sed 's/_pilon//g' |
         vcffixup - | 
@@ -141,7 +141,7 @@ process mutyper_full {
     else
     """
     echo "Run mutyper (variants)"
-    bcftools view -v snps -m2 -M2 ${vcf} |
+    bcftools view --threads ${task.cpus} -v snps -m2 -M2 ${vcf} |
         bedtools intersect -header -v -a - -b ${masks_ch} |  
         sed 's/_pilon//g' |
         vcffixup - | 
@@ -334,7 +334,7 @@ process ksfs {
     script:
     """
     echo "Run mutyper (ksfs)"
-    bcftools view -S ${samplelist} ${vcf} |
+    bcftools view --threads ${task.cpus} -S ${samplelist} ${vcf} |
         mutyper ksfs - > ksfs_${samplename}_${k}.tsv
     """
 }

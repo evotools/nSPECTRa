@@ -70,7 +70,7 @@ process splitvcf {
 
     script:
     """
-    bcftools view -r ${chrom} -O z -o subset_${chrom}.vcf.gz ${ch_vcf} && \
+    bcftools view --threads ${task.cpus} -r ${chrom} -O z -o subset_${chrom}.vcf.gz ${ch_vcf} && \
         tabix -p vcf subset_${chrom}.vcf.gz
     """
 }
@@ -209,7 +209,7 @@ process split_vcf {
 
     script:
     """
-    bcftools view -O z -r ${chrom} ${vcf} > prephase_${chrom}.vcf.gz
+    bcftools view --threads ${task.cpus} -O z -r ${chrom} ${vcf} > prephase_${chrom}.vcf.gz
     """
 }
 

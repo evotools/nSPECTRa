@@ -32,7 +32,7 @@ process filtering {
 
 process keep_biallelic_snps {
     tag "bisnp"
-    label "medium"
+    label "medium_smallmem_parallel"
 
     input:
     path variants
@@ -51,7 +51,7 @@ process keep_biallelic_snps {
 
     script:
     """
-    bcftools view -m 2 -M 2 -v snps -O z ${variants} > biallelic_snps.vcf.gz && tabix -p vcf biallelic_snps.vcf.gz
+    bcftools view --threads ${task.cpus} -m 2 -M 2 -v snps -O z ${variants} > biallelic_snps.vcf.gz && tabix -p vcf biallelic_snps.vcf.gz
     """
 }
 
@@ -141,7 +141,7 @@ process extract_exclude {
 
 process apply_filter {
     tag "filter"
-    label "small"
+    label "medium_smallmem_parallel"
 
     input:
     path variants
@@ -162,15 +162,14 @@ process apply_filter {
 
     script:
     """
-    bcftools view -S ${id_to_keep} -m 2 -M 2 -q 0.05:minor -O z ${variants} > filtered.vcf.gz 
+    bcftools view --threads ${task.cpus} -S ${id_to_keep} -m 2 -M 2 -q 0.05:minor -O z ${variants} > filtered.vcf.gz 
     tabix -p vcf filtered.vcf.gz
     """
 }
 
 
 process select_noncoding {
-    tag "ncd"
-    label "small"
+    label "medium_smallmem_parallel"
 
     input:
         path vcf
@@ -182,14 +181,13 @@ process select_noncoding {
 
     script:
     """
-    bcftools view -O z -i 'CSQ[*] ~ "intergenic_variant" || CSQ[*] ~ "intron_variant"' ${vcf} > ${vcf.simpleName}.noncoding.vcf.gz && \
+    bcftools view --threads ${task.cpus} -O z -i 'CSQ[*] ~ "intergenic_variant" || CSQ[*] ~ "intron_variant"' ${vcf} > ${vcf.simpleName}.noncoding.vcf.gz && \
         tabix -p vcf ${vcf.simpleName}.noncoding.vcf.gz
     """
 }
 
 process select_coding {
-    tag "cd"
-    label "small"
+    label "medium_smallmem_parallel"
 
     input:
         path vcf
@@ -201,13 +199,13 @@ process select_coding {
 
     script:
     """
-    bcftools view -O z -e 'CSQ[*] ~ "intergenic_variant" || CSQ[*] ~ "intron_variant"' ${vcf} > ${vcf.simpleName}.coding.vcf.gz && \
+    bcftools view --threads ${task.cpus} -O z -e 'CSQ[*] ~ "intergenic_variant" || CSQ[*] ~ "intron_variant"' ${vcf} > ${vcf.simpleName}.coding.vcf.gz && \
         tabix -p vcf ${vcf.simpleName}.coding.vcf.gz
     """
 }
 
 process daf_filter {
-    label "medium"
+    label "medium_smallmem_parallel"
 
     input:
     path 'variants.vcf.gz'

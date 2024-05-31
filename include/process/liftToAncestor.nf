@@ -19,7 +19,7 @@ process liftToAncestor {
     script:
     """
     ln ${params.hal} 
-    bcftools view -v snps -m2 -M2 ${params.variants} | sed 's/_pilon//g' |\
+    bcftools view --threads ${task.cpus} -v snps -m2 -M2 ${params.variants} | sed 's/_pilon//g' |\
         awk -v val=0 'BEGIN{OFS="\t"}; \$1!~"#" {print \$1,\$2-1-val,\$2+val,\$1"_"\$2"_"\$4"_"\$5}' | \
         sed 's/,/-/g' > ${params.reference}_variants2lift_1nt.bed
     halname=`basename ${params.hal}`

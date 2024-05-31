@@ -46,7 +46,7 @@ process chromosomeList {
 
     script:
     """
-    bcftools view ${ch_vcf} |\
+    bcftools view --threads ${task.cpus} ${ch_vcf} |\
         awk '\$1!~"#" {print \$1}' |\
         sort -T . |\
         uniq |\
@@ -90,7 +90,7 @@ process relate_format {
     samtools faidx ${ancfa} ${contig} > anc.${contig}.fa
     samtools faidx ${maskfa} ${contig} > mask.${contig}.fa
 
-    bcftools view -r ${contig} --force-samples -O z ${vcf} > ${contig}.RECODE.vcf.gz
+    bcftools view --threads ${task.cpus} -r ${contig} --force-samples -O z ${vcf} > ${contig}.RECODE.vcf.gz
 
     ${relate}/bin/RelateFileFormats --mode ConvertFromVcf -i ${contig}.RECODE \
         --haps ${contig}.INPUT.haps \
