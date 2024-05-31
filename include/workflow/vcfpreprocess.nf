@@ -121,6 +121,13 @@ workflow PREPROCESS {
 
         daf(vcf_ch, tbi_ch) | smile
 
+        // Filter by derived allele freq.
+        if (params.max_derivate_allele_freq){
+            daf_filter(vcf_ch, tbi_ch)
+            vcf_ch = daf_filter.out[0]
+            tbi_ch = daf_filter.out[1]
+        }
+
     emit:
         vcf_ch
         tbi_ch
