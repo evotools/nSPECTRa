@@ -1,8 +1,9 @@
 
 include { chromosomeList } from '../process/prerun'
-include { mutyper; group_results; plot_results } from '../process/mutyper'
+include { mutyper; group_results } from '../process/mutyper'
 include { mutyper_full; ksfs } from '../process/mutyper'
 include { mutyper_full_parallel; count_mutations } from '../process/mutyper'
+include { count_mutations_csq; plot_results } from '../process/mutyper'
 include { kmercount; normalize_results } from '../process/mutyper'
 
 
@@ -53,12 +54,11 @@ workflow MUTYPER {
         // normalize_results( group_results.out, kmercount.out.collect() )
 
         // Grep list of samples, and drop smallest groups
-        ksfs_inputs = Channel
-            .fromPath("${params.pops_folder}/*.txt")
-            .map { file -> tuple(file.simpleName, file, file.countLines() ) }
-            .filter { it -> it[2] >= params.min_pop_size }
-            .map { it -> tuple( it[0], it[1] ) }
-            .combine( mutyper_full_parallel.out )
+        ksfs_inputs = Channel.fromPath("${params.pops_folder}/*.txt")
+            | map { file -> tuple(file.simpleName, file, file.countLines() ) }
+            | filter { it -> it[2] >= params.min_pop_size }
+            | map { it -> tuple( it[0], it[1] ) }
+            | combine( mutyper_full_parallel.out )
 
         // Extract ksfs vector for each breed
         ksfs( ksfs_inputs )

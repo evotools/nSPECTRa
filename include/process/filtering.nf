@@ -192,24 +192,6 @@ process select_noncoding {
     """
 }
 
-process select_coding {
-    label "medium_smallmem_parallel"
-
-    input:
-        path vcf
-        path tbi
-
-    output:
-        path "${vcf.simpleName}.coding.vcf.gz"
-        path "${vcf.simpleName}.coding.vcf.gz.tbi"
-
-    script:
-    """
-    bcftools view --threads ${task.cpus} -O z -e 'CSQ[*] ~ "intergenic_variant" || CSQ[*] ~ "intron_variant"' ${vcf} > ${vcf.simpleName}.coding.vcf.gz && \
-        tabix -p vcf ${vcf.simpleName}.coding.vcf.gz
-    """
-}
-
 process daf_filter {
     label "medium_smallmem_parallel"
 
@@ -229,8 +211,32 @@ process daf_filter {
 
     script:
     """
-    bcftools +fill-tags test.vcf  -- -t AF,AC,AN variants.vcf.gz | \ 
+    bcftools +fill-tags test.vcf  -- -t AF,AC,AN variants.vcf.gz | \
         bcftools view --threads ${task.cpus} -O z -Q ${params.max_derivate_allele_freq}:alt1 > variants_DAF.vcf.gz && \
         bcftools index --threads ${task.cpus} -t variants_DAF.vcf.gz
+    """
+}
+
+process select_coding {
+    label "medium_smallmem_parallel"
+
+    input:
+        path vcf
+        path tbi
+
+    output:
+        path "${vcf.simpleName}.coding.vcf.gz"
+        path "${vcf.simpleName}.coding.vcf.gz.tbi"
+
+    stub:
+    """
+    touch ${vcf.simpleName}.coding.vcf.gz
+    touch ${vcf.simpleName}.coding.vcf.gz.tbi
+    """
+
+    script:
+    """
+    bcftools view --threads ${task.cpus} -O z -e 'CSQ[*] ~ "intergenic_variant" || CSQ[*] ~ "intron_variant"' ${vcf} > ${vcf.simpleName}.coding.vcf.gz && \
+        tabix -p vcf ${vcf.simpleName}.coding.vcf.gz
     """
 }

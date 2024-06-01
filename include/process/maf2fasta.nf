@@ -75,6 +75,7 @@ process bed2vbed{
     stub:
     """
     touch ./${contig}_ancestral_states.bed.gz
+    touch ${contig}.fasta
     """
 
     script:
@@ -110,10 +111,21 @@ process makeRefTgtFasta {
     
     stub:
     """
-    touch ${params.reference}.fasta
-    touch ${params.target}.fasta
-    touch ${params.reference}.fasta.fai
-    touch ${params.target}.fasta.fai
+    echo '>seq1.r' > ${params.reference}.fasta
+    echo 'AACCTTGG' >> ${params.reference}.fasta
+    echo '>seq2.r' >> ${params.reference}.fasta
+    echo 'AACCTTGT' >> ${params.reference}.fasta
+    echo '>seq3.r' >> ${params.reference}.fasta
+    echo 'TTCCTTGT' >> ${params.reference}.fasta
+    samtools faidx ${params.reference}.fasta
+
+    echo '>seq1.t' > ${params.target}.fasta
+    echo 'AACCTTGG' >> ${params.target}.fasta
+    echo '>seq2.t' >> ${params.target}.fasta
+    echo 'AACCTTGT' >> ${params.target}.fasta
+    echo '>seq3.t' >> ${params.target}.fasta
+    echo 'TTCCTTGT' >> ${params.target}.fasta
+    samtools faidx ${params.target}.fasta
     """
 
     script:

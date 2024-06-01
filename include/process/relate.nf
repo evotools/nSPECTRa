@@ -428,15 +428,15 @@ process relate_ne {
 
     stub:
     """
-    for i in `awk 'BEGIN{FS=","};{print \$NF}' ${contig_csv}`; do 
-        touch relate_mut_ne_chr\${i}.anc.gz
-        touch relate_mut_ne_chr\${i}.mut.gz
-        touch relate_mut_ne_chr\${i}.dist
-    done
     touch relate_mut_ne.coal
     touch relate_mut_ne.pairwise.coal
     touch relate_mut_ne.pairwise.bin
     touch relate_mut_ne_avg.rate
+    for i in \$( awk 'BEGIN{FS=","};{print \$NF}' ${contig_csv} ); do 
+        touch relate_mut_ne_chr\${i}.anc.gz
+        touch relate_mut_ne_chr\${i}.mut.gz
+        touch relate_mut_ne_chr\${i}.dist
+    done
     """
 
     script:
