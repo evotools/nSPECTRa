@@ -179,6 +179,12 @@ process select_noncoding {
         path "${vcf.simpleName}.noncoding.vcf.gz"
         path "${vcf.simpleName}.noncoding.vcf.gz.tbi"
 
+    stub:
+    """
+    touch ${vcf.simpleName}.noncoding.vcf.gz
+    touch ${vcf.simpleName}.noncoding.vcf.gz.tbi
+    """
+
     script:
     """
     bcftools view --threads ${task.cpus} -O z -i 'CSQ[*] ~ "intergenic_variant" || CSQ[*] ~ "intron_variant"' ${vcf} > ${vcf.simpleName}.noncoding.vcf.gz && \
@@ -208,12 +214,12 @@ process daf_filter {
     label "medium_smallmem_parallel"
 
     input:
-    path 'variants.vcf.gz'
-    path 'variants.vcf.gz.tbi'
+        path "variants.vcf.gz"
+        path "variants.vcf.gz.tbi"
 
     output:
-    path "variants_DAF.vcf.gz"
-    path "variants_DAF.vcf.gz.tbi"
+        path "variants_DAF.vcf.gz"
+        path "variants_DAF.vcf.gz.tbi"
 
     stub:
     """
@@ -223,7 +229,7 @@ process daf_filter {
 
     script:
     """
-    bcftools +fill-tags test.vcf  -- -t AF,AC,AN variants.vcf.gz |\ 
+    bcftools +fill-tags test.vcf  -- -t AF,AC,AN variants.vcf.gz | \ 
         bcftools view --threads ${task.cpus} -O z -Q ${params.max_derivate_allele_freq}:alt1 > variants_DAF.vcf.gz && \
         bcftools index --threads ${task.cpus} -t variants_DAF.vcf.gz
     """
