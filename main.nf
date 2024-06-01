@@ -50,7 +50,6 @@ output folder   : $params.outdir
 hal             : $params.hal
 reference       : $params.reference
 target          : $params.target
-procedure       : $params.algorithm
 mutyper         : $params.mutyper
 sdm             : $params.sdm
 relate          : $params.relate
@@ -60,7 +59,6 @@ Ne subset       : $params.ne_subset
 Intergen. time  : $params.intergen_time
 Mut. rate       : $params.mutation_rate
 Min. pop. size  : $params.min_pop_size
-algorithm       : $params.algorithm
 imputation sfw  : $params.imputation
 filter          : $params.filter
 coding          : $params.coding
@@ -113,12 +111,11 @@ checkPathParamList = [
 for (param in checkPathParamList) { if (param) { file(param, checkIfExists: true) } }
 
 /* Check mandatory params */
-if (params.variants && !params.ancestral_only) { ch_var = file(params.variants) } else { exit 1, 'Vcf file not specified!' }
-if (params.idx && !params.ancestral_only) { ch_var_idx = file(params.idx) } else { exit 1, 'TBI file not specified!' }
+if (params.variants && !params.ancestral_only) { ch_var = Channel.fromPath(params.variants) } else { exit 1, 'Vcf file not specified!' }
+if (params.idx && !params.ancestral_only) { ch_var_idx = Channel.fromPath(params.idx) } else { exit 1, 'TBI file not specified!' }
 if (!params.hal) { exit 1, 'Hal file not specified and ancestral not specified!' }
 if (!params.hal && !params.ref_fasta && !params.ancestral) { exit 1, 'Ancestral and reference genomes not specified!' }
 if (params.hal4d && !params.exon_bed) { exit 1, 'Requested hal4d algorithm, but no bed with exons specified!' }
-// algorithms = params.algorithm?.tokenize(',').flatten()
 
 /*
  * Import sub-workflows

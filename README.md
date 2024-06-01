@@ -47,7 +47,7 @@ The user can choose to impute either with [shapeit]() v4 or [beagle]() v5 or new
 Both are supported, but only shapeit is included in the anaconda environment, which is the reason why it is the default choice.
 In case the user prefers to use beagle, this needs to be downloaded manually and the path provided with the flag `--beagle`. 
 If `--beagle` is not provided, the workflow will download the version 5.2 automatically.  
-The user can choose what algorithm to use, but keep in mind that they are mutually exclusive, and shapeit will be prioritized over beagle.
+The user can choose what software to use, but keep in mind that they are mutually exclusive, and shapeit will be prioritized over beagle.
 
 ### Mutation spectra
 The software currently supports three software to compute the mutation spectra:
