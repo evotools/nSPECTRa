@@ -13,15 +13,7 @@ def helpMessage() {
 ========================================================================
       '''
 
-
-params {
-    annotation = false
-    help = false
-    publish_dir_mode = 'copy'
-}
-
-  
-    log.info"""
+  log.info"""
 
     Usage:
 
