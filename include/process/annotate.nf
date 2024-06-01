@@ -73,15 +73,13 @@ process vep {
     conda (params.enable_conda ? "bioconda::ensembl-vep=${params.vep_release_maj}" : null)
 
     input:
-    tuple val(chrom), file(vcf)
+    tuple val(chrom), path(vcf), path(tbi)
     path reffasta
     path reffai
     path input_annot
 
     output:
-    path "genotypes.${chrom}.vep.vcf.gz"
-    path "genotypes.${chrom}.vep.vcf.gz.tbi"
-    
+    tuple val(chrom), path("genotypes.${chrom}.vep.vcf.gz"), path("genotypes.${chrom}.vep.vcf.gz.tbi")
     
     stub:
     """

@@ -1,10 +1,11 @@
 
-include { filtering; apply_filter; extract; exclude} from '../process/filtering'
+include { extract; exclude } from '../process/filtering'
 include { extract_exclude; select_noncoding; select_coding } from '../process/filtering'
-include { keep_biallelic_snps; daf_filter } from '../process/filtering'
+include { keep_biallelic_snps; daf_filter; get_sequences } from '../process/filtering'
+// include { filtering; apply_filter } from '../process/filtering'
 include { vep } from '../process/annotate'
-include { shapeit4; beagle; split_vcf} from '../process/prerun' 
-include { chromosomeList; combine } from '../process/prerun'
+include { shapeit4; beagle} from '../process/prerun' 
+include { chromosomeList; combineVcf } from '../process/prerun'
 include { daf; smile } from '../process/prerun'
 include { get_beagle; get_vep_cache } from '../process/dependencies'
 
@@ -17,10 +18,8 @@ workflow PREPROCESS {
         ch_ref
         ch_ref_fai
     main:
-        // Keep biallelic SNPs only
-        keep_biallelic_snps(ch_var, ch_var_idx)
-        ch_var = keep_biallelic_snps.out[0]
-        ch_var_idx = keep_biallelic_snps.out[1]
+        // Get sequences to process
+        sequences = get_sequences(ch_var, ch_var_idx) | splitText | map { it.trim() }
 
         // Split variants in chromosomes and impute them
         if (params.chr_list){
@@ -50,9 +49,10 @@ workflow PREPROCESS {
             annot_ch = get_vep_cache() 
         }
 
+        // Faster processing of the raw VCF, running by contig
+        biallelic_ch = ch_var | combine(ch_var_idx) | combine(sequences) | keep_biallelic_snps
         if (params.imputed){
-            split_vcf( chromosomes_ch, ch_var, ch_var_idx )
-            phased_vcf = split_vcf.out
+            phased_vcf = biallelic_ch
         } else {
             // Impute with beagle or shapeit4
             if (params.imputation == 'beagle'){
@@ -62,58 +62,49 @@ workflow PREPROCESS {
                     get_beagle()
                     beagle_ch = get_beagle.out
                 }
-                beagle( chromosomes_ch, ch_var, ch_var_idx, beagle_ch )
-                phased_vcf = beagle.out
+                phased_vcf = beagle( biallelic_ch, beagle_ch )
             } else {
-                shapeit4( chromosomes_ch, ch_var, ch_var_idx )
-                phased_vcf = shapeit4.out
+                phased_vcf = shapeit4( biallelic_ch )
             }
         }
 
         // Annotate the output VCFs
         vep( phased_vcf, ch_ref, ch_ref_fai, annot_ch )
-        vcf_ch = vep.out[0]
-        tbi_ch = vep.out[1]
-
-        // Combine results
-        combine( vcf_ch.collect(), tbi_ch.collect() )
 
         // Annotate the output VCFs
         if (params.coding && !params.noncoding){
-            select_coding( combine.out[0], combine.out[1] )
-            vcf_ch = select_coding.out[0]
-            vcf_ch = select_coding.out[1]
+            processed_ch = select_coding( vep.out )
         } else if (params.noncoding && !params.coding) {
-            select_noncoding( combine.out[0], combine.out[1] )
-            vcf_ch = select_noncoding.out[0]
-            vcf_ch = select_noncoding.out[1]
+            processed_ch = select_noncoding( vep.out )
         } else {
-            vcf_ch = combine.out[0]
-            tbi_ch = combine.out[1]
+            processed_ch = vep.out
         }
 
-        // Filter if requested
-        if (params.filter){
-            filtering(vcf_ch, tbi_ch)
-            apply_filter(vcf_ch, tbi_ch, filtering.out)
-            vcf_ch = apply_filter.out[0]
-            tbi_ch = apply_filter.out[1]
-        } 
+        // // Filter if requested
+        // if (params.filter){
+        //     filtering(ch_var, ch_var_idx)
+        //     processed_ch = apply_filter(processed_ch.combine(filtering.out))
+        // }
+
+        // Combine results
+        processed_ch | map{ chrom, vcf, tbi -> [vcf, tbi]} | flatten | collect | combineVcf
+        vcf_ch = combineVcf.out[0]
+        tbi_ch = combineVcf.out[1]
 
         // Narrow to given regions
         if (params.exclude && !params.extract){
-            ch_exc = file(params.exclude)
+            ch_exc = Channel.fromPath(params.exclude)
             exclude(vcf_ch, tbi_ch, ch_exc)
             vcf_ch = exclude.out[0]
             tbi_ch = exclude.out[1]
         } else if (!params.exclude && params.extract){
-            ch_ext = file(params.extract)
+            ch_ext = Channel.fromPath(params.extract)
             extract(vcf_ch, tbi_ch, ch_ext)
             vcf_ch = extract.out[0]
             tbi_ch = extract.out[1]
         } else if (params.exclude && params.extract){
-            ch_exc = file(params.exclude)
-            ch_ext = file(params.extract)
+            ch_exc = Channel.fromPath(params.exclude)
+            ch_ext = Channel.fromPath(params.extract)
             extract_exclude(vcf_ch, tbi_ch, ch_ext, ch_exc)
             vcf_ch = extract_exclude.out[0]
             tbi_ch = extract_exclude.out[1]

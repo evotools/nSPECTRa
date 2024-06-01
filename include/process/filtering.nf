@@ -2,6 +2,29 @@
 /*
  * Phase 6: variants filtering
  */
+process get_sequences {
+    label "small"
+
+    input:
+    path vcf_ch
+    path tbi_ch
+
+    output:
+    stdout
+
+    stub:
+    """
+    echo "seq1.r"
+    echo "seq2.r"
+    echo "seq3.r"
+    """
+
+    script:
+    """
+    tabix -l tmp.vcf.gz
+    """
+}
+
 process filtering {
     tag "filter"
     label "medium"
@@ -35,23 +58,21 @@ process keep_biallelic_snps {
     label "medium_smallmem_parallel"
 
     input:
-    path variants
-    path variants_idx 
+    tuple path(variants), path(variants_idx), val(contig)
 
     output:
-    path "biallelic_snps.vcf.gz"
-    path "biallelic_snps.vcf.gz.tbi"
+    tuple val(contig), path("biallelic_snps.${contig}.vcf.gz"), path("biallelic_snps.${contig}.vcf.gz.tbi")
 
     
     stub:
     """
-    touch biallelic_snps.vcf.gz
-    touch biallelic_snps.vcf.gz.tbi
+    touch biallelic_snps.${contig}.vcf.gz
+    touch biallelic_snps.${contig}.vcf.gz.tbi
     """
 
     script:
     """
-    bcftools view --threads ${task.cpus} -m 2 -M 2 -v snps -O z ${variants} > biallelic_snps.vcf.gz && tabix -p vcf biallelic_snps.vcf.gz
+    bcftools view --threads ${task.cpus} -t ${contig} -m 2 -M 2 -v snps -O z ${variants} > biallelic_snps.${contig}.vcf.gz && tabix -p vcf biallelic_snps.${contig}.vcf.gz
     """
 }
 
@@ -144,26 +165,24 @@ process apply_filter {
     label "medium_smallmem_parallel"
 
     input:
-    path variants
-    path variants_idx
+    tuple val(chrom), path(variants), path(variants_idx)
     path id_to_keep 
 
     output:
-    path "filtered.vcf.gz"
-    path "filtered.vcf.gz.tbi"
+    tuple val(chrom), path("filtered.vcf.gz"), path("filtered.vcf.gz.tbi")
     
 
     
     stub:
     """
-    touch filtered.vcf.gz
-    touch filtered.vcf.gz.tbi
+    touch filtered.${chrom}.vcf.gz
+    touch filtered.${chrom}.vcf.gz.tbi
     """
 
     script:
     """
-    bcftools view --threads ${task.cpus} -S ${id_to_keep} -m 2 -M 2 -q 0.05:minor -O z ${variants} > filtered.vcf.gz 
-    tabix -p vcf filtered.vcf.gz
+    bcftools view --threads ${task.cpus} -S ${id_to_keep} -m 2 -M 2 -q 0.05:minor -O z ${variants} > filtered.${chrom}.vcf.gz 
+    tabix -p vcf filtered.${chrom}.vcf.gz
     """
 }
 
@@ -172,23 +191,21 @@ process select_noncoding {
     label "medium_smallmem_parallel"
 
     input:
-        path vcf
-        path tbi
-
+        tuple val(chrom), path(vcf), path(tbi)
+        
     output:
-        path "${vcf.simpleName}.noncoding.vcf.gz"
-        path "${vcf.simpleName}.noncoding.vcf.gz.tbi"
+        tuple val(chrom), path("${vcf.simpleName}.${chrom}.noncoding.vcf.gz"), path("${vcf.simpleName}.${chrom}.noncoding.vcf.gz.tbi")
 
     stub:
     """
-    touch ${vcf.simpleName}.noncoding.vcf.gz
-    touch ${vcf.simpleName}.noncoding.vcf.gz.tbi
+    touch ${vcf.simpleName}.${chrom}.noncoding.vcf.gz
+    touch ${vcf.simpleName}.${chrom}.noncoding.vcf.gz.tbi
     """
 
     script:
     """
-    bcftools view --threads ${task.cpus} -O z -i 'CSQ[*] ~ "intergenic_variant" || CSQ[*] ~ "intron_variant"' ${vcf} > ${vcf.simpleName}.noncoding.vcf.gz && \
-        tabix -p vcf ${vcf.simpleName}.noncoding.vcf.gz
+    bcftools view --threads ${task.cpus} -O z -i 'CSQ[*] ~ "intergenic_variant" || CSQ[*] ~ "intron_variant"' ${vcf} > ${vcf.simpleName}.${chrom}.noncoding.vcf.gz && \
+        tabix -p vcf ${vcf.simpleName}.${chrom}.noncoding.vcf.gz
     """
 }
 
@@ -221,22 +238,20 @@ process select_coding {
     label "medium_smallmem_parallel"
 
     input:
-        path vcf
-        path tbi
+        tuple val(chrom), path(vcf), path(tbi)
 
     output:
-        path "${vcf.simpleName}.coding.vcf.gz"
-        path "${vcf.simpleName}.coding.vcf.gz.tbi"
+        tuple val(chrom), path("${vcf.simpleName}.${chrom}.coding.vcf.gz"), path("${vcf.simpleName}.${chrom}.coding.vcf.gz.tbi")
 
     stub:
     """
-    touch ${vcf.simpleName}.coding.vcf.gz
-    touch ${vcf.simpleName}.coding.vcf.gz.tbi
+    touch ${vcf.simpleName}.${chrom}.coding.vcf.gz
+    touch ${vcf.simpleName}.${chrom}.coding.vcf.gz.tbi
     """
 
     script:
     """
-    bcftools view --threads ${task.cpus} -O z -e 'CSQ[*] ~ "intergenic_variant" || CSQ[*] ~ "intron_variant"' ${vcf} > ${vcf.simpleName}.coding.vcf.gz && \
-        tabix -p vcf ${vcf.simpleName}.coding.vcf.gz
+    bcftools view --threads ${task.cpus} -O z -e 'CSQ[*] ~ "intergenic_variant" || CSQ[*] ~ "intron_variant"' ${vcf} > ${vcf.simpleName}.${chrom}.coding.vcf.gz && \
+        tabix -p vcf ${vcf.simpleName}.${chrom}.coding.vcf.gz
     """
 }

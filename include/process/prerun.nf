@@ -131,18 +131,17 @@ process beagle {
     label "large_largemem"
 
     input:
-    tuple val(idx), val(chrom)
-    path vcf
-    path tbi
+    tuple val(chrom), path(vcf), path(tbi)
     path beagle
 
     output:
-    tuple val(chrom), file("prephase_${chrom}.vcf.gz")
+    tuple val(chrom), path("prephase_${chrom}.vcf.gz"), path("prephase_${chrom}.vcf.gz.tbi")
 
     
     stub:
     """
     touch prephase_${chrom}.vcf.gz
+    touch prephase_${chrom}.vcf.gz.tbi
     """
 
     script:
@@ -150,6 +149,9 @@ process beagle {
     """
     javamem=`python -c "import sys; maxmem=int(sys.argv[1]); print( maxmem - int(maxmem * .1) )" ${task.memory.toGiga()}`
     java -jar -Xmx\${javamem}G ${beagle} gt=${vcf} ${ne} chrom=${chrom} out=prephase_${chrom} nthreads=${task.cpus}
+    if [ ! -e prephase_${chrom}.vcf.gz.tbi ]; then
+        tabix -p vcf prephase_${chrom}.vcf.gz
+    fi
     """
 }
 
@@ -158,17 +160,16 @@ process shapeit4 {
     label "medium_multi"
 
     input:
-    tuple val(idx), val(chrom)
-    path vcf
-    path tbi
+    tuple val(chrom), path(vcf), path(tbi)
 
     output:
-    tuple val(chrom), file("prephase_${chrom}.vcf.gz")
+    tuple val(chrom), path("prephase_${chrom}.vcf.gz"), path("prephase_${chrom}.vcf.gz.tbi")
 
     
     stub:
     """
     touch prephase_${chrom}.vcf.gz
+    touch prephase_${chrom}.vcf.gz.tbi
     """
 
     script:
@@ -177,6 +178,9 @@ process shapeit4 {
     def ne = params.neval ? "--effective-size ${params.neval}" : ""
     """
     ${shapeit} --input ${vcf} -T ${task.cpus} --region ${chrom} ${ne} --output prephase_${chrom}.vcf.gz --sequencing ${psfield}
+    if [ ! -e prephase_${chrom}.vcf.gz.tbi ]; then
+        tabix -p vcf prephase_${chrom}.vcf.gz
+    fi
     """
     // if (params.shapeit)
     // """
@@ -213,15 +217,14 @@ process split_vcf {
     """
 }
 
-process combine {
+process combineVcf {
     tag "combine"
     label 'medium'
     publishDir "${params.outdir}/imputed", mode: "${params.publish_dir_mode}", overwrite: true
 
 
     input:
-        path prephased
-        path prephased_tbi
+        path "vcfs/*"
 
     output:
         path "IMPUTED.vcf.gz" 
@@ -236,8 +239,7 @@ process combine {
 
     script:
     """
-    echo $prephased
-    bcftools concat -O u ${prephased} | bcftools sort -T ./ -O z -m 5G > IMPUTED.vcf.gz && \
+    bcftools concat -O u vcfs/*.vcf.gz | bcftools sort -T ./ -O z -m 5G > IMPUTED.vcf.gz && \
         tabix -p vcf IMPUTED.vcf.gz
     """
 }
@@ -257,11 +259,11 @@ process ibd {
     clusterOptions "-P roslin_ctlgh -l h_vmem=${task.memory.toString().replaceAll(/[\sB]/,'')}"
 
     input: 
-        tuple val(chrom), file(imputed)
+        tuple val(chrom), path(imputed), path(imputed_tbi)
 
     output: 
-        tuple val(chrom), file("IBD.${chrom}.ibd.gz")
-        tuple val(chrom), file("IBD.${chrom}.hbd.gz")
+        tuple val(chrom), path("IBD.${chrom}.ibd.gz")
+        tuple val(chrom), path("IBD.${chrom}.hbd.gz")
   
     
     stub:
