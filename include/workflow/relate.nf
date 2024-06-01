@@ -20,7 +20,7 @@ workflow RELATE {
         bedmask
 
     main:
-        ch_relate = file(params.relate)
+        ch_relate = file(params.relate_path)
 
         // check if there is a popfile, otherwise create one
         if (params.poplabels) {

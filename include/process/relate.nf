@@ -299,10 +299,10 @@ process relate_mut_chr {
     stub:
     """
     mkdir ANCMUT
-    touch ANCMUT/relate_mut_chr${contig}.anc.gz
-    touch ANCMUT/relate_mut_chr${contig}.mut.gz
-    touch ANCMUT/relate_mut_chr${contig}_mut.bin
-    touch ANCMUT/relate_mut_chr${contig}_opp.bin
+    touch ANCMUT/relate_mut_ne_chr${contig}.anc.gz
+    touch ANCMUT/relate_mut_ne_chr${contig}.mut.gz
+    touch ANCMUT/relate_mut_ne_chr${contig}_mut.bin
+    touch ANCMUT/relate_mut_ne_chr${contig}_opp.bin
     """
 
     script:
@@ -376,7 +376,6 @@ process relate_mut_finalise {
 
     input:
     path inputs
-    //tuple path(ancs), path(muts), path(mutbins), path(oppbins), path(rates)
     path contig_csv
     path poplabels
     path relate
@@ -409,6 +408,7 @@ process relate_mut_finalise {
 
 
 process relate_ne {
+    label "medium_mem"
     publishDir "${params.outdir}/relate/ne", mode: "${params.publish_dir_mode}", overwrite: true
 
     input:
@@ -425,38 +425,39 @@ process relate_ne {
     path "relate_mut_ne.pdf"
     path "relate_mut_ne_avg.rate"
 
-
     stub:
-    """
-    touch relate_mut_ne.coal
-    touch relate_mut_ne.pairwise.coal
-    touch relate_mut_ne.pairwise.bin
-    touch relate_mut_ne_avg.rate
-    for i in \$( awk 'BEGIN{FS=","};{print \$NF}' ${contig_csv} ); do 
-        touch relate_mut_ne_chr\${i}.anc.gz
-        touch relate_mut_ne_chr\${i}.mut.gz
-        touch relate_mut_ne_chr\${i}.dist
-    done
-    """
+        """
+        touch relate_mut_ne.coal
+        touch relate_mut_ne.pairwise.coal
+        touch relate_mut_ne.pairwise.bin
+        touch relate_mut_ne_avg.rate
+        touch relate_mut_ne.pdf
+        touch relate_mut_ne.pairwise.ne
+        for i in \$( awk 'BEGIN{FS=","};{print \$NF}' ${contig_csv} ); do 
+            touch relate_mut_ne_chr\${i}.anc.gz
+            touch relate_mut_ne_chr\${i}.mut.gz
+            touch relate_mut_ne_chr\${i}.dist
+        done
+        """
 
     script:
-    """
-    # Get chromosome list
-    awk 'BEGIN{FS=","};{print \$NF}' ${contig_csv} > chroms.txt 
+        """
+        # Get chromosome list
+        awk 'BEGIN{FS=","};{print \$NF}' ${contig_csv} > chroms.txt 
 
-    # Run relate mutation spectra    
-    ${relate}/scripts/EstimatePopulationSize/EstimatePopulationSize.sh \
-            -i relate \
-            --chr chroms.txt \
-            --poplabels ${poplabels} \
-            -m 1.25e-8 \
-            --years_per_gen ${params.intergen_time} \
-            --threads ${task.cpus} \
-            -o relate_mut_ne 2> ne.err
+        # Run relate mutation spectra    
+        ${relate}/scripts/EstimatePopulationSize/EstimatePopulationSize.sh \
+                -i relate \
+                --chr chroms.txt \
+                --poplabels ${poplabels} \
+                -m 1.25e-8 \
+                --years_per_gen ${params.intergen_time} \
+                --threads ${task.cpus} \
+                -o relate_mut_ne 2> ne.err
 
-    # Generate single-pop Ne values
-    coal2ne relate_mut_ne.pairwise.coal > relate_mut_ne.pairwise.ne
-    """
+        # Generate single-pop Ne values
+        coal2ne relate_mut_ne.pairwise.coal > relate_mut_ne.pairwise.ne
+        """
 }
 
 
@@ -478,8 +479,8 @@ process relate_mut_chr_pop {
 
     stub:
     """
-    touch relate_mut_${pop}_chr${contig}_mut.bin
-    touch relate_mut_${pop}_chr${contig}_opp.bin
+    touch relate_mut_ne_${pop}_chr${contig}_mut.bin
+    touch relate_mut_ne_${pop}_chr${contig}_opp.bin
     """
 
     script:

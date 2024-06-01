@@ -51,11 +51,9 @@ The user can choose what algorithm to use, but keep in mind that they are mutual
 
 ### Mutation spectra
 The software currently supports three software to compute the mutation spectra:
- 1. mutyper: the default choice, it can compute the spectra for different K-mer size;
- 2. relate: used to define the mutation spectra changes over time and an accurate estimate of the effective population size;
- 3. sdm: method to define sequential dinucleotide polymorphisms, MNPs and adjacent SNPs from [Prendergast et al., 2019](https://academic.oup.com/gbe/article/11/3/759/5299487).
-
-Mutiple choices are possible, and the user is free to use all of them by setting `--algorithm sdm,mutyper,relate`. 
+ 1. `--mutyper`: the default choice, it can compute the spectra for different K-mer size;
+ 2. `--relate`: used to define the mutation spectra changes over time and an accurate estimate of the effective population size;
+ 3. `--sdm`: method to define sequential dinucleotide polymorphisms, MNPs and adjacent SNPs from [Prendergast et al., 2019](https://academic.oup.com/gbe/article/11/3/759/5299487).
 
 ## Input pre-filtering
 We recommend to pre-filter the vcf file to obtain samples with a reasonable coverage (>8-10 mean DP) and with variants with low call rate removed from the dataset (CCR > 90%) and minor allele count MAC >= 2.

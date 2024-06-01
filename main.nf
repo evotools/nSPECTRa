@@ -51,6 +51,9 @@ hal             : $params.hal
 reference       : $params.reference
 target          : $params.target
 procedure       : $params.algorithm
+mutyper         : $params.mutyper
+sdm             : $params.sdm
+relate          : $params.relate
 species         : $params.species
 k               : $params.k
 Ne subset       : $params.ne_subset
@@ -182,13 +185,13 @@ workflow {
       }
 
       // Run the actual mutation spectra
-      if (params.algorithm =~ 'relate'){
+      if (params.relate){
           RELATE( ch_var_new, ch_var_idx_new, ANCESTRAL.out[0], ANCESTRAL.out[1], ANCESTRAL.out[2], ANCESTRAL.out[3], ch_chr_lists, ch_masks )
       }
-      if (params.algorithm =~ 'mutyper'){
+      if (params.mutyper){
           MUTYPER( ch_var_new, ch_var_idx_new, ANCESTRAL.out[0], ANCESTRAL.out[1], ch_chr_lists, ch_masks )
       } 
-      if (params.algorithm =~ 'sdm'){
+      if (params.sdm){
           SDM( ch_var_new, ch_var_idx_new, ANCESTRAL.out[0], ANCESTRAL.out[1], ANCESTRAL.out[2], ANCESTRAL.out[3], ch_masks, ch_chr_lists )
       }
     }
