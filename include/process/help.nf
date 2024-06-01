@@ -32,7 +32,9 @@ def helpMessage() {
       --ancestral [PATH]              Provide pre-computed ancestral genome to use instead of the hal file
     
     Algorithms selection:
-      --algorithm [name]              Name of the algorithm to use for the mutation spectra definition (Default: mutyper; options: mutyper, relate, sdm)
+      --mutyper [name]                Run mutyper (Default: true)
+      --sdm [name]                    Run sdm (Default: false)
+      --relate [name]                 Run relate (Default: false)
       --imputation [name]             Name of the algorithm to use to perform imputation (Default: shapeit4; options: beagle, shapeit4)
       --species [name]                Species ID for VEP (e.g. 'bos_taurus')
 
