@@ -1,7 +1,7 @@
 
 include { filtering; apply_filter; extract; exclude} from '../process/filtering'
 include { extract_exclude; select_noncoding; select_coding } from '../process/filtering'
-include { keep_biallelic_snps } from '../process/filtering'
+include { keep_biallelic_snps; daf_filter } from '../process/filtering'
 include { vep } from '../process/annotate'
 include { shapeit4; beagle; split_vcf} from '../process/prerun' 
 include { chromosomeList; combine } from '../process/prerun'
