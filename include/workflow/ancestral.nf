@@ -36,7 +36,7 @@ workflow ANCESTRAL {
                 }
             } else {
                 if (params.hal) { ch_hal = file(params.hal) } else { exit 1, 'Hal file not specified!' }
-                hal2maf( ch_hal, cactus )
+                // hal2maf( ch_hal, cactus )
                 makeRefTgtFasta( ch_hal, cactus )
                 if (params.ref_min_size){
                     filter_by_size(makeRefTgtFasta.out[0], makeRefTgtFasta.out[2])
