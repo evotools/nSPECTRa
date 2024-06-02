@@ -228,7 +228,7 @@ process daf_filter {
 
     script:
     """
-    bcftools +fill-tags test.vcf  -- -t AF,AC,AN variants.vcf.gz | \
+    bcftools +fill-tags variants.vcf.gz  -- -t AF,AC,AN | \
         bcftools view --threads ${task.cpus} -O z -Q ${params.max_derivate_allele_freq}:alt1 > variants_DAF.vcf.gz && \
         bcftools index --threads ${task.cpus} -t variants_DAF.vcf.gz
     """
