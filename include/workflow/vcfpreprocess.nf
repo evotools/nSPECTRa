@@ -4,7 +4,7 @@ include { extract_exclude; select_noncoding; select_coding } from '../process/fi
 include { keep_biallelic_snps; daf_filter; get_sequences } from '../process/filtering'
 // include { filtering; apply_filter } from '../process/filtering'
 include { vep } from '../process/annotate'
-include { shapeit4; beagle} from '../process/prerun' 
+include { shapeit5; shapeit4; beagle} from '../process/prerun' 
 include { chromosomeList; combineVcf } from '../process/prerun'
 include { daf; smile } from '../process/prerun'
 include { get_beagle; get_vep_cache } from '../process/dependencies'
@@ -63,6 +63,8 @@ workflow PREPROCESS {
                     beagle_ch = get_beagle.out
                 }
                 phased_vcf = beagle( biallelic_ch, beagle_ch )
+            // } else if (params.imputation == 'shapeit5'){
+                // phased_vcf = shapeit5( biallelic_ch )
             } else {
                 phased_vcf = shapeit4( biallelic_ch )
             }

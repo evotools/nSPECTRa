@@ -192,6 +192,31 @@ process shapeit4 {
     // """
 }
 
+process shapeit5 {
+    tag "impute.${chrom}"
+    label "medium_multi"
+
+    input:
+    tuple val(chrom), path(vcf), path(tbi)
+
+    output:
+    tuple val(chrom), path("prephase_${chrom}.vcf.gz"), path("prephase_${chrom}.vcf.gz.tbi")
+
+    
+    stub:
+    """
+    touch prephase_${chrom}.vcf.gz
+    touch prephase_${chrom}.vcf.gz.tbi
+    """
+
+    script:
+    def shapeit = params.shapeit ? "${params.shapeit}" : "phase_common"
+    def ne = params.neval ? "--hmm-ne ${params.neval}" : ""
+    """
+    ${shapeit} --input ${vcf} --region ${chrom} --filter-maf 0.001 --output prephase_${chrom}.vcf.gz --thread ${task.cpus}
+    """
+}
+
 // Split VCf by chromosome
 process split_vcf {
     tag "split.${chrom}"
