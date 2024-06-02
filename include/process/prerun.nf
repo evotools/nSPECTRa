@@ -55,7 +55,7 @@ process splitvcf {
     label "small"
 
     input:
-    tuple file(ch_vcf), file(ch_tbi)
+    tuple path(ch_vcf), path(ch_tbi)
     tuple val(index), val(chrom)
 
     output:
@@ -203,7 +203,7 @@ process split_vcf {
     path tbi
 
     output:
-    tuple val(chrom), file("prephase_${chrom}.vcf.gz")
+    tuple val(chrom), path("prephase_${chrom}.vcf.gz")
 
     
     stub:
@@ -287,7 +287,7 @@ process ibd {
 process collect_vcf {
 
     input:
-    path file(subset)
+    path path(subset)
 
     output:
     path "ready.vcf.gz"
@@ -310,10 +310,10 @@ process make_shapeit{
     tag "shapeit.${chrom}"
 
     input:
-    tuple val(chrom), file(vcf)
+    tuple val(chrom), path(vcf)
 
     output:
-    tuple val(chrom), file("${chrom}.SHAPEIT.*")
+    tuple val(chrom), path("${chrom}.SHAPEIT.*")
 
     
     stub:

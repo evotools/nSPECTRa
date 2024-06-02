@@ -5,10 +5,10 @@ process sdm {
     
 
     input:
-    file vcf
-    file tbi
-    file reffasta
-    file reffai
+    path vcf
+    path tbi
+    path reffasta
+    path reffai
     tuple val(samplename), path(samplelist), val(idx), val(contig)
 
     output:
@@ -34,7 +34,7 @@ process filter_sdm {
     
 
     input:
-    tuple val(samplename), file(samplelist)
+    tuple val(samplename), path(samplelist)
     path sdms
 
     output:
