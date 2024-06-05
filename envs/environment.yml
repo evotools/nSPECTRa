@@ -9,7 +9,7 @@ dependencies:
   - bioconda::vcftools
   - bioconda::bedtools
   - bioconda::plink=1.90
-  - python=3.8
+  - python=3.10
   - pip
   - bioconda::vcflib
   - bioconda::java-jdk

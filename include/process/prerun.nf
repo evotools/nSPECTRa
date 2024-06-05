@@ -399,7 +399,7 @@ process smile {
 
     script:
     """
-    #!/usr/bin/Rscript
+    #!/usr/bin/env Rscript
     if (TRUE){
         library(tidyverse)
         library(ggpubr)

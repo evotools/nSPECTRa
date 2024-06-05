@@ -11,11 +11,12 @@ dependencies:
   - bioconda::bedtools
   - bioconda::plink=1.90
   - bioconda::ensembl-vep
-  - python=3.7
+  - python=3.10
   - pip
   - bioconda::vcflib
   - bioconda::java-jdk
   - bioconda::shapeit4
+  - bioconda::shapeit5
   - bioconda::ucsc-fatotwobit 
   - bioconda::ucsc-twobitinfo 
   - matplotlib
@@ -25,14 +26,14 @@ dependencies:
   - bioconda::perl-bioperl 
   - bioconda::perl-bio-db-hts 
   - bioconda::tabix
-  - r::r-base=4.1.0
-  - r::r-cowplot
-  - r::r-tidyverse
-  - r::r-reshape2
-  - r::r-ggfortify
-  - r::r-ggforce
-  - r::r-lazyeval>0.2.2
-  - r::r-plyr>1.8.6
+  - conda-forge::r-base>=4.1.0
+  - conda-forge::r-cowplot
+  - conda-forge::r-tidyverse
+  - conda-forge::r-reshape2
+  - conda-forge::r-ggfortify
+  - conda-forge::r-ggforce
+  - conda-forge::r-lazyeval
+  - conda-forge::r-plyr
   - bioconda::ucsc-bigwigtobedgraph
   - bioconda::phast=1.5
   - pip:
