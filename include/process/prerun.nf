@@ -402,13 +402,12 @@ process smile {
     #!/usr/bin/env Rscript
     if (TRUE){
         library(tidyverse)
-        library(ggpubr)
-        library(ggsci)
     }
     setwd('~/Analysis/DAF/')
     daf <- read_csv('${daf}', col_names = c('chrom', 'pos', 'af'), comment = '#')
 
-    p <- gghistogram(daf, x="af", bins=100, color = "#00AFBB", fill = "#00AFBB")
+    p <- ggplot(daf, aes(x=af)) + 
+        geom_histogram(bins=100, color = "#00AFBB", fill = "#00AFBB")
     ggsave('smile.pdf', device = 'pdf', heigth=9, width=16)
     ggsave('smile.png', device = 'png', heigth=9, width=16)
     """
