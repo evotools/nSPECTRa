@@ -2,17 +2,25 @@
 library(tidyverse)
 library(reshape2)
 args <- commandArgs(trailingOnly = TRUE)
-popu<-args[1]
+popu <- args[1]
 
 # Output file name
-outFile <- paste("sdm.",popu,".filtered.RData",sep="")
+outFile <- paste0("sdm.", popu, ".filtered.RData")
+outBed <- paste0("sdm.", popu, ".filtered.bed")
 
 # Get input file list
-temp = list.files(pattern=paste("sdm.",popu,"*", sep=""))
+temp <- list.files(pattern = paste0("sdm.", popu, "*"))
 
 # Edit column headers 
-cnames<-c("Chr", "Pos1", "Id1", "Pos2", "Id2", "Dist", "Null", "Cons1", "Cons2", "Anc1", "Anc2", "SameCodon", "StartF", "Mid1F", "Mid2F", "EndF", "StartC", "Mid1C", "Mid2C", "EndC", "Inds")
-myfiles = lapply(temp, read_tsv, col_names = cnames)
+cnames <- c(
+  "Chr", "Pos1", "Id1", "Pos2", "Id2",
+  "Dist", "Null", "Cons1", "Cons2",
+  "Anc1", "Anc2", "SameCodon",
+  "StartF", "Mid1F", "Mid2F", "EndF",
+  "StartC", "Mid1C", "Mid2C", "EndC",
+  "Inds"
+)
+myfiles <- lapply(temp, read_tsv, col_names = cnames)
 
 # Combine all files
 dat<-bind_rows(myfiles)
@@ -34,3 +42,10 @@ dat %>% filter(SameCodon == 1) %>% select(StartF, Mid1F, Mid2F, EndF, StartC, Mi
 gc()
 save(dat, file=outFile)
 
+# Convert data to a bed file for intersection with RM
+outbed <- dat %>%
+  select(Chr, Pos1, Pos2) %>%
+  mutate(Pos1 = Pos1 - 1) %>%
+  rename(chr = "Chr", start = "Pos1", end = "Pos2") %>%
+  cbind(dat)
+write.table(outbed, file = outBed, col.names = FALSE, quote = FALSE, sep = "\t")

@@ -38,7 +38,8 @@ process filter_sdm {
     path sdms
 
     output:
-    tuple val(samplename), path(samplelist), path("sdm.${samplename}.filtered.RData")
+    tuple val(samplename), path(samplelist), path("sdm.${samplename}.filtered.RData"), emit: 'rdata'
+    tuple val(samplename), path(samplelist), path("sdm.${samplename}.filtered.bed"), emit: 'bed'
 
     stub:
     """
@@ -48,6 +49,33 @@ process filter_sdm {
     script:
     """
     sdmFilter ${samplename}
+    """
+}
+
+// Split data in/out repetitive elements.
+process repeat_mask_split_sdm {
+    tag "split_sdm"
+    label "small"
+    publishDir "${params.outdir}/sdm/repeat", mode: "${params.publish_dir_mode}", overwrite: true
+    
+
+    input:
+    tuple val(samplename), path(samplelist), path(inbed), path("rm.bed")
+
+    output:
+    tuple val(samplename), path(samplelist), path("${inbed.baseName}.in_repeat.bed")
+    tuple val(samplename), path(samplelist), path("${inbed.baseName}.out_repeat.bed")
+
+    stub:
+    """
+    touch ${inbed.baseName}.in_repeat.bed
+    touch ${inbed.baseName}.out_repeat.bed
+    """
+
+    script:
+    """
+    bedtools intersect -a ${inbed} -b rm.bed -u > ${inbed.baseName}.in_repeat.bed
+    bedtools intersect -a ${inbed} -b rm.bed -v > ${inbed.baseName}.out_repeat.bed
     """
 }
 
