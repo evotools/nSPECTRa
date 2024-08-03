@@ -6,8 +6,8 @@ process get_sequences {
     label "small"
 
     input:
-    path vcf_ch
-    path tbi_ch
+    path "input.vcf.gz"
+    path "input.vcf.gz.tbi"
 
     output:
     stdout
@@ -21,7 +21,7 @@ process get_sequences {
 
     script:
     """
-    tabix -l tmp.vcf.gz
+    tabix -l input.vcf.gz
     """
 }
 
