@@ -194,8 +194,8 @@ process count_mutations_csq {
 
     script:
     """
-    bcftools +split-vep ${vcf} -d -f '%CHROM\t%POS\\t%INFO/mutation_type\\t%Consequence\\t[%GT\\t]\n' | bgzip -c > K${k}.csqs.tsv.gz
-    vcfsamplenames ${vcf} | awk 'NR==1 {print "CHROM\nPOS\nCHANGE\nCSQ"}; {print}' > K${k}.csqs.header
+    bcftools +split-vep ${vcf} -d -f '%CHROM\\t%POS\\t%INFO/mutation_type\\t%Consequence\\t[%GT\\t]\\n' | bgzip -c > K${k}.csqs.tsv.gz
+    vcfsamplenames ${vcf} | awk 'NR==1 {print "CHROM\\nPOS\\nCHANGE\\nCSQ"}; {print}' > K${k}.csqs.header
     compute_spectra_class K${k}.csqs.tsv.gz K${k}.csqs.header ${baseDir}/assets/K${k}_mutations.txt ${baseDir}/assets/VEPpriority > mutationSpectra_${params.reference}_${k}.csq.tsv
     """
 }
