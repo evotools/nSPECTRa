@@ -71,7 +71,7 @@ cactus url      : $params.cactus_url
 phast           : $params.phast 
 exons           : $params.exon_bed 
 hal4d           : $params.hal4d 
-relate          : $params.relate""" 
+relate dir      : $params.relate""" 
 if (params.neval){
   log.info """Ne value        : $params.neval"""  
 }

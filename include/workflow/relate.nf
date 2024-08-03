@@ -39,7 +39,7 @@ workflow RELATE {
         // Grep list of samples, and drop smallest groups
         breeds_ch = Channel
             .fromPath("${params.pops_folder}/*.txt")
-            .map { file -> tuple(file.simpleName, file ) }
+            .map { input_ch -> tuple(input_ch.simpleName, input_ch ) }
         
         // Combine chromosomes and breeds
         combined_ch = breeds_ch.combine(chromosomes_ch)
