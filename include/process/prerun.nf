@@ -403,7 +403,6 @@ process smile {
     if (TRUE){
         library(tidyverse)
     }
-    setwd('~/Analysis/DAF/')
     daf <- read_csv('${daf}', col_names = c('chrom', 'pos', 'af'), comment = '#')
 
     p <- ggplot(daf, aes(x=af)) + 
