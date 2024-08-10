@@ -407,7 +407,7 @@ process smile {
 
     p <- ggplot(daf, aes(x=af)) + 
         geom_histogram(bins=100, color = "#00AFBB", fill = "#00AFBB")
-    ggsave('smile.pdf', device = 'pdf', heigth=9, width=16)
-    ggsave('smile.png', device = 'png', heigth=9, width=16)
+    ggsave('smile.pdf', device = 'pdf', height=9, width=16)
+    ggsave('smile.png', device = 'png', height=9, width=16)
     """
 }
