@@ -3,6 +3,7 @@ library(tidyverse)
 library(reshape2)
 args <- commandArgs(trailingOnly = TRUE)
 popu <- args[1]
+options(scipen = 999)
 
 # Output file name
 outFile <- paste0("sdm.", popu, ".filtered.RData")
