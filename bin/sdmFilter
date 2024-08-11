@@ -54,4 +54,4 @@ outbed <- dat %>%
   mutate(Pos1 = Pos1 - 1) %>%
   rename(chr = "Chr", start = "Pos1", end = "Pos2") %>%
   cbind(dat)
-write.table(outbed, file = outBed, col.names = FALSE, quote = FALSE, sep = "\t")
+write.table(outbed, file = outBed, col.names = FALSE, row.names = FALSE, quote = FALSE, sep = "\t")
