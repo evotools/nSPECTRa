@@ -70,6 +70,7 @@ process vep {
     tag "vep"
     label "vep"
 
+    container params.vep_cache_version != 'latest' && params.vep_cache_version ? "ensemblorg/ensembl-vep:release_${params}" : "ensemblorg/ensembl-vep:latest"
     conda (params.enable_conda ? "bioconda::ensembl-vep=${params.vep_release_maj}" : null)
 
     input:
