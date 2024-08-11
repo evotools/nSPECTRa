@@ -49,7 +49,7 @@ gc()
 save(dat, file=outFile)
 
 # Convert data to a bed file for intersection with RM
-outBed <- dat %>%
+outbed <- dat %>%
   select(Chr, Pos1, Pos2) %>%
   mutate(Pos1 = Pos1 - 1) %>%
   rename(chr = "Chr", start = "Pos1", end = "Pos2") %>%
