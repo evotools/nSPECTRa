@@ -28,6 +28,7 @@ process chromosomeList {
 // Exzclude lists of small populations
 process get_masks{
     label "small"
+    publishDir "${params.outdir}/mask", mode: "${params.publish_dir_mode}", overwrite: true
 
     input:
     path genome
