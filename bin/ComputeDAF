@@ -28,11 +28,15 @@ def main():
     in_vcf.header.add_line('##INFO=<ID=DAF,Number=A,Type=Float,Description="Estimated derived allele frequency in the range (0,1]">')
     print(in_vcf.header)
 
+    # Compute DAF using AF and AA information.
+    # if AA == REF || REV(AA) == REF > DAF == AF
+    # if AA != REF && REV(AA) != REF > DAF == 1-AF
     for site in in_vcf:
         ref = site.ref.upper()
         alt = site.alts[0].upper()
         aa = site.info.get('AA').upper()
         af = site.info.get('AF')[0]
+        # If no AA avalable, emit site and proceed.
         if not aa:
             print(site)
             continue
