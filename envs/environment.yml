@@ -10,8 +10,10 @@ dependencies:
   - bioconda::bedtools
   - bioconda::plink=1.90
   - python=3.10
+  - pysam
   - pip
-  - bioconda::vcflib
+  - bioconda::vcflib=1.0.3
+  - bioconda::tabixpp=1.1.0
   - bioconda::java-jdk
   - bioconda::shapeit4
   - bioconda::ucsc-fatotwobit 

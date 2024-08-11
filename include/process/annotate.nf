@@ -8,14 +8,16 @@ process makeAnnotation {
     label 'medium'
 
     input:
-    path vcf
+    tuple val(chrom), path(vcf), path(tbi)
     path ancestral
     path ancestral_tbi
 
     output:
-    path "Ancestral_annotation_${params.reference}.txt.gz", emit: annotation
-    path "Ancestral_annotation_${params.reference}.txt.gz.tbi", emit: annottbi
-
+    tuple val(chrom),
+        path(vcf),
+        path(tbi),
+        path("Ancestral_annotation_${chrom}.txt.gz"),
+        path("Ancestral_annotation_${chrom}.txt.gz.tbi")
 
     stub:
     """
@@ -27,8 +29,8 @@ process makeAnnotation {
     """
     bedtools getfasta -fi ${ancestral} -bed ${vcf} -bedOut | \
         awk 'BEGIN{OFS="\t"};{print \$1,\$2,\$NF}' | \
-        bgzip -c > Ancestral_annotation_${params.reference}.txt.gz && \
-        tabix -b 2 -e 2 -s 1 Ancestral_annotation_${params.reference}.txt.gz
+        bgzip -c > Ancestral_annotation_${chrom}.txt.gz && \
+        tabix -b 2 -e 2 -s 1 Ancestral_annotation_${chrom}.txt.gz
     """
 }
 
@@ -37,30 +39,31 @@ process annotateVcf {
     label "medium"
 
     input:
-    path vcf
-    path tbi
+    tuple val(chrom),
+        path('input.vcf.gz'),
+        path('input.vcf.gz.tbi'),
+        path("Ancestral_annotation.txt.gz"),
+        path("Ancestral_annotation.txt.gz.tbi")
     path masks_ch
-    path annotation
-    path annotation_idx
 
     output:
-    path "genotypes.with_ancestral_allele.vcf.gz"
-    path "genotypes.with_ancestral_allele.vcf.gz.tbi"
+    tuple val(chrom),
+        path("genotypes.with_ancestral_allele_${chrom}.vcf.gz"),
+        path("genotypes.with_ancestral_allele_${chrom}.vcf.gz.tbi")
 
 
     stub:
     """
-    touch genotypes.with_ancestral_allele.vcf.gz
-    touch genotypes.with_ancestral_allele.vcf.gz.tbi
+    touch genotypes.with_ancestral_allele_${chrom}.vcf.gz
+    touch genotypes.with_ancestral_allele_${chrom}.vcf.gz.tbi
     """
 
     script:
     """
     echo '##INFO=<ID=AA,Number=1,Type=String,Description="Ancestral Allele">' > header_${params.reference}.txt
-    bedtools intersect -header -v -a ${vcf} -b ${masks_ch} | \
-        bcftools annotate -a ${annotation} -h header_${params.reference}.txt -O z -c CHROM,POS,AA > genotypes.with_ancestral_allele.vcf.gz && \
-        tabix -p vcf genotypes.with_ancestral_allele.vcf.gz
-
+    bcftools annotate -a Ancestral_annotation.txt.gz -O u -h header_${params.reference}.txt -O z -c CHROM,POS,AA input.vcf.gz | \
+        bcftools view -T ^${masks_ch} -O z > genotypes.with_ancestral_allele_${chrom}.vcf.gz && \
+        tabix -p vcf genotypes.with_ancestral_allele_${chrom}.vcf.gz
     """
 }
 

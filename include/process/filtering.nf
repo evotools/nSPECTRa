@@ -211,26 +211,29 @@ process select_noncoding {
 
 process daf_filter {
     label "medium_smallmem_parallel"
+    afterScript "rm tmp.vcf.gz*"
 
     input:
-        path "variants.vcf.gz"
-        path "variants.vcf.gz.tbi"
+        tuple val(chrom), path('variants.vcf.gz'), path('variants.vcf.gz.tbi')
 
     output:
-        path "variants_DAF.vcf.gz"
-        path "variants_DAF.vcf.gz.tbi"
+        tuple val(chrom), path("variants_DAF_${chrom}.vcf.gz"), path("variants_DAF_${chrom}.vcf.gz.tbi")
 
     stub:
     """
-    touch variants_DAF.vcf.gz
-    touch variants_DAF.vcf.gz.tbi
+    touch variants_DAF_${chrom}.vcf.gz
+    touch variants_DAF_${chrom}.vcf.gz.tbi
     """
 
     script:
     """
-    bcftools +fill-tags variants.vcf.gz  -- -t AF,AC,AN | \
-        bcftools view --threads ${task.cpus} -O z -Q ${params.max_derivate_allele_freq}:alt1 > variants_DAF.vcf.gz && \
-        bcftools index --threads ${task.cpus} -t variants_DAF.vcf.gz
+    bcftools +fill-tags variants.vcf.gz  -- -t AF,AC,AN |\
+        bcftools filter --threads ${task.cpus} -O z -i 'INFO/AA != "-"' > tmp.vcf.gz && \
+        bcftools index -t tmp.vcf.gz
+    # Compute DAF
+    ComputeDAF -v tmp.vcf.gz |\
+        bcftools filter --threads ${task.cpus} -O z -i 'INFO/DAF <= ${params.max_derivate_allele_freq}' > variants_DAF_${chrom}.vcf.gz && \
+        bcftools index --threads ${task.cpus} -t variants_DAF_${chrom}.vcf.gz
     """
 }
 

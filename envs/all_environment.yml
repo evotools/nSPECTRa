@@ -21,6 +21,7 @@ dependencies:
   - matplotlib
   - numpy
   - pandas
+  - pysam
   - java-jdk=8.0.92
   - bioconda::perl-bioperl 
   - bioconda::perl-bio-db-hts 

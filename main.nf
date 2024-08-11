@@ -149,14 +149,15 @@ workflow {
 
       // Pre-process the variants of interest
       if (!params.vcf_is_filtered){
-        PREPROCESS ( ch_var, ch_var_idx, ANCESTRAL.out[2], ANCESTRAL.out[3] )
-        ch_var_new = PREPROCESS.out[0]
-        ch_var_idx_new = PREPROCESS.out[1]
-        ch_chr_lists = PREPROCESS.out[2]
+        PREPROCESS ( ch_var, ch_var_idx, ANCESTRAL.out[2], ANCESTRAL.out[3], ANCESTRAL.out[0], ANCESTRAL.out[1], ch_masks )
+        ch_var_new = PREPROCESS.out.vcf
+        ch_var_idx_new = PREPROCESS.out.tbi
+        ch_chr_lists = PREPROCESS.out.chroms
+        vcf_by_chr = PREPROCESS.out.vcf_by_chr
 
         // Get constrined elements and remove variants in them
         if ( params.phast || params.hal4d ){
-          CONSTRAINED(get_hal.out, ch_var_new, ch_var_idx_new, PREPROCESS.out[2])
+          CONSTRAINED(get_hal.out, ch_var_new, ch_var_idx_new, ch_chr_lists)
           ch_var_new = CONSTRAINED.out[0]
           ch_var_idx_new = CONSTRAINED.out[1]
         } 

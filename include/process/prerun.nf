@@ -253,20 +253,20 @@ process combineVcf {
         path "vcfs/*"
 
     output:
-        path "IMPUTED.vcf.gz" 
-        path "IMPUTED.vcf.gz.tbi"
+        path "processed.vcf.gz" 
+        path "processed.vcf.gz.tbi"
   
     
     stub:
     """
-    touch IMPUTED.vcf.gz
-    touch IMPUTED.vcf.gz.tbi
+    touch processed.vcf.gz
+    touch processed.vcf.gz.tbi
     """
 
     script:
     """
-    bcftools concat -O u vcfs/*.vcf.gz | bcftools sort -T ./ -O z -m 5G > IMPUTED.vcf.gz && \
-        tabix -p vcf IMPUTED.vcf.gz
+    bcftools concat -O u vcfs/*.vcf.gz | bcftools sort -T ./ -O z -m 5G > processed.vcf.gz && \
+        tabix -p vcf processed.vcf.gz
     """
 }
 
@@ -376,7 +376,7 @@ process daf {
 
     script:
     """
-    bcftools +fill-tags ${vcf} -- -t AF,AN,AC | bcftools query -H -f "%CHROM,%POS,%AF\n" | bgzip -c > daf.csv.gz
+    bcftools query -H -f "%CHROM,%POS,%DAF\n" | bgzip -c > daf.csv.gz
     """
 }
 

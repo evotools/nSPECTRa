@@ -3,7 +3,7 @@ include { extract; exclude } from '../process/filtering'
 include { extract_exclude; select_noncoding; select_coding } from '../process/filtering'
 include { keep_biallelic_snps; daf_filter; get_sequences } from '../process/filtering'
 // include { filtering; apply_filter } from '../process/filtering'
-include { vep } from '../process/annotate'
+include { vep; makeAnnotation; annotateVcf } from '../process/annotate'
 include { shapeit5; shapeit4; beagle} from '../process/prerun' 
 include { chromosomeList; combineVcf } from '../process/prerun'
 include { daf; smile } from '../process/prerun'
@@ -17,6 +17,9 @@ workflow PREPROCESS {
         ch_var_idx
         ch_ref
         ch_ref_fai
+        ch_anc
+        ch_anc_fai
+        masks_ch
     main:
         // Get sequences to process
         sequences = get_sequences(ch_var, ch_var_idx) | splitText | map { it.trim() }
@@ -82,6 +85,14 @@ workflow PREPROCESS {
             processed_ch = vep.out
         }
 
+        // Add ancestral allele information
+        makeAnnotation(processed_ch, ch_anc.collect(), ch_anc_fai.collect())
+        processed_ch = annotateVcf(makeAnnotation.out, masks_ch.collect())
+
+        // Filter by derived allele freq.
+        if (params.max_derivate_allele_freq){
+            processed_ch = processed_ch | daf_filter
+        }
         // // Filter if requested
         // if (params.filter){
         //     filtering(ch_var, ch_var_idx)
@@ -114,15 +125,9 @@ workflow PREPROCESS {
 
         daf(vcf_ch, tbi_ch) | smile
 
-        // Filter by derived allele freq.
-        if (params.max_derivate_allele_freq){
-            daf_filter(vcf_ch, tbi_ch)
-            vcf_ch = daf_filter.out[0]
-            tbi_ch = daf_filter.out[1]
-        }
-
     emit:
-        vcf_ch
-        tbi_ch
-        chr_list
+        vcf = vcf_ch
+        tbi = tbi_ch
+        chroms = chr_list
+        vcf_by_chr = processed_ch
 }

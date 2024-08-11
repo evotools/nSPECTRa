@@ -1,0 +1,47 @@
+#!/usr/bin/env python
+import pysam
+
+revert = {
+    'A': 'T',
+    'T': 'A',
+    'G': 'C',
+    'C': 'G',
+}
+
+def parse_args():
+    import argparse
+    # Argument definition
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-v", "--vcf", metavar = 'input.vcf(.gz)', type = str, help = 'Input VCF file',\
+                            dest = 'vcf', required = True)
+    return parser.parse_args()
+
+
+# Main function
+def main():
+    args = parse_args()
+
+    # Get reference file
+    in_vcf = pysam.VariantFile(args.vcf)
+
+    # Create new header
+    in_vcf.header.add_line('##INFO=<ID=DAF,Number=A,Type=Float,Description="Estimated derived allele frequency in the range (0,1]">')
+    print(in_vcf.header)
+
+    for site in in_vcf:
+        ref = site.ref.upper()
+        alt = site.alts[0].upper()
+        aa = site.info.get('AA').upper()
+        af = site.info.get('AF')[0]
+        if not aa:
+            print(site)
+            continue
+        daf = af if aa == ref or aa == revert.get(ref) else 1-af
+        site.info.update({'DAF': daf})
+        print(site)
+
+    # Process bed
+    return 0
+
+if __name__ == "__main__":
+    main()

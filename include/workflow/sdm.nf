@@ -1,5 +1,4 @@
 include { get_individuals; get_breeds } from "../process/prerun"
-include { makeAnnotation; annotateVcf } from '../process/annotate'
 include { sdm; filter_sdm; count_sdm } from "../process/sdm"
 include { make_ksfs; sdm_plot } from "../process/sdm"
 include { repeat_mask_split_sdm} from "../process/sdm"
@@ -22,10 +21,6 @@ workflow SDM {
             .map{ row-> tuple(row.N, row.chrom) }
             .set{ chromosomes_ch }
 
-        // Get annotation
-        makeAnnotation(vcf, ancfa, ancfai)
-        annotateVcf(vcf, tbi, masks_ch, makeAnnotation.out[0], makeAnnotation.out[1])
-        
         // Get individuals' ids
         // get_individuals( annotateVcf.out[0], annotateVcf.out[1] )
 
@@ -38,7 +33,7 @@ workflow SDM {
         combined_ch = breeds_ch.combine(chromosomes_ch)
 
         // Run dinuc pipeline
-        sdm( annotateVcf.out[0], annotateVcf.out[1], reffasta, reffai, combined_ch )
+        sdm( vcf, tbi, reffasta, reffai, combined_ch )
 
         // Filter results
         filter_sdm(breeds_ch, sdm.out.collect() )
