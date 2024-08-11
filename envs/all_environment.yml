@@ -10,10 +10,9 @@ dependencies:
   - bioconda::vcftools
   - bioconda::bedtools
   - bioconda::plink=1.90
-  - bioconda::ensembl-vep
   - python=3.10
   - pip
-  - bioconda::vcflib
+  - bioconda::vcflib==1.0.3
   - bioconda::java-jdk
   - bioconda::shapeit4
   - bioconda::shapeit5
@@ -26,6 +25,7 @@ dependencies:
   - bioconda::perl-bioperl 
   - bioconda::perl-bio-db-hts 
   - bioconda::tabix
+  - bioconda::tabixpp=1.1.0
   - conda-forge::r-base>=4.1.0
   - conda-forge::r-cowplot
   - conda-forge::r-tidyverse

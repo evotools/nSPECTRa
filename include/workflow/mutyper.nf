@@ -40,8 +40,20 @@ workflow MUTYPER {
         mutyper_full_parallel( vcf, tbi, anc_fa, anc_fai, masks_ch, chromosomeList, Channel.from(k_list) )
 
         /* Generate the counts manually */
-        count_mutations( mutyper_full_parallel.out.filter{ it[0].toInteger() < 8 } )
-        count_mutations_csq( mutyper_full_parallel.out.filter{ it[0].toInteger() < 8 } )
+        mutyper_full_parallel.out
+        | filter{ it[0].toInteger() < 8 }
+        | map{
+            k, vcf, tbi ->
+            [k, vcf, tbi, file("${baseDir}/assets/K${k}_mutations.txt")]
+        }
+        | count_mutations
+        mutyper_full_parallel.out
+        | filter{ it[0].toInteger() < 8 }
+        | map{
+            k, vcf, tbi ->
+            [k, vcf, tbi, file("${baseDir}/assets/K${k}_mutations.txt"), file("${baseDir}/assets/VEPpriority")]
+        }
+        | count_mutations_csq
 
         /* Start mutyper on each chromosome separately */
         mutyper( vcf, tbi, anc_fa, anc_fai, masks_ch, combined_ch )

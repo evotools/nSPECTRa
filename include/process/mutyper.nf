@@ -30,21 +30,21 @@ process mutyper {
     if (params.annotation)
     """
     echo "Run mutyper (variants)"
-    bcftools view --threads ${task.cpus} -v snps  -r ${region} -m2 -M2 ${vcf} |
-        bedtools intersect -header -v -a - -b ${masks_ch} |
-        sed 's/_pilon//g' |
-        vcffixup - | 
-        mutyper variants --k ${k} --strand_file ${params.annotation} ${ancfasta} - |
+    bcftools view --threads ${task.cpus} -v snps -r ${region} -m2 -M2 ${vcf} | \
+        bedtools intersect -header -v -a - -b ${masks_ch} | \
+        sed 's/_pilon//g' | \
+        vcffixup - | \
+        mutyper variants --k ${k} --strand_file ${params.annotation} ${ancfasta} - | \
         mutyper spectra - > mutationSpectra_${params.reference}_${region}_${k}.txt
     """
     else
     """
     echo "Run mutyper (variants)"
-    bcftools view --threads ${task.cpus} -v snps  -r ${region} -m2 -M2 ${vcf} |
+    bcftools view --threads ${task.cpus} -v snps  -r ${region} -m2 -M2 ${vcf} | \
         bedtools intersect -header -v -a - -b ${masks_ch} | \
-        sed 's/_pilon//g' |
-        vcffixup - | 
-        mutyper variants --k ${k} ${ancfasta} - |
+        sed 's/_pilon//g' | \
+        vcffixup - | \
+        mutyper variants --k ${k} ${ancfasta} - | \
         mutyper spectra - > mutationSpectra_${params.reference}_${region}_${k}.txt
     """
 }
@@ -79,11 +79,11 @@ process mutyper_full_parallel {
     """
     awk 'BEGIN{FS=","}; {print \$2}' $regions > chrs.txt
     echo "Run mutyper (variants)"
-    parallel -j${task.cpus} "bcftools view -v snps -m2 -M2 -r {} ${vcf} | 
-        bedtools intersect -header -v -a - -b ${masks_ch} | 
-        sed 's/_pilon//g' | 
-        vcffixup - | 
-        mutyper variants --k ${k} --strand_file ${params.annotation} ${ancfasta} - | 
+    parallel -j${task.cpus} "bcftools view -v snps -m2 -M2 -r {} ${vcf} | \
+        bedtools intersect -header -v -a - -b ${masks_ch} | \
+        sed 's/_pilon//g' | \
+        vcffixup - | \
+        mutyper variants --k ${k} --strand_file ${params.annotation} ${ancfasta} - | \
         bgzip -c > mutyper_${params.reference}_${k}_chr{}.vcf.gz && tabix -p vcf mutyper_${params.reference}_${k}_chr{}.vcf.gz" ::: \$( while read p; do echo \$p; done < chrs.txt )
     bcftools concat mutyper_${params.reference}_${k}_chr*.vcf.gz | bcftools sort -m 2G -O z -T ./ > mutyper_${params.reference}_${k}.vcf.gz && \
     bcftools index -t mutyper_${params.reference}_${k}.vcf.gz
@@ -92,11 +92,11 @@ process mutyper_full_parallel {
     """
     awk 'BEGIN{FS=","}; {print \$2}' $regions > chrs.txt
     echo "Run mutyper (variants)"
-    parallel -j${task.cpus} "bcftools view -v snps -m2 -M2 -r {} ${vcf} | 
-        bedtools intersect -header -v -a - -b ${masks_ch} | 
-        sed 's/_pilon//g' | 
-        vcffixup - | 
-        mutyper variants --k ${k} ${ancfasta} - | 
+    parallel -j${task.cpus} "bcftools view -v snps -m2 -M2 -r {} ${vcf} | \
+        bedtools intersect -header -v -a - -b ${masks_ch} | \
+        sed 's/_pilon//g' | \
+        vcffixup - | \
+        mutyper variants --k ${k} ${ancfasta} - | \
         bgzip -c > mutyper_${params.reference}_${k}_chr{}.vcf.gz && tabix -p vcf mutyper_${params.reference}_${k}_chr{}.vcf.gz" ::: \$( while read p; do echo \$p; done < chrs.txt )
     bcftools concat mutyper_${params.reference}_${k}_chr*.vcf.gz | bcftools sort -m 2G -O z -T ./ > mutyper_${params.reference}_${k}.vcf.gz && \
     bcftools index -t mutyper_${params.reference}_${k}.vcf.gz
@@ -130,22 +130,22 @@ process mutyper_full {
     if (params.annotation)
     """
     echo "Run mutyper (variants)"
-    bcftools view --threads ${task.cpus} -v snps -m2 -M2 ${vcf} |
-        bedtools intersect -header -v -a - -b ${masks_ch} | 
-        sed 's/_pilon//g' |
-        vcffixup - | 
-        mutyper variants --k ${k} --strand_file ${params.annotation} ${ancfasta} - |
+    bcftools view --threads ${task.cpus} -v snps -m2 -M2 ${vcf} | \
+        bedtools intersect -header -v -a - -b ${masks_ch} | \
+        sed 's/_pilon//g' | \
+        vcffixup - | \
+        mutyper variants --k ${k} --strand_file ${params.annotation} ${ancfasta} - | \
         bgzip -c > mutyper_${params.reference}_${k}.vcf.gz
     tabix -p vcf mutyper_${params.reference}_${k}.vcf.gz
     """
     else
     """
     echo "Run mutyper (variants)"
-    bcftools view --threads ${task.cpus} -v snps -m2 -M2 ${vcf} |
-        bedtools intersect -header -v -a - -b ${masks_ch} |  
-        sed 's/_pilon//g' |
-        vcffixup - | 
-        mutyper variants --k ${k} ${ancfasta} - |
+    bcftools view --threads ${task.cpus} -v snps -m2 -M2 ${vcf} | \
+        bedtools intersect -header -v -a - -b ${masks_ch} | \
+        sed 's/_pilon//g' | \
+        vcffixup - | \
+        mutyper variants --k ${k} ${ancfasta} - | \
         bgzip -c > mutyper_${params.reference}_${k}.vcf.gz
     tabix -p vcf mutyper_${params.reference}_${k}.vcf.gz
     """
@@ -157,7 +157,7 @@ process count_mutations {
     publishDir "${params.outdir}/mutyper/full_counts", mode: "${params.publish_dir_mode}", overwrite: true
 
     input:
-    tuple val(k), val(vcf), path(tbi)
+    tuple val(k), val(vcf), path(tbi), path(levels)
 
     output:
     tuple val(k), path("mutationSpectra_${params.reference}_${k}.csv")
@@ -170,7 +170,7 @@ process count_mutations {
 
     script:
     """
-    compute_spectra ${vcf} ${baseDir}/assets/K${k}_mutations.txt > mutationSpectra_${params.reference}_${k}.tmp
+    compute_spectra ${vcf} ${levels} > mutationSpectra_${params.reference}_${k}.tmp
     transpose mutationSpectra_${params.reference}_${k}.tmp > mutationSpectra_${params.reference}_${k}.csv
     """
 }
@@ -181,10 +181,10 @@ process count_mutations_csq {
     publishDir "${params.outdir}/mutyper/full_counts_csq", mode: "${params.publish_dir_mode}", overwrite: true
 
     input:
-    tuple val(k), val(vcf), path(tbi)
+    tuple val(k), val(vcf), path(tbi), path(levels), path(priority)
 
     output:
-    tuple val(k), path("mutationSpectra_${params.reference}_${k}.tsv")
+    tuple val(k), path("mutationSpectra_${params.reference}_${k}.csq.tsv")
 
     
     stub:
@@ -196,7 +196,7 @@ process count_mutations_csq {
     """
     bcftools +split-vep ${vcf} -d -f '%CHROM\\t%POS\\t%INFO/mutation_type\\t%Consequence\\t[%GT\\t]\\n' | bgzip -c > K${k}.csqs.tsv.gz
     vcfsamplenames ${vcf} | awk 'NR==1 {print "CHROM\\nPOS\\nCHANGE\\nCSQ"}; {print}' > K${k}.csqs.header
-    compute_spectra_class K${k}.csqs.tsv.gz K${k}.csqs.header ${baseDir}/assets/K${k}_mutations.txt ${baseDir}/assets/VEPpriority > mutationSpectra_${params.reference}_${k}.csq.tsv
+    compute_spectra_class K${k}.csqs.tsv.gz K${k}.csqs.header ${levels} ${priority} > mutationSpectra_${params.reference}_${k}.csq.tsv
     """
 }
 
@@ -334,7 +334,7 @@ process ksfs {
     script:
     """
     echo "Run mutyper (ksfs)"
-    bcftools view --threads ${task.cpus} -S ${samplelist} ${vcf} |
+    bcftools view --threads ${task.cpus} -S ${samplelist} ${vcf} | \
         mutyper ksfs - > ksfs_${samplename}_${k}.tsv
     """
 }
