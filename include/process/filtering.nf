@@ -72,7 +72,7 @@ process keep_biallelic_snps {
 
     script:
     """
-    bcftools annotate -x INFO -t ${contig} --threads ${task.cpus} ${variants} | \
+    bcftools annotate -x INFO -r ${contig} --threads ${task.cpus} ${variants} | \
         bcftools view --threads ${task.cpus} -m 2 -M 2 -v snps -O z > biallelic_snps.${contig}.vcf.gz && tabix -p vcf biallelic_snps.${contig}.vcf.gz
     """
 }
