@@ -1,0 +1,71 @@
+#!/usr/bin/env python
+import sys
+import polars as pl
+
+MAPPING = {
+    '0/0': '0',
+    '0|0': '0',
+    '1|0': '1',
+    '0|1': '1',
+    '1|1': '1',
+    '1/1': '1',
+    '0/1': '1'
+}
+
+def main():
+    """Run entry point."""
+    # Create minimal levels of factors to facilitate future merging.
+    # first load all kmers
+    kmers = open(sys.argv[3]).read().splitlines()[1:]
+    # then load all consequences
+    csqs = pl.read_csv(sys.argv[4], has_header=False, new_columns=['CSQ', 'IMPACT'], separator='\t')
+    # Drop the impact
+    csqs = csqs.select(pl.col(['CSQ']).unique().implode())
+    # Add kmers, and expand them to find all consequence-by-kmer conbo
+    csqs = csqs.with_columns(CHANGE = pl.lit(kmers))[['CHANGE', 'CSQ']]
+    csqs = csqs.explode('CHANGE').explode('CSQ')
+
+
+    # import header first
+    header = open(sys.argv[2]).read().splitlines()
+    
+    # Import data
+    df = pl.read_csv(sys.argv[1], has_header=False, new_columns=header, separator='\t')
+
+    # Drop null columns
+    df = df[[s.name for s in df if not (s.null_count() == df.height)]]
+
+    # Drop unnecessary columns
+    df = df.select(pl.col("*").exclude("CHROM", "POS"))
+
+    # Remap the data to whether they have a derived allele or not
+    df = df.select(pl.all().replace(MAPPING))
+
+    # Change data type to int
+    df = df.cast({col:int for col in header[4:]})
+
+    # Summarize data
+    df = df.group_by(('CHANGE', 'CSQ')).sum()
+
+    # Add missing levels
+    # First, we concatenate the full consequence-by-kmer with the output
+    df = (
+        pl.concat((
+                df[['CHANGE', 'CSQ']],
+                csqs
+            ))
+            .select(pl.col(['CHANGE', 'CSQ']).unique().implode())  # second, we find the unique values for the two level columns and implode them
+            .explode('CHANGE')  # third, we explode the values once at the time, creating every combo of vals
+            .explode('CSQ')
+            .join(df, how='left', on=['CHANGE','CSQ']) # fourth, we add back the initial values
+            .fill_null(0)  # finally, we set missing to zero
+        )
+
+    # Save data
+    df.write_csv(sys.argv[4])
+
+    sys.stderr.write( "All done\n" )
+
+
+if __name__ == "__main__":
+    main()
