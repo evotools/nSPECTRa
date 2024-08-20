@@ -10,12 +10,10 @@ process mutyper {
 
 
     input:
-    path vcf
-    path tbi
+    tuple val(region), path(vcf), path(tbi), val(k)
     path ancfasta
     path ancfai
     path masks_ch
-    tuple val(idx), val(region), val(k)
 
     output:
     tuple val(k), val(region), path("mutationSpectra_${params.reference}_${region}_${k}.txt")
@@ -197,6 +195,7 @@ process count_mutations_csq {
     bcftools +split-vep ${vcf} -d -f '%CHROM\\t%POS\\t%INFO/mutation_type\\t%Consequence\\t[%GT\\t]\\n' | bgzip -c > K${k}.csqs.tsv.gz
     vcfsamplenames ${vcf} | awk 'NR==1 {print "CHROM\\nPOS\\nCHANGE\\nCSQ"}; {print}' > K${k}.csqs.header
     compute_spectra_class K${k}.csqs.tsv.gz K${k}.csqs.header ${levels} ${priority} > mutationSpectra_${params.reference}_${k}.csq.tsv
+    compute_spectra_class_pl K${k}.csqs.tsv.gz K${k}.csqs.header ${levels} ${priority} mutationSpectra_${params.reference}_${k}_TEST.csq.tsv
     """
 }
 
