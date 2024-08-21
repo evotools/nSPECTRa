@@ -39,7 +39,7 @@ def main():
     header = open(args.header).read().splitlines()
     
     # Import data
-    df = pl.read_csv(sys.argv[1], has_header=False, new_columns=header, separator='\t')
+    df = pl.read_csv(args.input, has_header=False, new_columns=header, separator='\t')
 
     # Drop null columns
     df = df[[s.name for s in df if not (s.null_count() == df.height)]]
