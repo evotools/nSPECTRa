@@ -43,5 +43,5 @@ COPY --from=build /venv /venv
 
 # When image is run, run the code with the environment
 # activated:
-ENV PATH /venv/bin/:$PATH
+ENV PATH=/venv/bin/:$PATH
 SHELL ["/bin/bash", "-c"]
