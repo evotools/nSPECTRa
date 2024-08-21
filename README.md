@@ -7,10 +7,10 @@
 The workflow comes with an anaconda environment which delivers most of the dependencies.
 However, you need to install:
  1. [anaconda](https://www.anaconda.com/products/individual)
+    * if run with [conda](https://www.anaconda.com/), install [gcc](https://gcc.gnu.org/) > 5 (tested with version 7.3.0)
  2. [nextflow](https://www.nextflow.io/)
- 3. if run with conda, install [gcc]() > 5, tested with version 7.3.0
- 4. [beagle v5](https://faculty.washington.edu/browning/beagle/beagle.html#download) or newer jar file. The workflow can download this automatically if not specified.
- 5. [relate](https://myersgroup.github.io/relate/) software suite
+ 3. [beagle v5](https://faculty.washington.edu/browning/beagle/beagle.html#download) or newer jar file. The workflow can download this automatically if not specified.
+ 4. [relate](https://myersgroup.github.io/relate/) software suite
 Most of the remaining dependencies are downloaded by *nSPECTRa* at runtime.
 
 ## Inputs
