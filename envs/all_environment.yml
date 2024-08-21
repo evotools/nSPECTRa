@@ -16,8 +16,8 @@ dependencies:
   - bioconda::java-jdk
   - bioconda::shapeit4
   - bioconda::shapeit5
-  - bioconda::ucsc-fatotwobit 
-  - bioconda::ucsc-twobitinfo 
+  - bioconda::ucsc-fatotwobit
+  - bioconda::ucsc-twobitinfo
   - matplotlib
   - numpy
   - pandas
@@ -40,4 +40,3 @@ dependencies:
   - bioconda::phast=1.5
   - pip:
     - mutyper
-    - mushi
