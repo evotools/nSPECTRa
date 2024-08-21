@@ -55,7 +55,7 @@ process filter_sdm {
 // Split data in/out repetitive elements.
 process repeat_mask_split_sdm {
     tag "split_sdm"
-    label "small"
+    label "medium"
     publishDir "${params.outdir}/sdm/repeat", mode: "${params.publish_dir_mode}", overwrite: true
     
 

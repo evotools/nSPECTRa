@@ -25,7 +25,7 @@ def parse_args():
     parser.add_argument("-H", "--header", metavar = 'header.txt', type = str, help = 'Input dataframe header',\
                             dest = 'header', required = True, default = None)
     parser.add_argument("-o", "--out", metavar = 'prefix', type = str, help = 'Output file.',\
-                            dest = 'outname', required = False, default = "myanc.fa")
+                            dest = 'out', required = False, default = "myanc.fa")
     parser.add_argument("--all", action='store_true', help = 'Add missing change-by-consequence combinations to the output dataframe.')
     return parser.parse_args()
 
@@ -86,7 +86,7 @@ def main():
         )
 
     # Save data
-    df.write_csv(sys.argv[4])
+    df.write_csv(args.out, separator='\t')
 
     sys.stderr.write( "All done\n" )
 
