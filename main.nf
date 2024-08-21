@@ -175,6 +175,10 @@ workflow {
         //     .map{ row-> tuple(row.N, row.chrom) }
         //     .set{ ch_chr_lists }
         ch_chr_lists = chromosomeList.out
+        | combine(
+          ch_var_new
+          | combine( ch_var_idx )
+        )
       }
 
       // Run GONE to calculate Ne, if requested
@@ -187,7 +191,7 @@ workflow {
           RELATE( ch_var_new, ch_var_idx_new, ANCESTRAL.out[0], ANCESTRAL.out[1], ANCESTRAL.out[2], ANCESTRAL.out[3], ch_chr_lists, ch_masks )
       }
       if (params.mutyper){
-          MUTYPER( ch_var_new, ch_var_idx_new, ANCESTRAL.out[0], ANCESTRAL.out[1], ch_chr_lists, ch_masks )
+          MUTYPER( ch_var_new, ch_var_idx_new, ANCESTRAL.out[0], ANCESTRAL.out[1], ch_chr_lists, ch_masks, vcf_by_chr )
       } 
       if (params.sdm){
           SDM( ch_var_new, ch_var_idx_new, ANCESTRAL.out[0], ANCESTRAL.out[1], ANCESTRAL.out[2], ANCESTRAL.out[3], ch_masks, ch_chr_lists )
