@@ -61,6 +61,9 @@ process maf2bed {
 
 process bed2vbed{
     label "large"
+    cpus = 4
+    memory = { params.greedy ? 96.GB * task.attempt : 32.GB * task.attempt }
+    time = { 23.h * task.attempt }
 
     input:
     path bed
@@ -79,14 +82,14 @@ process bed2vbed{
     """
 
     script:
+    def greedy = params.greedy ? "--greedy" : ""
     """
-    mkdir TMP/
+    mkdir -p TMP/
     samtools faidx ${fasta} ${contig} > ${contig}.fasta
     awk -v chrid=${contig} '\$1==chrid {print}' ${bed} > ./${contig}.bed
-    BED2VBED -b ./${contig}.bed -o /dev/stdout | \
-            sort --buffer-size=512M --parallel=${task.cpus} -T ./TMP/ -k1,1 -k2,2n - | \
-            COMBINE -b - -f ${contig}.fasta -o /dev/stdout | \
-            bgzip -c > ${contig}_ancestral_states.bed.gz && rm ./${contig}.bed 
+    BED2VBED -b ${contig}.bed -o /dev/stdout | \
+        COMBINE -b /dev/stdin -t ${task.cpus} --region ${contig} -f ${contig}.fasta -o /dev/stdout ${greedy} | \
+        bgzip -c > ${contig}_ancestral_states.bed && rm ./${contig}.bed
     """
 }
 

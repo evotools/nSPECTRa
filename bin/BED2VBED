@@ -42,7 +42,7 @@ def main():
     with open(args.outname, 'w') as output:
         for itv in parse_bed(args.bed):
             for itvs in bedtopos(itv):
-                np.savetxt(output, itvs, delimiter='\t', fmt = '%.40s')
+                np.savetxt(output, itvs, delimiter='\t', fmt = '%.120s')
 
     # Process bed
     return 0
