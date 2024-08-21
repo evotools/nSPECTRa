@@ -3,7 +3,7 @@ include { chromosomeList } from '../process/prerun'
 include { mutyper; group_results } from '../process/mutyper'
 include { mutyper_full; ksfs } from '../process/mutyper'
 include { mutyper_full_parallel; count_mutations } from '../process/mutyper'
-include { count_mutations_csq; plot_results } from '../process/mutyper'
+include { count_mutations_csq; count_mutations_csq_pl; plot_results } from '../process/mutyper'
 include { kmercount; normalize_results } from '../process/mutyper'
 
 
@@ -16,6 +16,7 @@ workflow MUTYPER {
         anc_fai
         chromosomeList
         masks_ch
+        vcf_by_chr
         // ne_time_ch
 
     main:
@@ -30,7 +31,7 @@ workflow MUTYPER {
 
         // Define sequence ids
         // chromosomeList( vcf, tbi )
-        combined_ch = chromosomes_ch.combine(k_list)
+        combined_ch = vcf_by_chr.combine(k_list)
 
         // Run meryl counter
         kmercount( anc_fa, anc_fai, Channel.from(k_list) ) 
@@ -54,9 +55,16 @@ workflow MUTYPER {
             [k, vcf, tbi, file("${baseDir}/assets/K${k}_mutations.txt"), file("${baseDir}/assets/VEPpriority")]
         }
         | count_mutations_csq
+        mutyper_full_parallel.out
+        | filter{ it[0].toInteger() < 8 }
+        | map{
+            k, vcf, tbi ->
+            [k, vcf, tbi, file("${baseDir}/assets/K${k}_mutations.txt"), file("${baseDir}/assets/VEPpriority")]
+        }
+        | count_mutations_csq_pl
 
         /* Start mutyper on each chromosome separately */
-        mutyper( vcf, tbi, anc_fa, anc_fai, masks_ch, combined_ch )
+        mutyper( combined_ch, anc_fa.collect(), anc_fai.collect(), masks_ch.collect() )
 
         /* Collect outputs */
         group_results( mutyper.out.groupTuple(by : 0) )

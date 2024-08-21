@@ -12,22 +12,31 @@ MAPPING = {
     '0/1': '1'
 }
 
+def parse_args():
+    import argparse
+    # Argument definition
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--input", metavar = 'input.tsv', type = str, help = 'Input dataframe from bcftools split-vep, with fields CHROM, POS, mutation_type, Consequence and genotypes',\
+                            dest = 'input', required = True)
+    parser.add_argument("-k", "--kmers", metavar = 'kmers.txt', type = str, help = 'Kmers list (with header)',\
+                            dest = 'kmer', required = False, default = None)
+    parser.add_argument("-c", "--csqs", metavar = 'csqs.txt', type = str, help = 'Dataset of VEP consequences and impacts',\
+                            dest = 'csqs', required = False, default = None)
+    parser.add_argument("-H", "--header", metavar = 'header.txt', type = str, help = 'Input dataframe header',\
+                            dest = 'header', required = True, default = None)
+    parser.add_argument("-o", "--out", metavar = 'prefix', type = str, help = 'Output file.',\
+                            dest = 'outname', required = False, default = "myanc.fa")
+    parser.add_argument("--all", action='store_true', help = 'Add missing change-by-consequence combinations to the output dataframe.')
+    return parser.parse_args()
+
+
 def main():
     """Run entry point."""
-    # Create minimal levels of factors to facilitate future merging.
-    # first load all kmers
-    kmers = open(sys.argv[3]).read().splitlines()[1:]
-    # then load all consequences
-    csqs = pl.read_csv(sys.argv[4], has_header=False, new_columns=['CSQ', 'IMPACT'], separator='\t')
-    # Drop the impact
-    csqs = csqs.select(pl.col(['CSQ']).unique().implode())
-    # Add kmers, and expand them to find all consequence-by-kmer conbo
-    csqs = csqs.with_columns(CHANGE = pl.lit(kmers))[['CHANGE', 'CSQ']]
-    csqs = csqs.explode('CHANGE').explode('CSQ')
-
+    # Parse arguments
+    args = parse_args()
 
     # import header first
-    header = open(sys.argv[2]).read().splitlines()
+    header = open(args.header).read().splitlines()
     
     # Import data
     df = pl.read_csv(sys.argv[1], has_header=False, new_columns=header, separator='\t')
@@ -47,13 +56,28 @@ def main():
     # Summarize data
     df = df.group_by(('CHANGE', 'CSQ')).sum()
 
-    # Add missing levels
-    # First, we concatenate the full consequence-by-kmer with the output
-    df = (
-        pl.concat((
+    # If store all requested, add missing consequences
+    if args.all:
+        # Create minimal levels of factors to facilitate future merging.
+        # first load all kmers
+        kmers = open(args.kmers).read().splitlines()[1:]
+        # then load all consequences
+        csqs = pl.read_csv(args.csqs, has_header=False, new_columns=['CSQ', 'IMPACT'], separator='\t')
+        # Drop the impact
+        csqs = csqs.select(pl.col(['CSQ']).unique().implode())
+        # Add kmers, and expand them to find all consequence-by-kmer conbo
+        csqs = csqs.with_columns(CHANGE = pl.lit(kmers))[['CHANGE', 'CSQ']]
+        csqs = csqs.explode('CHANGE').explode('CSQ')
+        # Add them to the DF
+        df = pl.concat((
                 df[['CHANGE', 'CSQ']],
                 csqs
             ))
+
+    # Add missing levels
+    # First, we concatenate the full consequence-by-kmer with the output
+    df = (
+        df
             .select(pl.col(['CHANGE', 'CSQ']).unique().implode())  # second, we find the unique values for the two level columns and implode them
             .explode('CHANGE')  # third, we explode the values once at the time, creating every combo of vals
             .explode('CSQ')
