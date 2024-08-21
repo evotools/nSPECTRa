@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import sys
+import numpy as np
 
 def parse_args():
     import argparse
@@ -17,14 +18,17 @@ def parse_args():
 def parse_bed(bed):
     for line in open(bed):
         line = line.strip().split()
-        if len(line[-1]) != line[-1].count("-"): 
+        chars = tuple(set(line[-1]))
+        if len(chars)>1 and chars[0]!="-":
             yield [ line[0], int(line[1]), int(line[2]), line[3] ]
 
 # Bed to positions
 def bedtopos(interval):
-    for i in range(interval[1], interval[2]):
-        if interval[-1][i - interval[1]] != "-": 
-            yield [ interval[0], str(i), str(i+1), interval[-1][i - interval[1]] ]
+    bpi = np.arange(interval[1], interval[2])
+    bpe = bpi + 1
+    chars = np.array(tuple(interval[-1]))
+    chroms = np.full(chars.shape[0], interval[0])
+    yield np.vstack((chroms, bpi, bpe, chars)).T[chars != '-', :]
 
 # Parse fai
 def parse_fai(fai):
@@ -35,17 +39,10 @@ def main():
     args = parse_args()
 
     # Parse bed file and get multiple bases
-    for itv in parse_bed(args.bed):
-        for newline in bedtopos(itv): print('\t'.join(newline))
-
-
-    # make a copy to build our ancestor for this chromosome
-    # print(f"Copy {args.fasta}...")
-    # copyfile(args.fasta, args.outname)
-    # anc = pyfaidx.Fasta(args.outname, read_ahead=10000, mutable=True)
-
-    # Generate sequences
-    
+    with open(args.outname, 'w') as output:
+        for itv in parse_bed(args.bed):
+            for itvs in bedtopos(itv):
+                np.savetxt(output, itvs, delimiter='\t', fmt = '%.40s')
 
     # Process bed
     return 0

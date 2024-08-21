@@ -83,10 +83,9 @@ process bed2vbed{
     mkdir TMP/
     samtools faidx ${fasta} ${contig} > ${contig}.fasta
     awk -v chrid=${contig} '\$1==chrid {print}' ${bed} > ./${contig}.bed
-    BED2VBED -b ./${contig}.bed | \
+    BED2VBED -b ./${contig}.bed -o /dev/stdout | \
             sort --buffer-size=512M --parallel=${task.cpus} -T ./TMP/ -k1,1 -k2,2n - | \
-            COMBINE -b - -f ${contig}.fasta | \
-            CONSENSE -b - | \
+            COMBINE -b - -f ${contig}.fasta -o /dev/stdout | \
             bgzip -c > ${contig}_ancestral_states.bed.gz && rm ./${contig}.bed 
     """
 }

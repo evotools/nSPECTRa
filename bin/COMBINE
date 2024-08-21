@@ -1,121 +1,81 @@
 #!/usr/bin/env python
-import sys
+from collections import Counter
+import os
+
 import numpy as np
-# import pyfaidx
-# from shutil import copyfile
+import polars as pl
+from pysam import FastaFile
 
-def catch(line):
-    try: 
-        line = line.decode('utf-8')
-        return line
-    except:
-        return line
 
-def readFasta(inputfasta):
-    opn = open
-    if ".gz" in inputfasta:
-        import gzip as gz
-        opn = gz.open
-    infa = opn(inputfasta)
-    seqs = {}
-    lines = [ catch(l) for l in infa.readlines() ]
-    tmpchr = lines[0].replace(">", "").strip().split()[0]
-    tmpseq = ''
-    for l in lines[1:]:
-        if ">" in l:
-            seqs[tmpchr] = tmpseq
-            tmpchr = l.replace(">", "").strip().split()[0]
-            tmpseq = ""
-            continue
-        tmpseq += l.strip()
-    seqs[tmpchr] = tmpseq
-    return seqs
 
 def parse_args():
+    """Define arguments."""
     import argparse
-    # Argument definition
     parser = argparse.ArgumentParser()
     parser.add_argument("-b", "--bed", metavar = 'ancestral_bed.bed', type = str, help = 'Input ancestral bed file',\
                             dest = 'bed', required = True)
     parser.add_argument("-f", "--fasta", metavar = 'reference.fasta', type = str, help = 'Input fasta file',\
                             dest = 'fasta', required = True)
+    parser.add_argument("-t", "--threads", metavar = 'N', type = int, help = 'Number of threads; defaults all of them',\
+                            dest = 'threads', required = False)
     parser.add_argument("-o", "--out", metavar = 'prefix', type = str, help = 'Output file.',\
-                            dest = 'outname', required = False, default = "myanc.fa")
+                            dest = 'out', required = False, default = "myanc.fa")
     return parser.parse_args()
 
-# Bed parser
-def parse_bed(bed):
-    if "stdin" in bed or bed == "-":
-        inbed = sys.stdin
-    else:
-        inbed = open(bed)
-    for line in inbed:
-        line = line.strip().split()
-        if len(line[-1]) != line[-1].count("-"): 
-            yield [ line[0], int(line[1]), int(line[2]), line[3] ]
-
-# Bed to positions
-def bedtopos(interval):
-    for i in range(interval[1], interval[2]):
-        if interval[-1][i - interval[1]] != "-": 
-            yield [ interval[0], str(i), str(i+1), interval[-1][i - interval[1]] ]
-
-# Parse fai
-def parse_fai(fai):
-    return { line.split()[0]: int(line.split()[1]) for line in open(fai) }
 
 # Define consensus allele
 def consense_query(input_alleles):
-    seqs = np.array(list(input_alleles))
-    values, counts = np.unique(np.char.upper(seqs), return_counts=True)
-    maxallele = np.max(counts)
-    if np.sum(counts == maxallele) == 1:
-        alleles = seqs[ np.char.upper(seqs) == values[ counts == maxallele ] ]
-        return alleles[0].upper() if np.sum(np.char.isupper(alleles)) > np.sum(np.char.islower(alleles)) else alleles[0].lower()
-    else:
-        return "-"
-            
+    input_alleles = input_alleles.upper().replace('N', '-').replace('.', '-')
+    ref = input_alleles[0]
+    cnt_full = Counter(input_alleles)
+    cnt_alts = Counter(input_alleles[1:])
+    candidate = cnt_alts.most_common()
+    second = cnt_full.most_common()
+    # Refine logic
+    if ref == '-' or list(cnt_alts.keys()) == ['-'] or list(cnt_full.keys()) == ['-']:
+        return('-')
+    if len(candidate) == 1:
+        return(candidate[0][0])
+    if len(candidate) >= 2 and candidate[0][1] > candidate[1][1]:
+        return(candidate[0][0] if len(candidate) == 2 else candidate[0][0].lower())
+    if len(candidate) >= 2 and second[0][1] > second[1][1]:
+        return(second[0][0].lower())
+    return('-')
+
 
 # Main function
 def main():
     args = parse_args()
 
-    # Get reference file
-    # reference = pyfaidx.Fasta(args.fasta, read_ahead=6000000000, mutable=False)
-    reference = readFasta(args.fasta)
+    # Define thread pool
+    if args.threads:
+        os.environ["POLARS_MAX_THREADS"] = f"{args.threads}"
 
-    # Parse bed file and get multiple bases
-    itv0 = []
-    for itv in parse_bed(args.bed):
-        if itv0 == []: 
-            r_allele = str(reference[ itv[0] ][ itv[1] ])
-            a_allele = itv[-1]
-            itv[-1] = r_allele + a_allele 
-            itv0 = itv
-            continue
-        elif itv0[0] != itv[0] or itv0[1] != itv[1]:
-            print( '\t'.join([ itv0[0], str(itv0[1]), str(itv0[2]), itv0[-1] ]) )
-            r_allele = str(reference[ itv[0] ][ itv[1] ])
-            a_allele = itv[-1]
-            itv[-1] = r_allele + a_allele
-            itv0 = itv
-            continue
-        else:
-            if itv[0] == itv0[0] and itv[1] == itv0[1]:
-                itv0[-1] = itv0[-1] + itv[-1]
-                continue
-    if len(itv0) != 0: print( '\t'.join([ itv0[0], str(itv0[1]), str(itv0[2]), itv0[-1] ]) )
+    # Get reference nucleotides
+    reference = FastaFile(args.fasta)
+    reference = pl.DataFrame({'chrom': '24', 'start': range(0, len(reference['24'])), 'ref': tuple(reference['24']) })
 
+    # Import data
+    header = ['chrom', 'start', 'end', 'val']
+    df = pl.read_csv(args.bed, has_header=False, new_columns=header, separator='\t').cast({'chrom': str})
 
-    # make a copy to build our ancestor for this chromosome
-    # print(f"Copy {args.fasta}...")
-    # copyfile(args.fasta, args.outname)
-    # anc = pyfaidx.Fasta(args.outname, read_ahead=10000, mutable=True)
+    # Combine bases for same position
+    df = df.group_by(('chrom', 'start', 'end')).agg(pl.col("val").str.concat(""))
 
-    # Generate sequences
+    # Sort positions
+    df = df.sort(by=('chrom', 'start'))
+
+    # Add reference bases
+    df = df.join(reference, on=("chrom", "start"), how="left")
+
+    # Add reference base, then drop the ref col
+    df = df.with_columns(val=pl.concat_str(pl.col('ref'), pl.col('val'))).drop("ref")
     
+    # Get consensed value
+    df = df.with_columns(con = pl.col('val').map_elements(lambda x: consense_query(x), return_dtype=str, strategy='threading'))
 
-    # Process bed
+    # Save data
+    df.write_csv(args.out, separator='\t', include_header=False)
     return 0
 
 if __name__ == "__main__":
