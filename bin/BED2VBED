@@ -18,9 +18,7 @@ def parse_args():
 def parse_bed(bed):
     for line in open(bed):
         line = line.strip().split()
-        chars = tuple(set(line[-1]))
-        if len(chars)>1 and chars[0]!="-":
-            yield [ line[0], int(line[1]), int(line[2]), line[3] ]
+        yield [ line[0], int(line[1]), int(line[2]), line[3] ]
 
 # Bed to positions
 def bedtopos(interval):
