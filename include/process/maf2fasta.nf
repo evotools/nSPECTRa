@@ -86,7 +86,7 @@ process bed2vbed{
     """
     mkdir -p TMP/
     samtools faidx ${fasta} ${contig} > ${contig}.fasta
-    COMBINE -b ${bed} -t ${task.cpus} --region ${contig} -f ${contig}.fasta -o /dev/stdout ${greedy} | \
+    CONSENSE -b ${bed} -t ${task.cpus} --region ${contig} -f ${contig}.fasta -o /dev/stdout ${greedy} | \
         bgzip -c > ${contig}_ancestral_states.bed.gz
     """
 }
