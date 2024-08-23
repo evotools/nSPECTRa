@@ -13,6 +13,9 @@ However, you need to install:
  4. [relate](https://myersgroup.github.io/relate/) software suite
 Most of the remaining dependencies are downloaded by *nSPECTRa* at runtime.
 
+## Updates
+Check the [CHANGELOG](./CHANGELOG.md) for updates to this workflow.
+
 ## Inputs
 To run the workflow effectively, you'll need:
  1. A vcf file with the genotypes for the samples to analyse, tbi-indexed
