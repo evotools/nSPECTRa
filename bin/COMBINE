@@ -7,63 +7,81 @@ import polars as pl
 from pysam import FastaFile
 
 
-def get_main_logger(name):
-    """Create the top-level logger."""
-    global _log_name
-    _log_name = name
-    logging.basicConfig(
-        format='[%(asctime)s - %(name)s] %(message)s',
-        datefmt='%H:%M:%S', level=logging.INFO)
-    return logging.getLogger(name)
-
-
-def get_named_logger(name):
-    """Create a logger with a name.
-
-    :param name: name of logger.
-    """
-    name = name.ljust(10)[:10]  # so logging is aligned
-    logger = logging.getLogger('{}.{}'.format(_log_name, name))
-    return logger
-
-
 def parse_args():
     """Define arguments."""
     import argparse
+
     parser = argparse.ArgumentParser()
-    parser.add_argument("-b", "--bed", metavar = 'ancestral_bed.bed', type = str, help = 'Input ancestral bed file',\
-                            dest = 'bed', required = True)
-    parser.add_argument("-f", "--fasta", metavar = 'reference.fasta', type = str, help = 'Input fasta file',\
-                            dest = 'fasta', required = True)
-    parser.add_argument("-r", "--region", metavar = 'str', type = str, help = 'Sequence ID to process',\
-                            dest = 'region', required = True)
-    parser.add_argument("-t", "--threads", metavar = 'N', type = int, help = 'Number of threads; defaults all of them',\
-                            dest = 'threads', required = False)
-    parser.add_argument("-g", "--greedy", action="store_true", help = 'Run in greedy mode.',\
-                            dest = 'greedy')
-    parser.add_argument("-o", "--out", metavar = 'prefix', type = str, help = 'Output file.',\
-                            dest = 'out', required = False, default = "myanc.fa")
+    parser.add_argument(
+        "-b",
+        "--bed",
+        metavar="ancestral_bed.bed",
+        type=str,
+        help="Input ancestral bed file",
+        dest="bed",
+        required=True,
+    )
+    parser.add_argument(
+        "-f",
+        "--fasta",
+        metavar="reference.fasta",
+        type=str,
+        help="Input fasta file",
+        dest="fasta",
+        required=True,
+    )
+    parser.add_argument(
+        "-r",
+        "--region",
+        metavar="str",
+        type=str,
+        help="Sequence ID to process",
+        dest="region",
+        required=True,
+    )
+    parser.add_argument(
+        "-t",
+        "--threads",
+        metavar="N",
+        type=int,
+        help="Number of threads; defaults all of them",
+        dest="threads",
+        required=False,
+    )
+    parser.add_argument(
+        "-g", "--greedy", action="store_true", help="Run in greedy mode.", dest="greedy"
+    )
+    parser.add_argument(
+        "-o",
+        "--out",
+        metavar="prefix",
+        type=str,
+        help="Output file.",
+        dest="out",
+        required=False,
+        default="myanc.fa",
+    )
     return parser.parse_args()
 
 
 # Define consensus allele
 def consense_query(input_alleles):
-    input_alleles = input_alleles.upper().replace('N', '-').replace('.', '-')
+    input_alleles = input_alleles.upper().replace("N", "-").replace(".", "-")
     ref = input_alleles[0]
     cnt_full = Counter(input_alleles)
     cnt_alts = Counter(input_alleles[1:])
     candidate = cnt_alts.most_common()
     second = cnt_full.most_common()
     # Refine logic
-    if ref == '-' or list(cnt_alts.keys()) == ['-'] or list(cnt_full.keys()) == ['-']:
-        return('-')
+    if ref == "-" or list(cnt_alts.keys()) == ["-"] or list(cnt_full.keys()) == ["-"]:
+        return "-"
     if len(candidate) == 1:
-        return(candidate[0][0])
+        return candidate[0][0]
     if len(candidate) >= 2 and candidate[0][1] > candidate[1][1]:
-        return(candidate[0][0] if len(candidate) == 2 else candidate[0][0].lower())
+        return candidate[0][0] if len(candidate) == 2 else candidate[0][0].lower()
     if len(candidate) >= 2 and second[0][1] > second[1][1]:
-        return(second[0][0].lower())
-    return('-')
+        return second[0][0].lower()
+    return "-"
 
 
 # Main function
@@ -72,8 +90,12 @@ def main():
     args = parse_args()
 
     # Define logger
-    logger = get_main_logger("COMBINE")
-    logger = get_named_logger("COMBINE")
+    logging.basicConfig(
+        format="[%(asctime)s - %(name)s] %(message)s",
+        datefmt="%H:%M:%S",
+        level=logging.INFO,
+    )
+    logger = logging.getLogger("COMBINE")
 
     # Define thread pool
     if args.threads:
@@ -83,44 +105,79 @@ def main():
     # Instatiate reference
     reference = FastaFile(args.fasta)
 
-    # Import data
-    logging.info("Loading dataset.")
-    header = ['chrom', 'start', 'end', 'val']
-    df = pl.read_csv(args.bed, has_header=False, new_columns=header, separator='\t').cast({'chrom': str})
+    # Load the BED file
+    logging.info("Loading bed")
+    df = (
+        pl.read_csv(
+            args.bed,
+            has_header=False,
+            separator="\t",
+            new_columns=["chrom", "start", "end", "val"],
+        )
+        .cast({"chrom": str, "start": int, "end": int, "val": str})
+        .filter(pl.col("chrom") == args.region)
+    )
+
+    # Verticalize the dataset
+    logging.info("Verticalizing")
+    df = (
+        df.with_columns(
+            val=pl.col("val").str.split(by=""),
+            start=pl.int_ranges("start", "end"),
+            end=pl.int_ranges("start", "end"),
+        )
+        .explode(["start", "end", "val"])
+        .filter(pl.col("val") != "-")
+        .with_columns(end=pl.col("end") + 1)
+    )
 
     # Combine bases for same position
     if args.greedy:
-        logging.info("Running in greedy mode.")
-        df = df.group_by(('chrom', 'start', 'end')).agg(pl.col("val").str.concat(""))
+        logging.info("Grouping data (greedy)")
+        df = df.group_by(("chrom", "start", "end")).agg(pl.col("val").str.concat(""))
     else:
-        logging.info("Running in memory mode.")
+        logging.info("Grouping data (memory)")
         df = (
-            df
-                .group_by(('chrom', 'start', 'end'))
-                .agg(pl.col('val'))
-                .with_columns(val = pl.col('val').map_elements(lambda x: ''.join(x), return_dtype=str, strategy='threading'))
+            df.group_by(("chrom", "start", "end"))
+            .agg(pl.col("val"))
+            .with_columns(
+                val=pl.col("val").map_elements(
+                    lambda x: "".join(x), return_dtype=str, strategy="threading"
+                )
             )
+        )
 
     # Sort positions
-    logging.info("Sorting.")
-    df = df.sort(by=('chrom', 'start'))
+    logging.info("Sorting")
+    df = df.sort(by=("chrom", "start"))
 
     # Add reference bases
-    logging.info("Add reference.")
-    reference = pl.DataFrame({'chrom': args.region, 'start': range(0, len(reference[args.region])), 'ref': tuple(reference[args.region]) })
+    logging.info("Add reference")
+    reference = pl.DataFrame(
+        {
+            "chrom": args.region,
+            "start": range(0, len(reference[args.region])),
+            "ref": tuple(reference[args.region]),
+        }
+    )
     df = df.join(reference, on=("chrom", "start"), how="left")
 
     # Add reference base, then drop the ref col
-    df = df.with_columns(val=pl.concat_str(pl.col('ref'), pl.col('val'))).drop("ref")
-    
+    df = df.with_columns(val=pl.concat_str(pl.col("ref"), pl.col("val"))).drop("ref")
+
     # Get consensed value
-    logging.info("Run consensus.")
-    df = df.with_columns(con = pl.col('val').map_elements(lambda x: consense_query(x), return_dtype=str, strategy='threading'))
+    logging.info("Run consensus")
+    df = df.with_columns(
+        con=pl.col("val").map_elements(
+            lambda x: consense_query(x), return_dtype=str, strategy="threading"
+        )
+    )
 
     # Save data
-    df.write_csv(args.out, separator='\t', include_header=False)
-    logging.info("Done.")
+    df.write_csv(args.out, separator="\t", include_header=False)
+    logging.info("Done")
     return 0
+
 
 if __name__ == "__main__":
     main()
