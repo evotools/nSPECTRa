@@ -22,7 +22,7 @@ All new changes are documented here.
 |---------|--------|-------------|---------------|--------------|
 | v1.0.0  |    -   |      0.7    |     18.9      |     1.0x     |
 | v1.1.0  | Memory |     11.3    |      5.9      |     3.2x     |
-| v1.1.0  | Greedy |     25.0    |      4.0      |     4.7      |
+| v1.1.0  | Greedy |     25.0    |      4.0      |     4.7x     |
 
 ### Fixed
 - Fixes a start-up issue when running from the directory, rather than from `main.nf`
