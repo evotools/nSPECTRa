@@ -29,6 +29,7 @@ All new changes are documented here.
 - Fixes `-stub` runtime issues
 
 ### Removed
+- Legacy DSL1 code (`legacy/main.nf`)
 - Dropped filtering process as unused in the analyses
 - `BED2VBED` and `COMBINE` scripts
 
