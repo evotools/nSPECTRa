@@ -60,7 +60,6 @@ process maf2bed {
 }
 
 process bed2vbed{
-    label "large"
     cpus = 4
     memory = { params.greedy ? 96.GB * task.attempt : 32.GB * task.attempt }
     time = { 23.h * task.attempt }
