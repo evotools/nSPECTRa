@@ -170,7 +170,7 @@ process count_mutations {
     script:
     """
     bcftools query ${vcf} -f '%CHROM\\t%POS\\t%INFO/mutation_type\\t[%GT\\t]\\n' | bgzip -c > K${k}.tsv.gz
-    vcfsamplenames ${vcf} | awk 'NR==1 {print "CHROM\\nPOS\\nCHANGE"}; {print}' > K${k}.header
+    bcftools query -l ${vcf} | awk 'NR==1 {print "CHROM\\nPOS\\nCHANGE"}; {print}' > K${k}.header
     compute_spectra -i K${k}.tsv.gz -H K${k}.header -k ${levels} -o mutationSpectra_${params.reference}_${k}.tsv
     """
 }
@@ -195,7 +195,7 @@ process count_mutations_csq {
     script:
     """
     bcftools +split-vep ${vcf} -d -f '%CHROM\\t%POS\\t%INFO/mutation_type\\t%Consequence\\t[%GT\\t]\\n' | bgzip -c > K${k}.csqs.tsv.gz
-    vcfsamplenames ${vcf} | awk 'NR==1 {print "CHROM\\nPOS\\nCHANGE\\nCSQ"}; {print}' > K${k}.csqs.header
+    bcftools query -l ${vcf} | awk 'NR==1 {print "CHROM\\nPOS\\nCHANGE\\nCSQ"}; {print}' > K${k}.csqs.header
     compute_spectra_class -i K${k}.csqs.tsv.gz -H K${k}.csqs.header -k ${levels} -c ${priority} -o mutationSpectra_${params.reference}_${k}.csq.tsv
     """
 }
