@@ -1,48 +1,85 @@
 #!/usr/bin/env python
 import sys
-import numpy as np
+import polars as pl
 
-def revert_mutation(mutation):
-    table = { "A": "T",
-            "T":"A",
-            "G":"C",
-            "C":"G"
-            }
-    initial, final = mutation.split('>')
-    initial = ''.join([ table.get(i, i) for i in initial[::-1] ])
-    final =   ''.join([ table.get(i, i) for i in final[::-1] ])
-    return "{}>{}".format(initial, final)
+MAPPING = {
+    '0/0': '0',
+    '0|0': '0',
+    '1|0': '1',
+    '0|1': '1',
+    '1|1': '1',
+    '1/1': '1',
+    '0/1': '1'
+}
 
-def import_mutcat(mutcat, nsamples):
-    #return { "{0}{2}{1}>{0}{3}{1}".format( line[0], line[2], line[4], line[6] ): np.zeros(nsamples, dtype = 'int64') for n, line in enumerate(open(mutcat)) if n > 0 }
-    return { line.strip(): np.zeros(nsamples, dtype = 'int64') for n, line in enumerate(open(mutcat)) if n > 0 and line.strip() != '' }
+def parse_args():
+    import argparse
+    # Argument definition
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--input", metavar = 'input.tsv', type = str, help = 'Input dataframe from bcftools split-vep, with fields CHROM, POS, mutation_type, Consequence and genotypes',\
+                            dest = 'input', required = True)
+    parser.add_argument("-k", "--kmers", metavar = 'kmers.txt', type = str, help = 'Kmers list (with header)',\
+                            dest = 'kmer', required = False, default = None)
+    parser.add_argument("-H", "--header", metavar = 'header.txt', type = str, help = 'Input dataframe header',\
+                            dest = 'header', required = True, default = None)
+    parser.add_argument("-o", "--out", metavar = 'prefix', type = str, help = 'Output file.',\
+                            dest = 'out', required = False, default = "myanc.fa")
+    parser.add_argument("--all", action='store_true', help = 'Add missing change-by-consequence combinations to the output dataframe.')
+    return parser.parse_args()
 
-if '.gz' in sys.argv[1]:
-    import gzip
-    infile = gzip.open(sys.argv[1])
-elif '-' in sys.argv[1]:
-    infile = sys.stdin
-else:
-    infile = open(sys.argv[1]) 
 
-for n, line in enumerate(infile):
-    try: line = line.decode()
-    except: line = line
-    if '##' in line: continue
-    elif '#' in line:
-        samples = line.strip().split()[9:]
-        dataset = import_mutcat( sys.argv[2], len(samples) )
-        #print(dataset)
-        print('\t'.join(['mutation'] + samples))
-        continue
-    line = line.strip().split()
-    mutype = [i.replace('mutation_type=', '') for i in line[7].split(';') if 'mutation_type=' in i][0]
-    vals = np.array([ 1 if '1' in i else 0 for i in line[9:] ])
-    dataset[ mutype ] += vals
-    if n%1000000 == 0: sys.stderr.write( "Last position: {}:{}\n".format(line[0], line[1]) )
+def main():
+    """Run entry point."""
+    # Parse arguments
+    args = parse_args()
 
-for key, val in dataset.items():
-    outline = [key] + list( map( str, val ) )
-    print( '\t'.join(outline) )
+    # import header first
+    header = open(args.header).read().splitlines()
+    
+    # Import data
+    df = pl.read_csv(args.input, has_header=False, new_columns=header, separator='\t')
 
-sys.stderr.write( "All done\n" )
+    # Drop null columns
+    df = df[[s.name for s in df if not (s.null_count() == df.height)]]
+
+    # Drop unnecessary columns
+    df = df.select(pl.col("*").exclude("CHROM", "POS"))
+
+    # Remap the data to whether they have a derived allele or not
+    df = df.select(pl.all().replace(MAPPING))
+
+    # Change data type to int
+    df = df.cast({col:int for col in header[3:]})
+
+    # Summarize data
+    df = df.group_by('CHANGE').sum()
+
+    # If store all requested, add missing consequences
+    if args.all:
+        # Create minimal levels of factors to facilitate future merging.
+        # first load all kmers
+        kmers = pl.DataFrame(args.kmers, new_header=['CHANGE'])
+        # Add them to the DF
+        df = pl.concat((
+                df[['CHANGE']],
+                kmers
+            ))
+
+    # Add missing levels
+    # First, we concatenate the full consequence-by-kmer with the output
+    df = (
+        df
+            .select(pl.col(['CHANGE']).unique().implode())  # second, we find the unique values for the two level columns and implode them
+            .explode('CHANGE')  # third, we explode the values once at the time, creating every combo of vals
+            .join(df, how='left', on=['CHANGE']) # fourth, we add back the initial values
+            .fill_null(0)  # finally, we set missing to zero
+        )
+
+    # Save data
+    df.write_csv(args.out, separator='\t')
+
+    sys.stderr.write( "All done\n" )
+
+
+if __name__ == "__main__":
+    main()
