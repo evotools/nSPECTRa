@@ -96,10 +96,10 @@ process bed2vbed{
 process makeRefTgtFasta {
     tag "reftgtfasta"
     label "medium"
+    container { params.cactus_version ? "quay.io/comparative-genomics-toolkit/cactus:${params.cactus_version}" : "quay.io/comparative-genomics-toolkit/cactus:latest" }
 
     input:
     path HAL
-    path CACTUS
 
     output:
     path "${params.reference}.fasta", emit: reffasta
@@ -129,8 +129,8 @@ process makeRefTgtFasta {
 
     script:
     """
-    ${CACTUS}/bin/hal2fasta --hdf5InMemory ${HAL} ${params.target} > ${params.target}.fasta
-    ${CACTUS}/bin/hal2fasta --hdf5InMemory ${HAL} ${params.reference} > ${params.reference}.fasta
+    hal2fasta --hdf5InMemory ${HAL} ${params.target} > ${params.target}.fasta
+    hal2fasta --hdf5InMemory ${HAL} ${params.reference} > ${params.reference}.fasta
     samtools faidx ${params.target}.fasta
     samtools faidx ${params.reference}.fasta
     """

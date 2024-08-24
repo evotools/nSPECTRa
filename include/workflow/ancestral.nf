@@ -10,9 +10,6 @@ include { get_hal } from '../process/dependencies'
 
 // Workflow
 workflow ANCESTRAL {
-    take:
-        cactus
-        
     main:
         /*Create ancestral fasta file*/
         // hal to maf, needed for constrained elements
@@ -36,8 +33,8 @@ workflow ANCESTRAL {
                 }
             } else {
                 if (params.hal) { ch_hal = file(params.hal) } else { exit 1, 'Hal file not specified!' }
-                // hal2maf( ch_hal, cactus )
-                makeRefTgtFasta( ch_hal, cactus )
+                // hal2maf( ch_hal )
+                makeRefTgtFasta( ch_hal )
                 if (params.ref_min_size){
                     filter_by_size(makeRefTgtFasta.out[0], makeRefTgtFasta.out[2])
                     ch_ref = filter_by_size.out[0]
@@ -49,13 +46,13 @@ workflow ANCESTRAL {
             }
         } else {
             if (params.hal) { ch_hal = file(params.hal) } else { exit 1, 'Hal file not specified!' }
-            hal2maf( ch_hal, cactus )
+            hal2maf( ch_hal )
 
             // maf to bed
             maf2bed(hal2maf.out)
 
             // Extract the different genomes and split it into chunks to speed up the process
-            makeRefTgtFasta( ch_hal, cactus )
+            makeRefTgtFasta( ch_hal )
             if (params.ref_min_size){
                 filter_by_size(makeRefTgtFasta.out[0], makeRefTgtFasta.out[2])
                 ch_ref = filter_by_size.out[0]

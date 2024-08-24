@@ -136,7 +136,7 @@ include { chromosomeList } from './include/process/prerun'
 workflow {
     // Generate the ancestral fasta
     get_hal()
-    ANCESTRAL(get_hal.out)
+    ANCESTRAL()
 
     if (!params.ancestral_only){
       // Fetch mask files
