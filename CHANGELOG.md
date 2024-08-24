@@ -15,6 +15,7 @@ All new changes are documented here.
 - Faster preprocessing of the VCF by processing by contig wherever possible (everywhere in preprocessing stage, WiP for the other components)
 - Separate the filtered SDM sites based on whether they fall into a repeat masked region or not
 - Increased threads provided to selected `bcftools` processes
+- Ancestral genome now uses `cactus` official image, rather than on the downloaded tools
 - Greatly increase performances of bed2vbed process by heavy usage of [polars](https://pola.rs/) dataframes, an improved logic and decreased I/O operations (see table):
 
 | Version |  Mode  | Memory (GB) | Runtime (min) | Fold improv. |

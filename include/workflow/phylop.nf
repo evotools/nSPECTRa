@@ -6,12 +6,12 @@ include {get_hal} from '../process/dependencies'
 
 workflow CONSTRAINED {
     take:
-        hal
         vcf
         tbi
         chromosomeList
 
     main:
+        hal = get_hal()
         // Get chromosome list
         chromosomeList
             .splitCsv(header: ['N','chrom'])

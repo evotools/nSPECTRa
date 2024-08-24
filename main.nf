@@ -128,14 +128,12 @@ include { SDM } from './include/workflow/sdm' params(params)
 include { GONE } from './include/workflow/gone' params(params)
 include { IBD } from './include/workflow/ibd' params(params)
 include { CONSTRAINED } from './include/workflow/phylop' params(params)
-include { get_masks } from './include/process/prerun' 
-include { get_hal } from './include/process/dependencies'
+include { get_masks } from './include/process/prerun'
 include { chromosomeList } from './include/process/prerun'
 
 // Run workflows
 workflow {
     // Generate the ancestral fasta
-    get_hal()
     ANCESTRAL()
 
     if (!params.ancestral_only){
@@ -157,7 +155,7 @@ workflow {
 
         // Get constrined elements and remove variants in them
         if ( params.phast || params.hal4d ){
-          CONSTRAINED(get_hal.out, ch_var_new, ch_var_idx_new, ch_chr_lists)
+          CONSTRAINED(ch_var_new, ch_var_idx_new, ch_chr_lists)
           ch_var_new = CONSTRAINED.out[0]
           ch_var_idx_new = CONSTRAINED.out[1]
         } 
