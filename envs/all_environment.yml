@@ -18,6 +18,8 @@ dependencies:
   - bioconda::shapeit5
   - bioconda::ucsc-fatotwobit
   - bioconda::ucsc-twobitinfo
+  - bioconda::ucsc-bigWigToBedGraph
+  - bioconda::ucsc-wigtobigwig
   - matplotlib
   - numpy
   - pandas

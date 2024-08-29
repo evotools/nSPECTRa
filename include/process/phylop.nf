@@ -9,13 +9,15 @@ process hal4d {
     tag "h4d"
     publishDir "${params.outdir}/PHYLOP/NEUTRAL", mode: "${params.publish_dir_mode}", overwrite: true
     label "large_onecore"
-    conda (params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null)
+    conda {params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null}
+    container { params.cactus_version ? "quay.io/comparative-genomics-toolkit/cactus:${params.cactus_version}" : "quay.io/comparative-genomics-toolkit/cactus:latest" }
 
     input:
-    path HAL
+    path hal
+    path exon_bed
 
     output:
-    path "neutralRegions.bed"
+    tuple path(hal), path("neutralRegions.bed")
     
     
     stub:
@@ -25,8 +27,32 @@ process hal4d {
 
     script:
     """
-    cp ${params.exon_bed} exons.bed
-    ${HAL}/bin/hal4dExtract --hdf5InMemory ${params.hal} ${params.reference} exons.bed neutralRegions.bed 
+    hal4dExtract --hdf5InMemory ${hal} "${params.reference}" ${exon_bed} neutralRegions.bed 
+    """
+}
+
+process halTree {
+    tag "pFit"
+    publishDir "${params.outdir}/PHYLOP/NEUTRAL", mode: "${params.publish_dir_mode}", overwrite: true
+    label "largemem"
+    conda {params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null}
+    container { params.cactus_version ? "quay.io/comparative-genomics-toolkit/cactus:${params.cactus_version}" : "quay.io/comparative-genomics-toolkit/cactus:latest" }
+
+    input:
+    path hal
+
+    output:
+    env TREE
+    
+    
+    stub:
+    """
+    TREE="((spp1, spp2), spp3)"
+    """
+
+    script:
+    """
+    TREE=`halStats --tree ${hal}`
     """
 }
 
@@ -34,12 +60,10 @@ process phyloFit {
     tag "pFit"
     publishDir "${params.outdir}/PHYLOP/NEUTRAL", mode: "${params.publish_dir_mode}", overwrite: true
     label "largemem"
-    conda (params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null)
+    conda {params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null}
 
     input:
-    path input
-    path HAL
-    //path PHAST
+    tuple path(ss), val(TREE)
 
     output:
     path "neutralModel.mod"
@@ -51,74 +75,9 @@ process phyloFit {
     """
 
     script:
-    if (params.hal4d)
     """
-    mytree=`${HAL}/bin/halStats --tree ${params.hal} | python -c "import sys, re; pattern = r'Inner[0-9]*'; sys.stdout.write( re.sub(r':[0-9].[0-9]*', '', re.sub(pattern,'', sys.stdin.readline()).replace(':0)Anc00',''))[1:] ) "`
-    phyloFit --tree \$mytree --msa-format SS --subst-mod SSREV --sym-freqs --precision HIGH --out-root neutralModel ${input} 
+    phyloFit --tree "${TREE}" --msa-format SS --subst-mod SSREV --sym-freqs --precision HIGH --out-root neutralModel ${ss} 
     """
-    else
-    """
-    tree=`${HAL}/bin/halStats --tree ${params.hal}`
-    phyloFit --out-root neutralModel --tree "\$tree" ${input}
-    """
-}
-
-process makeMaf {
-    tag "maf"
-    publishDir "${params.outdir}/PHYLOP/MAF/CHROM", mode: "${params.publish_dir_mode}", overwrite: true
-    conda (params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null)
-
-    input:
-    path HAL
-    tuple val(N), val(chrom)
-
-    output:
-    path "alignments_${chrom}.maf"
-    
-    
-    stub:
-    """
-    touch alignments_${chrom}.maf
-    """
-
-    script:
-    """
-    export PYTHONPATH=${HAL}/lib:${HAL}/submodules/sonLib/src
-    export PATH=\$PATH:${HAL}/bin
-    ${HAL}/bin/hal2maf --refSequence ${chrom} \
-        --refGenome ${params.reference} --noAncestors --noDupes \
-        --hdf5InMemory ${params.hal} alignments_${chrom}.maf
-    """
-}
-
-process combine_mafs {
-    tag "combmaf"
-    publishDir "${params.outdir}/PHYLOP/MAF", mode: "${params.publish_dir_mode}", overwrite: true
-    conda (params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null)
-
-    input:
-    path mafs
-
-    output:
-    path "alignments.maf"
-    
-    
-    stub:
-    """
-    touch alignments.maf
-    """
-
-    script:
-    $/
-    import sys, os
-    infiles = [i for i in os.path.listdir() if '.maf' in i]
-    outfile = open('alignments.maf', 'w')
-    for n, infile in enumerate(infiles):
-        for line in open(infile):
-            if '#' in line[0] and n != 0:
-                continue
-            outfile.write(line)
-    /$
 }
 
 
@@ -126,14 +85,14 @@ process make4dmaf {
     tag "maf"
     publishDir "${params.outdir}/PHYLOP/MAF", mode: "${params.publish_dir_mode}", overwrite: true
     label "medium_vlargemem"
-    conda (params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null)
+    conda {params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null}
+    container { params.cactus_version ? "quay.io/comparative-genomics-toolkit/cactus:${params.cactus_version}" : "quay.io/comparative-genomics-toolkit/cactus:latest" }
 
     input:
-    path bedfile
-    path HAL
+    tuple path(hal), path(bedfile), val(GENOMES)
 
     output:
-    path "4d.maf"
+    tuple path(hal), path("4d.maf"), val(GENOMES)
     
     stub:
     """
@@ -142,16 +101,41 @@ process make4dmaf {
 
     script:
     """
-    export PYTHONPATH=${HAL}/lib:${HAL}/submodules/sonLib/src
-    export PATH=\$PATH:${HAL}/bin
-    ${HAL}/bin/hal2mafMP.py \
+    hal2mafMP.py \
+        ${hal} \
+        4d.maf \
         --noDupes \
-        --noAncestors \
+        --targetGenomes "${GENOMES}" \
         --numProc ${task.cpus} \
         --refGenome ${params.reference} \
         --refTargets ${bedfile} \
-        --hdf5InMemory ${params.hal} 4d.maf
+        --hdf5InMemory
     sed -i -e 2d 4d.maf
+    """
+}
+
+process hal_genomes {
+    tag "msa"
+    publishDir "${params.outdir}/PHYLOP/MSA", mode: "${params.publish_dir_mode}", overwrite: true
+    label "medium_largemem"
+    conda {params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null}
+    container { params.cactus_version ? "quay.io/comparative-genomics-toolkit/cactus:${params.cactus_version}" : "quay.io/comparative-genomics-toolkit/cactus:latest" }
+
+    input:
+    tuple path(hal)
+
+    output:
+    env(GENOMES)
+    
+    
+    stub:
+    """
+    GENOMES='spp1,spp2,spp3'
+    """
+
+    script:
+    """
+    GENOMES=\$( halStats ${hal} --genomes | sed 's/ /\\n/g' | paste -sd, )
     """
 }
 
@@ -159,11 +143,10 @@ process msa_view {
     tag "msa"
     publishDir "${params.outdir}/PHYLOP/MSA", mode: "${params.publish_dir_mode}", overwrite: true
     label "medium_largemem"
-    conda (params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null)
+    conda {params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null}
 
     input:
-    path maf
-    path HAL
+    tuple path(hal), path(maf), val(GENOMES)
 
     output:
     path "${maf.simpleName}.ss"
@@ -176,65 +159,10 @@ process msa_view {
 
     script:
     """
-    export PYTHONPATH=${HAL}/lib:${HAL}/submodules/sonLib/src
-    export PATH=\$PATH:${HAL}/bin
-    genomes=`${HAL}/bin/halStats ${params.hal} --genomes | python -c 'import sys; a = [i for i in sys.stdin.readline().split() if "Inner" not in i and "Anc" not in i]; print(",".join(a))'`
-    msa_view -o SS -z --in-format MAF --aggregate \$genomes ${maf} > ${maf.simpleName}.ss
-    """
-}
-
-
-process phastCons {
-    tag "pcon"
-    publishDir "${params.outdir}/PHYLOP/PHASTCONS/CHR", mode: "${params.publish_dir_mode}", overwrite: true
-    label "medium_multi"
-    conda (params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null)
-
-    input:
-    path HAL
-    path maf
-    path model
-
-    output:
-    path "${maf.simpleName}.cons.bed"
-    path "${maf.simpleName}.scores.wig"
-    
-    
-    stub:
-    """
-    touch ${maf.simpleName}.cons.bed
-    touch ${maf.simpleName}.scores.wig
-    """
-
-    script:
-    """
-    export PYTHONPATH=${HAL}/lib:${HAL}/submodules/sonLib/src
-    export PATH=\$PATH:${HAL}/bin
-    phastCons --most-conserved ${maf.simpleName}.cons.bed ${maf} ${model} > ${maf.simpleName}.scores.wig
-    """
-}
-
-process collect{
-    tag "col"
-    publishDir "${params.outdir}/PHYLOP/PHASTCONS", mode: "${params.publish_dir_mode}", overwrite: true
-    label "medium_multi"
-    conda (params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null)
-
-    input:
-    path beds
-
-    output:
-    path "conserved.bed"
-    
-    
-    stub:
-    """
-    touch conserved.bed
-    """
-
-    script:
-    """
-    cat ${beds} | sed 's/alignments_//g' | bedtools sort -i - > conserved.bed
+    MAF_RENAME -m ${maf} -i "${GENOMES}" -o renamed.maf
+    CONV=\$( cat conversion.csv )
+    msa_view -o SS -z --in-format MAF --aggregate "\$CONV" renamed.maf | \
+        sed "s/NAMES = \$CONV/NAMES = ${GENOMES}/g" > ${maf.simpleName}.ss
     """
 }
 
@@ -243,10 +171,11 @@ process phyloPtrain {
     tag "pptrain"
     publishDir "${params.outdir}/PHYLOP/NEUTRAL", mode: "${params.publish_dir_mode}", overwrite: true
     label "medium_multi"
-    conda (params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null)
+    conda {params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null}
+    container { params.cactus_version ? "quay.io/comparative-genomics-toolkit/cactus:${params.cactus_version}" : "quay.io/comparative-genomics-toolkit/cactus:latest" }
 
     input:
-    path HAL
+    path hal
     path ss
 
     output:
@@ -260,53 +189,74 @@ process phyloPtrain {
 
     script:
     """
-    export PYTHONPATH=${HAL}/lib:${HAL}/submodules/sonLib/src
-    export PATH=\$PATH:${HAL}/bin
-    ${HAL}/bin/halPhyloPTrain.py ${params.hal} ${params.reference} ${neutral} neutralModel.mod --numProc ${task.cpus} 
+    halPhyloPTrain.py ${hal} ${params.reference} ${neutral} neutralModel.mod --numProc ${task.cpus} 
     """
 }
 
 
 process phyloP {
     tag "ppmp"
-    publishDir "${params.outdir}/PHYLOP/BED/CHR", mode: "${params.publish_dir_mode}", overwrite: true
-    conda (params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null)
+    publishDir "${params.outdir}/PHYLOP/WIG/", mode: "${params.publish_dir_mode}", overwrite: true
+    conda {params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null}
+    container { params.cactus_version ? "quay.io/comparative-genomics-toolkit/cactus:${params.cactus_version}" : "quay.io/comparative-genomics-toolkit/cactus:latest" }
 
     input:
-    path HAL
-    path model
-    tuple val(n), val(chr)
+    tuple val(n), val(chr), path(hal), path(model)
 
     output:
-    path "constrained_elements_${chr}.bed"
-    
+    tuple val(n), val(chr), path(hal), path(model), path("phylop_${chr}.wig"), path("${params.reference}.sizes")
     
     stub:
     """
-    touch constrained_elements_${chr}.bed
+    touch phylop_${chr}.wig
     """
 
     script:
     """
-    export PYTHONPATH=${HAL}/lib:${HAL}/submodules/sonLib/src
-    export PATH=\$PATH:${HAL}/bin
-    ${HAL}/bin/halPhyloPMP.py ${params.hal} ${params.reference} ${model} constrained_elements_${chr}.wig \
+    halPhyloPMP.py \
+        ${hal} \
+        ${params.reference} \
+        ${model} \
+        phylop_${chr}.wig \
         --refSequence ${chr} \
         --chromSizes ${params.reference}.sizes \
         --numProc ${task.cpus} 
-    wigToBigWig constrained_elements_${chr}.wig ${params.reference}.sizes /dev/stdout | \
-        bigWigToBedGraph /dev/stdin /dev/stdout | \
-        bedtools sort -i - > constrained_elements_${chr}.bed && \
-        rm constrained_elements_${chr}.wig
     """
 }
 
 
-process bigWigToBed {
+process wig2bedgraph {
+    tag "ppmp"
+    conda {params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null}
+    afterScript "rm ${wig.baseName}.bw"
+
+    input:
+    tuple val(n), val(chr), path(hal), path(model), path(wig), path(sizes)
+
+    output:
+    path "${wig.baseName}.bed"
+    
+    
+    stub:
+    """
+    touch ${wig.baseName}.bed
+    """
+
+    script:
+    """
+    wigToBigWig ${wig} ${sizes} ${wig.baseName}.bw
+    bigWigToBedGraph ${wig.baseName}.bw  /dev/stdout | \
+        sort -k1,1 -k2,2n --parallel ${task.cpus} - > ${wig.baseName}.bed
+    """
+}
+
+
+process bedtobigwig {
     tag "bw2bed"
     publishDir "${params.outdir}/PHYLOP/BED/CHR", mode: "${params.publish_dir_mode}", overwrite: true
     label "largemem"
-    conda (params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null)
+    conda { params.enable_conda ? "ucsc-bedgraphtobigwig" : null }
+    container { params.cactus_version ? "quay.io/comparative-genomics-toolkit/cactus:${params.cactus_version}" : "quay.io/comparative-genomics-toolkit/cactus:latest" }
 
     input:
     path bw
@@ -330,53 +280,73 @@ process combine_bed {
     tag "bed"
     publishDir "${params.outdir}/PHYLOP/BED", mode: "${params.publish_dir_mode}", overwrite: true
     label "largemem"
-    conda (params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null)
+    conda {params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null}
 
     input:
     path beds
 
     output:
-    path "constrained.bed"
+    path "phylop.bed"
     
     
     stub:
     """
-    touch constrained.bed
+    touch phylop.bed
     """
 
     script:
     """
-    cat ${beds} | bedtools sort -i - > constrained.bed
+    cat ${beds} | bedtools sort -i - > phylop.bed
     """
 }
 
 
-process get_constrained {
-    tag "constr"
-    publishDir "${params.outdir}/PHYLOP/CONSTRAINED", mode: "${params.publish_dir_mode}", overwrite: true
-    label "largemem"
-    conda (params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null)
+process extract_conserved {
+    publishDir "${params.outdir}/PHYLOP/CONSERVED", mode: "${params.publish_dir_mode}", overwrite: true
+    conda {params.enable_conda ? "${baseDir}/envs/phast_environment.yml" : null}
 
     input:
-    path bed
+    path "phylop.bed"
 
     output:
-    path "constrained.bed"
+    path "phylop_conserved.bed"
     
     
     stub:
     """
-    touch constrained.bed
+    touch phylop_conserved.bed
     """
 
     script:
     """
-    cat ${bed} | bedtools sort -i - > constrained.bed
+    #!/usr/bin/env Rscript
+    options(scipen = 999)
+    library(tidyverse)
+
+    # Fetch input BEDgraph
+    bed <- read_table('phylop.bed', col_names = c('chrom', 'start', 'end', 'phylop'))
+
+    # Define Q3 and IQR
+    q3 <- as.vector(quantile(bed\$phylop, probs=c(0.75)))
+    iqr <- IQR(bed\$phylop)
+
+    # Extract conserved elements as positive outliers
+    conserved <- bed %>% filter( phylop > q3+iqr*1.5 )
+
+    # Save conserved regions
+    write.table(
+        conserved,
+        'phylop_conserved.bed',
+        sep = '\t',
+        col.names = FALSE,
+        row.names = FALSE,
+        quote = FALSE
+    )
     """
 }
 
 
-process filter {
+process vcf_drop_conserved {
     tag "filt"
     publishDir "${params.outdir}/PHYLOP/VCF", mode: "${params.publish_dir_mode}", overwrite: true
     label "medium"
@@ -387,20 +357,20 @@ process filter {
     path bed
 
     output:
-    path "${vcf.simpleName}.unconstrained.vcf.gz"
-    path "${vcf.simpleName}.unconstrained.vcf.gz.tbi"
+    path "${vcf.simpleName}.non-conserved.vcf.gz", emit: vcf
+    path "${vcf.simpleName}.non-conserved.vcf.gz.tbi", emit: tbi
     
     
     stub:
     """
-    touch ${vcf.simpleName}.unconstrained.vcf.gz
-    touch ${vcf.simpleName}.unconstrained.vcf.gz.tbi
+    touch ${vcf.simpleName}.non-conserved.vcf.gz
+    touch ${vcf.simpleName}.non-conserved.vcf.gz.tbi
     """
 
     script:
     """
-    bedtools intersect -header -v -a ${vcf} -b ${bed} | bgzip -c > ${vcf.simpleName}.unconstrained.vcf.gz
-    tabix -p vcf ${vcf.simpleName}.unconstrained.vcf.gz
+    bedtools intersect -header -v -a ${vcf} -b ${bed} | bgzip -c > ${vcf.simpleName}.non-conserved.vcf.gz
+    tabix -p vcf ${vcf.simpleName}.non-conserved.vcf.gz
     """
 }
 
