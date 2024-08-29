@@ -86,8 +86,7 @@ def helpMessage() {
 
     Constrained elements detection
       --gone                          Run GONE to calculate effective population size (Default: false)
-      --phast                         Provide path to phast installation
-      --hal4d                         Use hal4d to define the neutral regions
+      --constrained                   Use hal4d to define the neutral regions
       --exon_bed                      Provide path to bed file with exonic regions for hal4d
 
     Other

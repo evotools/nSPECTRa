@@ -93,11 +93,6 @@ workflow PREPROCESS {
         if (params.max_derivate_allele_freq){
             processed_ch = processed_ch | daf_filter
         }
-        // // Filter if requested
-        // if (params.filter){
-        //     filtering(ch_var, ch_var_idx)
-        //     processed_ch = apply_filter(processed_ch.combine(filtering.out))
-        // }
 
         // Combine results
         processed_ch | map{ chrom, vcf, tbi -> [vcf, tbi]} | flatten | collect | combineVcf

@@ -60,7 +60,6 @@ Intergen. time  : $params.intergen_time
 Mut. rate       : $params.mutation_rate
 Min. pop. size  : $params.min_pop_size
 imputation sfw  : $params.imputation
-filter          : $params.filter
 coding          : $params.coding
 noncoding       : $params.noncoding
 annotation      : $params.annotation
@@ -68,9 +67,8 @@ pops_folder     : $params.pops_folder
 pop labels file : $params.poplabels
 chromosome list : $params.chr_list
 cactus url      : $params.cactus_url 
-phast           : $params.phast 
 exons           : $params.exon_bed 
-hal4d           : $params.hal4d 
+constrained     : $params.constrained 
 relate dir      : $params.relate""" 
 if (params.neval){
   log.info """Ne value        : $params.neval"""  
@@ -115,7 +113,7 @@ if (params.variants && !params.ancestral_only) { ch_var = Channel.fromPath(param
 if (params.idx && !params.ancestral_only) { ch_var_idx = Channel.fromPath(params.idx) } else { exit 1, 'TBI file not specified!' }
 if (!params.hal) { exit 1, 'Hal file not specified and ancestral not specified!' }
 if (!params.hal && !params.ref_fasta && !params.ancestral) { exit 1, 'Ancestral and reference genomes not specified!' }
-if (params.hal4d && !params.exon_bed) { exit 1, 'Requested hal4d algorithm, but no bed with exons specified!' }
+if (params.constrained && !params.exon_bed) { exit 1, 'Requested hal4d algorithm, but no bed with exons specified!' }
 
 /*
  * Import sub-workflows
@@ -154,7 +152,7 @@ workflow {
         vcf_by_chr = PREPROCESS.out.vcf_by_chr
 
         // Get constrined elements and remove variants in them
-        if ( params.phast || params.hal4d ){
+        if ( params.constrained ){
           CONSTRAINED(ch_var_new, ch_var_idx_new, ch_chr_lists)
           ch_var_new = CONSTRAINED.out[0]
           ch_var_idx_new = CONSTRAINED.out[1]
