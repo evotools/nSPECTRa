@@ -71,7 +71,7 @@ process annotateVcf {
 // Make VEP process
 process vep {
     container params.vep_cache_version != 'latest' && params.vep_cache_version ? "ensemblorg/ensembl-vep:release_${params}" : "ensemblorg/ensembl-vep:latest"
-    conda (params.enable_conda ? "bioconda::ensembl-vep=${params.vep_release_maj}" : null)
+    conda {params.enable_conda ? "bioconda::ensembl-vep=${params.vep_release_maj}" : null}
 
     input:
     tuple val(chrom), path(vcf), path(tbi)

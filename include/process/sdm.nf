@@ -1,7 +1,7 @@
 process sdm {
     tag "sdm"
     publishDir "${params.outdir}/sdm/raw", mode: "${params.publish_dir_mode}", overwrite: true
-    conda (params.enable_conda ? "${baseDir}/envs/sdm-environment.yml" : null)
+    conda {params.enable_conda ? "${baseDir}/envs/sdm-environment.yml" : null}
     
 
     input:
@@ -30,7 +30,7 @@ process filter_sdm {
     tag "filter_sdm"
     label "renv_large"
     publishDir "${params.outdir}/sdm/filtered", mode: "${params.publish_dir_mode}", overwrite: true
-    conda (params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null)
+    conda {params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null}
     
 
     input:
@@ -84,7 +84,7 @@ process count_sdm {
     tag "count_sdm"
     label "renv_large"
     publishDir "${params.outdir}/sdm/counts/${samplelist.simpleName}", mode: "${params.publish_dir_mode}", overwrite: true
-    conda (params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null)
+    conda {params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null}
     
 
     input:
@@ -119,7 +119,7 @@ process make_ksfs {
     tag "ksfs"
     label "renv_large"
     publishDir "${params.outdir}/sdm/ksfs/${breedname}", mode: "${params.publish_dir_mode}", overwrite: true
-    conda (params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null)
+    conda {params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null}
     
 
     input:
@@ -150,7 +150,7 @@ process sdm_plot {
     tag "sdm_plot"
     label "renv_large"
     publishDir "${params.outdir}/sdm/plot/", mode: "${params.publish_dir_mode}", overwrite: true
-    conda (params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null)
+    conda {params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null}
     
 
     input:

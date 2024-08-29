@@ -58,7 +58,7 @@ process chromosomeList {
 // Relate format inputs by breed
 process relate_format {
     label "renv"
-    conda (params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null)
+    conda {params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null}
 
     input:
     path vcf
@@ -108,7 +108,7 @@ process relate_format {
 
 process make_relate_map {
     label "renv"
-    conda (params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null)
+    conda {params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null}
 
     input:
     tuple val(contig), path(haps), path(sample), path(dist), path(annot)
@@ -540,7 +540,7 @@ process relate_chr_pop_mut_finalise {
 process relate_plot_pop {
     label "renv"
     publishDir "${params.outdir}/relate/plot", mode: "${params.publish_dir_mode}", overwrite: true
-    conda (params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null)
+    conda {params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null}
 
     input:
     path rates 
@@ -566,7 +566,7 @@ Create modules to run relate Ne faster
 
 process ne_removetreeswithfewmutations {
     label "renv_many"
-    conda (params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null)
+    conda {params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null}
 
     input:
     path ancs
@@ -599,7 +599,7 @@ process ne_removetreeswithfewmutations {
 process ne_ConstRate {
     label "renv_many"
     publishDir "${params.outdir}/relate/ne", mode: "${params.publish_dir_mode}", overwrite: true
-    conda (params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null)
+    conda {params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null}
 
     input:
     path ancs
@@ -635,7 +635,7 @@ process ne_Iterate {
     label "renv_many"
     executor 'local'
     publishDir "${params.outdir}/relate/ne/it", mode: "${params.publish_dir_mode}", overwrite: true
-    conda (params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null)
+    conda {params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null}
 
     input:
     tuple val(contig), path(anc), path(mut)
