@@ -152,7 +152,7 @@ process relate {
     // Define effective population size.
     def ne = params.neval ? "-N ${params.neval}" : "-N 30000"
     // Define executable
-    def relate = task.cpus == 1 ? "${params.relate}/bin/Relate" : "${params.relate}/scripts/RelateParallel/RelateParallel.sh"
+    def relate = task.cpus == 1 ? file("${params.relate_path}/bin/Relate") : file("${params.relate_path}/scripts/RelateParallel/RelateParallel.sh")
     // Define resources on core count.
     def cores = task.cpus == 1 ? "" : "--threads ${task.cpus}"
     def memory = params.relate_memory ? "--memory ${params.relate_memory}" : "--memory 5"
@@ -463,6 +463,7 @@ process relate_ne {
 
 process relate_mut_chr_pop {
     label "medium_mem"
+    afterScript "rm mask.${contig}.fa anc.${contig}.fa"
 
     input:
     tuple val(pop), path(popfile), val(idx), val(contig)
@@ -473,6 +474,7 @@ process relate_mut_chr_pop {
     path maskfai
     path poplabels
     path relate
+    path mutcats
 
     output:
     tuple val(pop), path("relate_mut_ne_${pop}_chr${contig}_mut.bin"), path("relate_mut_ne_${pop}_chr${contig}_opp.bin")
@@ -497,13 +499,9 @@ process relate_mut_chr_pop {
         --years_per_gen ${params.intergen_time} \
         --poplabels ${poplabels} \
         --pop_of_interest ${pop} \
-        --mutcat ${baseDir}/assets/k3.mutcat \
+        --mutcat ${mutcats} \
         -i relate_mut_ne_chr${contig} \
         -o relate_mut_ne_${pop}_chr${contig} 2> ctx.${pop}.${contig}.err
-
-    # Remove extra fasta files
-    rm anc.${contig}.fa
-    rm mask.${contig}.fa
     """
 }
 
@@ -545,6 +543,7 @@ process relate_plot_pop {
     input:
     path rates 
     path poplabels
+    path mutcats
 
     output:
     path "plot_mutrate.pdf"
@@ -556,7 +555,7 @@ process relate_plot_pop {
 
     script:
     """
-    relate_plot_pop ${baseDir}/assets/k3.mutcat ${params.intergen_time} ${poplabels}
+    relate_plot_pop ${mutcats} ${params.intergen_time} ${poplabels}
     """
 }
 
@@ -583,9 +582,10 @@ process ne_removetreeswithfewmutations {
     """
 
     script:
+    def relate = file(params.relate_path)
     """
     # Run relate mutation spectra    
-    ${params.relate}/bin/RelateExtract \
+    ${relate}/bin/RelateExtract \
         --mode RemoveTreesWithFewMutations \
         --threshold ${params.relate_mutation_threshold} \
         --anc relate_chr${contig}.anc \
@@ -617,12 +617,13 @@ process ne_ConstRate {
     """
 
     script:
+    def relate = file(params.relate_path)
     """
     # Get chromosome list
     awk 'BEGIN{FS=","};{print \$NF}' ${contig_csv} > chroms.txt 
 
     # Run relate mutation spectra    
-    ${params.relate}/bin/RelateCoalescentRate \
+    ${relate}/bin/RelateCoalescentRate \
         --mode GenerateConstCoalFile \
         --years_per_gen ${params.intergen_time} \
         -i 30000 \
@@ -652,6 +653,7 @@ process ne_Iterate {
     """
 
     script:
+    def relate = file(params.relate_path)
     """
     runN=1
     maxN=${params.n_iterations}
@@ -659,7 +661,7 @@ process ne_Iterate {
         nextflow run ${params.baseDir}/include/iterate/relate_iterate.nf \
             --runN "\$runN" \
             --maxN "\$maxN" \
-            --relate ${params.relate} \
+            --relate ${relate} \
             --work_path \$PWD
             --base_name relate_mut_ne_subset_chr${contig}
             --outdir \$PWD/OUT

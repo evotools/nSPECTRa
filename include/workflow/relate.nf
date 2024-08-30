@@ -77,7 +77,8 @@ workflow RELATE {
 
         // Run relate mutation by breed by chr
         //relate_mut_chr_pop( combined_ch, relate_ne.out[0].collect(), anc_fa, anc_fai, make_mask.out, makefai.out, popfile_ch )
-        relate_mut_chr_pop( combined_ch, ne_out[0].collect(), anc_fa, anc_fai, make_mask.out, makefai.out, popfile_ch, ch_relate )
+        mutcats = Channel.fromPath("${baseDir}/assets/k3.mutcat")
+        relate_mut_chr_pop( combined_ch, ne_out[0].collect(), anc_fa, anc_fai, make_mask.out, makefai.out, popfile_ch, ch_relate, mutcats )
 
         // Finalize per-contig mutation rates
         relate_chr_pop_mut_finalise( relate_mut_chr_pop.out.groupTuple(by: 0), chromosomeList, ch_relate )
@@ -87,7 +88,7 @@ workflow RELATE {
         relate_avg_mut( ne_out[0].collect(), chromosomeList, popfile_ch, ch_relate )
 
         // Plot the relate results
-        // relate_plot_pop( relate_chr_pop_mut_finalise.out.collect(), popfile_ch )
+        // relate_plot_pop( relate_chr_pop_mut_finalise.out.collect(), popfile_ch, mutcats )
         
     emit:
         //relate_ne.out[2] 
