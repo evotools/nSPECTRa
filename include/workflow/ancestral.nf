@@ -14,9 +14,9 @@ workflow ANCESTRAL {
         /*Create ancestral fasta file*/
         // hal to maf, needed for constrained elements
 
-        if (params.ancestral){
+        if (params.ancestral_fna){
             // Import ancestral fasta
-            anc_fa = file(params.ancestral)
+            anc_fa = file(params.ancestral_fna)
             makefai(anc_fa)
             anc_fai = makefai.out
             
