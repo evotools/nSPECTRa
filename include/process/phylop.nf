@@ -122,7 +122,7 @@ process hal_genomes {
     container { params.cactus_version ? "quay.io/comparative-genomics-toolkit/cactus:${params.cactus_version}" : "quay.io/comparative-genomics-toolkit/cactus:latest" }
 
     input:
-    tuple path(hal)
+    path hal
 
     output:
     env(GENOMES)
