@@ -5,7 +5,11 @@ args <- commandArgs(trailingOnly = TRUE)
 popu<-args[1]
 
 # Get input file list
-temp = list.files(pattern=paste("sdm.",popu,"*", sep=""))
+temp <- list.files(
+  pattern = paste0("sdm.", popu, "*"),
+  path='./sdms',
+  full.names=TRUE
+)
 
 # Edit column headers 
 cnames<-c("Chr", "Pos1", "Id1", "Pos2", "Id2", "Dist", "Null", "Cons1", "Cons2", "Anc1", "Anc2", "SameCodon", "StartF", "Mid1F", "Mid2F", "EndF", "StartC", "Mid1C", "Mid2C", "EndC", "Inds")

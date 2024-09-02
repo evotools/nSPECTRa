@@ -48,13 +48,17 @@ workflow MUTYPER {
             [k, vcf, tbi, file("${baseDir}/assets/K${k}_mutations.txt")]
         }
         | count_mutations
-        mutyper_full_parallel.out
-        | filter{ it[0].toInteger() < 8 }
-        | map{
-            k, vcf, tbi ->
-            [k, vcf, tbi, file("${baseDir}/assets/K${k}_mutations.txt"), file("${baseDir}/assets/VEPpriority")]
+
+        // If VEP ran, compare changes by consequence
+        if (params.vep){
+            mutyper_full_parallel.out
+            | filter{ it[0].toInteger() < 8 }
+            | map{
+                k, vcf, tbi ->
+                [k, vcf, tbi, file("${baseDir}/assets/K${k}_mutations.txt"), file("${baseDir}/assets/VEPpriority")]
+            }
+            | count_mutations_csq
         }
-        | count_mutations_csq
 
         /* Start mutyper on each chromosome separately */
         mutyper( combined_ch, anc_fa.collect(), anc_fai.collect(), masks_ch.collect() )

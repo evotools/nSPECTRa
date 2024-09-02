@@ -10,7 +10,11 @@ outFile <- paste0("sdm.", popu, ".filtered.RData")
 outBed <- paste0("sdm.", popu, ".filtered.bed")
 
 # Get input file list
-temp <- list.files(pattern = paste0("sdm.", popu, "*"))
+temp <- list.files(
+  pattern = paste0("sdm.", popu, "*"),
+  path='./sdms',
+  full.names=TRUE
+)
 
 # Edit column headers 
 cnames <- c(

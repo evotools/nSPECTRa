@@ -1,3 +1,30 @@
+// SDM processes
+
+// Create chunks ensuring that contiguous sites are preserved
+process sdm_chunking {
+    tag "sdm"
+    publishDir "${params.outdir}/", mode: "${params.publish_dir_mode}", overwrite: true
+    conda {params.enable_conda ? "${baseDir}/envs/sdm-environment.yml" : null}
+
+    input:
+    path vcf
+    path tbi
+
+    output:
+    path "chunks.bed"
+
+    stub:
+    """
+    touch chunks.bed
+    """
+
+    script:
+    """
+    CHUNKING -v ${vcf} -o chunks.bed --chunks_size ${params.sdm_chunk_size}
+    """
+}
+
+
 process sdm {
     tag "sdm"
     publishDir "${params.outdir}/sdm/raw", mode: "${params.publish_dir_mode}", overwrite: true
@@ -9,20 +36,22 @@ process sdm {
     path tbi
     path reffasta
     path reffai
-    tuple val(samplename), path(samplelist), val(idx), val(contig)
+    tuple val(samplename), path(samplelist), val(interval)
 
     output:
-    path "sdm.${samplename}.${contig}.txt.gz"
+    tuple val(samplename), path("sdm.${samplename}.${interval.chrom}.${interval.start}-${interval.end}.txt.gz")
 
     stub:
     """
-    touch sdm.${samplename}.${contig}.txt.gz
+    touch sdm.${samplename}.${interval.chrom}.${interval.start}-${interval.end}.txt.gz
     """
 
     script:
     """
-    sdm ${vcf} ${samplelist} ${contig} ${reffasta} sdm.${samplename}.${contig}
-    gzip sdm.${samplename}.${contig}.txt
+    bcftools view -t ${interval.chrom}:${interval.start}-${interval.end} -O z ${vcf} > interval.vcf.gz &&
+        tabix -p vcf interval.vcf.gz
+    sdm ${vcf} ${samplelist} ${interval.chrom} ${reffasta} sdm.${samplename}.${interval.chrom}.${interval.start}-${interval.end}
+    gzip sdm.${samplename}.${interval.chrom}.${interval.start}-${interval.end}.txt
     """
 }
 
@@ -34,8 +63,7 @@ process filter_sdm {
     
 
     input:
-    tuple val(samplename), path(samplelist)
-    path sdms
+    tuple val(samplename), path(samplelist), path("sdms/*")
 
     output:
     tuple val(samplename), path(samplelist), path("sdm.${samplename}.filtered.RData"), emit: 'rdata'
@@ -123,8 +151,7 @@ process make_ksfs {
     
 
     input:
-    tuple val(breedname), path(breedfile)
-    path raw_sdms
+    tuple val(breedname), path(breedfile), path("sdms/*")
 
 
     output:

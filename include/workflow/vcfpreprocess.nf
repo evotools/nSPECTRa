@@ -73,16 +73,20 @@ workflow PREPROCESS {
             }
         }
 
-        // Annotate the output VCFs
-        vep( phased_vcf, ch_ref, ch_ref_fai, annot_ch )
+        // Annotate the output VCFs if either vep or sdm are requested
+        if (params.vep || params.sdm){
+            annotated = vep( phased_vcf, ch_ref, ch_ref_fai, annot_ch )
+        } else {
+            annotated = phased_vcf
+        }
 
         // Annotate the output VCFs
         if (params.coding && !params.noncoding){
-            processed_ch = select_coding( vep.out )
+            processed_ch = select_coding( annotated )
         } else if (params.noncoding && !params.coding) {
-            processed_ch = select_noncoding( vep.out )
+            processed_ch = select_noncoding( annotated )
         } else {
-            processed_ch = vep.out
+            processed_ch = annotated
         }
 
         // Add ancestral allele information

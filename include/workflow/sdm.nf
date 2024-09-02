@@ -1,7 +1,7 @@
-include { get_individuals; get_breeds } from "../process/prerun"
+include { get_individuals; get_breeds; } from "../process/prerun"
 include { sdm; filter_sdm; count_sdm } from "../process/sdm"
 include { make_ksfs; sdm_plot } from "../process/sdm"
-include { repeat_mask_split_sdm} from "../process/sdm"
+include { repeat_mask_split_sdm; sdm_chunking} from "../process/sdm"
 
 workflow SDM {
     take:
@@ -29,14 +29,26 @@ workflow SDM {
             .fromPath("${params.pops_folder}/*.txt")
             .map { file -> tuple(file.simpleName, file) }
         
-        // Combine chromosomes and breeds
-        combined_ch = breeds_ch.combine(chromosomes_ch)
+        // // Combine chromosomes and breeds
+        // combined_ch = breeds_ch.combine(chromosomes_ch)
+
+        // Prepare chunks
+        chunks = sdm_chunking(vcf, tbi)
+        combined_ch = breeds_ch
+        | combine(
+            chunks | splitCsv(header: ['chrom', 'start', 'end'], sep: '\t')
+        )
 
         // Run dinuc pipeline
-        sdm( vcf, tbi, reffasta, reffai, combined_ch )
+        raw_sdm = breeds_ch
+        | combine(
+            sdm( vcf, tbi, reffasta, reffai, combined_ch )
+            | groupTuple(by: 0),
+            by: 0
+        )
 
-        // Filter results
-        filter_sdm(breeds_ch, sdm.out.collect() )
+        // Filter SDMs
+        raw_sdm | filter_sdm
 
         // Get data in/out rm
         repeat_mask_split_sdm(filter_sdm.out.bed.combine(masks_ch))
@@ -45,7 +57,7 @@ workflow SDM {
         count_sdm( filter_sdm.out.rdata )
 
         // Prepare Ksfs files
-        make_ksfs(breeds_ch, sdm.out.collect())
+        raw_sdm | make_ksfs
 
         // Make plots for sdm results
         all_counts = count_sdm.out[0]
