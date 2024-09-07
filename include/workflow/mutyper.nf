@@ -2,6 +2,7 @@
 include { chromosomeList } from '../process/prerun'
 include { mutyper; group_results } from '../process/mutyper'
 include { mutyper_full; ksfs } from '../process/mutyper'
+include { mutyper_variant; mutyper_spectra; mutyper_concat } from '../process/mutyper'
 include { mutyper_full_parallel; plot_results } from '../process/mutyper'
 include { count_mutations; count_mutations_csq } from '../process/mutyper'
 include { kmercount; normalize_results } from '../process/mutyper'
@@ -36,12 +37,20 @@ workflow MUTYPER {
         // Run meryl counter
         kmercount( anc_fa, anc_fai, Channel.from(k_list) ) 
 
+        // Run mutyper variant on each chromosome
+        mutyper_variant(combined_ch, anc_fa.collect(), anc_fai.collect(), masks_ch.collect())
+        // Then extract the spectrum
+        | mutyper_spectra
+        // In the meanwhile, group the mutyper VCFs and concatenate them
+        mutyper_variant.out | groupTuple(by: 0) | mutyper_concat
+
         /* Generate mutyper-annotated vcf */
         // mutyper_full( vcf, tbi, anc_fa, anc_fai, masks_ch, Channel.from(k_list) )
-        mutyper_full_parallel( vcf, tbi, anc_fa, anc_fai, masks_ch, chromosomeList, Channel.from(k_list) )
+        // mutyper_full_parallel( vcf, tbi, anc_fa, anc_fai, masks_ch, chromosomeList, Channel.from(k_list) )
 
         /* Generate the counts manually */
-        mutyper_full_parallel.out
+        // mutyper_full_parallel.out
+        mutyper_concat.out
         | filter{ it[0].toInteger() < 8 }
         | map{
             k, vcf, tbi ->
@@ -51,7 +60,8 @@ workflow MUTYPER {
 
         // If VEP ran, compare changes by consequence
         if (params.vep){
-            mutyper_full_parallel.out
+            // mutyper_full_parallel.out
+            mutyper_concat.out
             | filter{ it[0].toInteger() < 8 }
             | map{
                 k, vcf, tbi ->
@@ -61,10 +71,11 @@ workflow MUTYPER {
         }
 
         /* Start mutyper on each chromosome separately */
-        mutyper( combined_ch, anc_fa.collect(), anc_fai.collect(), masks_ch.collect() )
+        // mutyper( combined_ch, anc_fa.collect(), anc_fai.collect(), masks_ch.collect() )
 
         /* Collect outputs */
-        group_results( mutyper.out.groupTuple(by : 0) )
+        // group_results( mutyper.out.groupTuple(by : 0) )
+        group_results( mutyper_spectra.out.groupTuple(by : 0) )
         plot_results( group_results.out )
 
         // Normalize results
@@ -75,7 +86,8 @@ workflow MUTYPER {
             | map { file -> tuple(file.simpleName, file, file.countLines() ) }
             | filter { it -> it[2] >= params.min_pop_size }
             | map { it -> tuple( it[0], it[1] ) }
-            | combine( mutyper_full_parallel.out )
+            | combine( mutyper_concat.out )
+            // | combine( mutyper_full_parallel.out )
 
         // Extract ksfs vector for each breed
         ksfs( ksfs_inputs )

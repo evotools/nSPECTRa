@@ -47,6 +47,115 @@ process mutyper {
     """
 }
 
+process mutyper_variant {
+    tag "mutyper"
+    label "medium"
+    publishDir "${params.outdir}/mutyper/chrom_res", mode: "${params.publish_dir_mode}", overwrite: true
+
+
+    input:
+    tuple val(region), path(vcf), path(tbi), val(k)
+    path ancfasta
+    path ancfai
+    path masks_ch
+
+    output:
+    tuple val(k), val(region), path("mutationSpectra_${params.reference}_${region}_${k}.vcf.gz"), path("mutationSpectra_${params.reference}_${region}_${k}.vcf.gz.tbi")
+
+    
+    stub:
+    """
+    touch mutationSpectra_${params.reference}_${region}_${k}.vcf.gz
+    touch mutationSpectra_${params.reference}_${region}_${k}.vcf.gz.tbi
+    """
+
+    script:
+    if (params.annotation)
+    """
+    echo "Run mutyper (variants)"
+    bcftools view --threads ${task.cpus} -v snps -r ${region} -m2 -M2 ${vcf} | \
+        bedtools intersect -header -v -a - -b ${masks_ch} | \
+        sed 's/_pilon//g' | \
+        vcffixup - | \
+        mutyper variants --k ${k} --strand_file ${params.annotation} ${ancfasta} - | \
+        bgzip -c > mutationSpectra_${params.reference}_${region}_${k}.vcf.gz &&
+        tabix -p vcf mutationSpectra_${params.reference}_${region}_${k}.vcf.gz
+    """
+    else
+    """
+    echo "Run mutyper (variants)"
+    bcftools view --threads ${task.cpus} -v snps  -r ${region} -m2 -M2 ${vcf} | \
+        bedtools intersect -header -v -a - -b ${masks_ch} | \
+        sed 's/_pilon//g' | \
+        vcffixup - | \
+        mutyper variants --k ${k} ${ancfasta} - | \
+        bgzip -c > mutationSpectra_${params.reference}_${region}_${k}.vcf.gz &&
+        tabix -p vcf mutationSpectra_${params.reference}_${region}_${k}.vcf.gz
+    """
+}
+
+process mutyper_spectra {
+    tag "mutyper"
+    label "medium"
+    publishDir "${params.outdir}/mutyper/chrom_res", mode: "${params.publish_dir_mode}", overwrite: true
+
+
+    input:
+    tuple val(k),
+        val(region),
+        path(vcf),
+        path(tbi)
+
+    output:
+    tuple val(k),
+        val(region),
+        path("mutationSpectra_${params.reference}_${region}_${k}.txt")
+
+    
+    stub:
+    """
+    touch mutationSpectra_${params.reference}_${region}_${k}.txt
+    """
+
+    script:
+    """
+    echo "Run mutyper (variants)"
+    mutyper spectra ${vcf} > mutationSpectra_${params.reference}_${region}_${k}.txt
+    """
+}
+
+process mutyper_concat {
+    tag "mutyper"
+    label "medium"
+    publishDir "${params.outdir}/mutyper/chrom_res", mode: "${params.publish_dir_mode}", overwrite: true
+
+
+    input:
+    tuple val(k),
+        val(regions),
+        path("vcfs/*"),
+        path("vcfs/*")
+
+    output:
+    tuple val(k),
+        path("mutyper_${params.reference}_${k}.vcf.gz"),
+        path("mutyper_${params.reference}_${k}.vcf.gz.tbi")
+
+    
+    stub:
+    """
+    touch mutationSpectra_${params.reference}_${region}_${k}.txt
+    """
+
+    script:
+    """
+    echo "Run mutyper (variants)"
+    bcftools concat -O u vcfs/*.vcf.gz | \
+        bcftools sort -O z > mutyper_${params.reference}_${k}.vcf.gz
+    bcftools index -t mutyper_${params.reference}_${k}.vcf.gz
+    """
+}
+
 
 process mutyper_full_parallel {
     tag "mutyper_full"
