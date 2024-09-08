@@ -259,16 +259,16 @@ process mutyper_full {
 }
 
 
-process count_mutations {
+process extract_tags {
     tag "count_mutations"
     label "medium"
     publishDir "${params.outdir}/mutyper/full_counts_csq", mode: "${params.publish_dir_mode}", overwrite: true
 
     input:
-    tuple val(k), path(vcf), path(tbi), path(levels)
+    tuple val(k), val(region), path(vcf), path(tbi)
 
     output:
-    tuple val(k), path("mutationSpectra_${params.reference}_${k}.tsv")
+    tuple val(k), val(region), path("K${k}.tsv.gz"), path("K${k}.header")
 
     
     stub:
@@ -280,7 +280,55 @@ process count_mutations {
     """
     bcftools query ${vcf} -f '%CHROM\\t%POS\\t%INFO/mutation_type\\t[%GT\\t]\\n' | bgzip -c > K${k}.tsv.gz
     bcftools query -l ${vcf} | awk 'NR==1 {print "CHROM\\nPOS\\nCHANGE"}; {print}' > K${k}.header
-    compute_spectra -i K${k}.tsv.gz -H K${k}.header -k ${levels} -o mutationSpectra_${params.reference}_${k}.tsv
+    """    
+}
+
+
+process count_mutations {
+    tag "count_mutations"
+    label "medium"
+    publishDir "${params.outdir}/mutyper/full_counts_csq", mode: "${params.publish_dir_mode}", overwrite: true
+
+    input:
+    tuple val(k), val(region), path(tsv), path(header), path(levels)
+
+    output:
+    tuple val(k), val(region), path("mutationSpectra_${params.reference}_${k}_${region}.tsv")
+
+    
+    stub:
+    """
+    touch mutationSpectra_${params.reference}_${k}_${region}.tsv
+    """
+
+    script:
+    """
+    compute_spectra -i ${tsv} -H ${header} -k ${levels} -o mutationSpectra_${params.reference}_${k}_${region}.tsv
+    """
+}
+
+process extract_csq {
+    tag "count_mutations"
+    label "medium"
+    publishDir "${params.outdir}/mutyper/full_counts_csq", mode: "${params.publish_dir_mode}", overwrite: true
+
+    input:
+    tuple val(k), val(region), path(vcf), path(tbi)
+
+    output:
+    tuple val(k), val(region), path("K${k}.csqs.tsv.gz"), path("K${k}.csqs.header")
+
+    
+    stub:
+    """
+    touch K${k}.csqs.tsv.gz
+    touch K${k}.csqs.header
+    """
+
+    script:
+    """
+    bcftools +split-vep ${vcf} -d -f '%CHROM\\t%POS\\t%INFO/mutation_type\\t%Consequence\\t[%GT\\t]\\n' | bgzip -c > K${k}.csqs.tsv.gz
+    bcftools query -l ${vcf} | awk 'NR==1 {print "CHROM\\nPOS\\nCHANGE\\nCSQ"}; {print}' > K${k}.csqs.header
     """
 }
 
@@ -290,22 +338,20 @@ process count_mutations_csq {
     publishDir "${params.outdir}/mutyper/full_counts_csq", mode: "${params.publish_dir_mode}", overwrite: true
 
     input:
-    tuple val(k), path(vcf), path(tbi), path(levels), path(priority)
+    tuple val(k), val(region), path(tsv), path(header), path(levels), path(priority)
 
     output:
-    tuple val(k), path("mutationSpectra_${params.reference}_${k}.csq.tsv")
+    tuple val(k), path("mutationSpectra_${params.reference}_${k}_${region}.csq.tsv")
 
     
     stub:
     """
-    touch mutationSpectra_${params.reference}_${k}.tsv
+    touch mutationSpectra_${params.reference}_${k}_${region}.csq.tsv
     """
 
     script:
     """
-    bcftools +split-vep ${vcf} -d -f '%CHROM\\t%POS\\t%INFO/mutation_type\\t%Consequence\\t[%GT\\t]\\n' | bgzip -c > K${k}.csqs.tsv.gz
-    bcftools query -l ${vcf} | awk 'NR==1 {print "CHROM\\nPOS\\nCHANGE\\nCSQ"}; {print}' > K${k}.csqs.header
-    compute_spectra_class -i K${k}.csqs.tsv.gz -H K${k}.csqs.header -k ${levels} -c ${priority} -o mutationSpectra_${params.reference}_${k}.csq.tsv
+    compute_spectra_class -i ${tsv} -H ${header} -k ${levels} -c ${priority} -o mutationSpectra_${params.reference}_${k}_${region}.csq.tsv
     """
 }
 

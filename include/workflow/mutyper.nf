@@ -6,6 +6,7 @@ include { mutyper_variant; mutyper_spectra; mutyper_concat } from '../process/mu
 include { mutyper_full_parallel; plot_results } from '../process/mutyper'
 include { count_mutations; count_mutations_csq } from '../process/mutyper'
 include { kmercount; normalize_results } from '../process/mutyper'
+include { extract_tags; extract_csq } from '../process/mutyper'
 
 
 // Workflow
@@ -50,22 +51,24 @@ workflow MUTYPER {
 
         /* Generate the counts manually */
         // mutyper_full_parallel.out
-        mutyper_concat.out
+        mutyper_variant.out
         | filter{ it[0].toInteger() < 8 }
+        | extract_tags
         | map{
-            k, vcf, tbi ->
-            [k, vcf, tbi, file("${baseDir}/assets/K${k}_mutations.txt")]
+            k, region, vcf, tbi ->
+            [k, region, vcf, tbi, file("${baseDir}/assets/K${k}_mutations.txt")]
         }
         | count_mutations
 
         // If VEP ran, compare changes by consequence
         if (params.vep){
             // mutyper_full_parallel.out
-            mutyper_concat.out
+            mutyper_variant.out
             | filter{ it[0].toInteger() < 8 }
+            | extract_csq
             | map{
-                k, vcf, tbi ->
-                [k, vcf, tbi, file("${baseDir}/assets/K${k}_mutations.txt"), file("${baseDir}/assets/VEPpriority")]
+                k, region, vcf, tbi ->
+                [k, region, vcf, tbi, file("${baseDir}/assets/K${k}_mutations.txt"), file("${baseDir}/assets/VEPpriority")]
             }
             | count_mutations_csq
         }
