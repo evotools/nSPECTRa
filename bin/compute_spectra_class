@@ -44,7 +44,10 @@ def main():
         has_header=False,
         new_columns=header,
         separator='\t',
-        schema_overrides={'CHROM': pl.String}
+        schema_overrides={
+            'CHROM': pl.String,
+            'CSQ': pl.Categorical
+        }
     )
 
     # Drop null columns
@@ -54,7 +57,7 @@ def main():
     df = df.select(pl.col("*").exclude("CHROM", "POS"))
 
     # Remap the data to whether they have a derived allele or not
-    df = df.select(pl.all().replace(MAPPING))
+    df = df.with_columns(pl.col(header[4:]).replace(MAPPING))
 
     # Change data type to int
     df = df.cast({col:int for col in header[4:]})
