@@ -286,7 +286,7 @@ process extract_tags {
 
 process count_mutations {
     tag "count_mutations"
-    label "medium"
+    label "medium_mem"
     publishDir "${params.outdir}/mutyper/full_counts_csq", mode: "${params.publish_dir_mode}", overwrite: true
 
     input:
@@ -334,7 +334,7 @@ process extract_csq {
 
 process count_mutations_csq {
     tag "count_mutations"
-    label "medium"
+    label "medium_mem"
     publishDir "${params.outdir}/mutyper/full_counts_csq", mode: "${params.publish_dir_mode}", overwrite: true
 
     input:
