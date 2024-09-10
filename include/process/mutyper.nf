@@ -307,7 +307,7 @@ process count_mutations {
 
 process combine_counts {
     tag "count_mutations"
-    label "medium_mem"
+    label "small"
     publishDir "${params.outdir}/mutyper/full_counts", mode: "${params.publish_dir_mode}", overwrite: true
 
     input:
@@ -324,7 +324,7 @@ process combine_counts {
 
     script:
     """
-    combine_matrix -i ./tsvs/ -o mutationSpectra_${params.reference}_${k}_${region}.tsv
+    combine_matrix -i ./tsvs/ -o mutationSpectra_${params.reference}_${k}.tsv
     """
 }
 
@@ -375,7 +375,7 @@ process count_mutations_csq {
 
 process combine_csqs {
     tag "count_mutations"
-    label "medium_mem"
+    label "small"
     publishDir "${params.outdir}/mutyper/full_counts_csq", mode: "${params.publish_dir_mode}", overwrite: true
 
     input:
@@ -392,7 +392,7 @@ process combine_csqs {
 
     script:
     """
-    combine_matrix -i ./tsvs/ -o mutationSpectra_${params.reference}_${k}_${region}.csq.tsv --csq
+    combine_matrix -i ./tsvs/ -o mutationSpectra_${params.reference}_${k}.csq.tsv --csq
     """
 }
 
