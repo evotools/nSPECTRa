@@ -290,7 +290,7 @@ process count_mutations {
     tuple val(k), val(region), path(tsv), path(levels)
 
     output:
-    tuple val(k), val(region), path("mutationSpectra_${params.reference}_${k}_${region}.tsv")
+    tuple val(k), path("mutationSpectra_${params.reference}_${k}_${region}.tsv")
 
     
     stub:
