@@ -7,6 +7,7 @@ include { mutyper_full_parallel; plot_results } from '../process/mutyper'
 include { count_mutations; count_mutations_csq } from '../process/mutyper'
 include { kmercount; normalize_results } from '../process/mutyper'
 include { extract_tags; extract_csq } from '../process/mutyper'
+include { combine_counts; combine_csqs } from '../process/mutyper'
 
 
 // Workflow
@@ -55,10 +56,12 @@ workflow MUTYPER {
         | filter{ it[0].toInteger() < 8 }
         | extract_tags
         | map{
-            k, region, vcf, tbi ->
-            [k, region, vcf, tbi, file("${baseDir}/assets/K${k}_mutations.txt")]
+            k, region, tsv ->
+            [k, region, tsv, file("${baseDir}/assets/K${k}_mutations.txt")]
         }
         | count_mutations
+        | groupTuple(by: 0)
+        | combine_counts
 
         // If VEP ran, compare changes by consequence
         if (params.vep){
@@ -67,10 +70,12 @@ workflow MUTYPER {
             | filter{ it[0].toInteger() < 8 }
             | extract_csq
             | map{
-                k, region, vcf, tbi ->
-                [k, region, vcf, tbi, file("${baseDir}/assets/K${k}_mutations.txt"), file("${baseDir}/assets/VEPpriority")]
+                k, region, tsv ->
+                [k, region, tsv, file("${baseDir}/assets/K${k}_mutations.txt"), file("${baseDir}/assets/VEPpriority")]
             }
             | count_mutations_csq
+            | groupTuple(by: 0)
+            | combine_csqs
         }
 
         /* Start mutyper on each chromosome separately */

@@ -20,8 +20,6 @@ def parse_args():
                             dest = 'input', required = True)
     parser.add_argument("-k", "--kmers", metavar = 'kmers.txt', type = str, help = 'Kmers list (with header)',\
                             dest = 'kmer', required = False, default = None)
-    parser.add_argument("-H", "--header", metavar = 'header.txt', type = str, help = 'Input dataframe header',\
-                            dest = 'header', required = True, default = None)
     parser.add_argument("-o", "--out", metavar = 'prefix', type = str, help = 'Output file.',\
                             dest = 'out', required = False, default = "myanc.fa")
     parser.add_argument("--all", action='store_true', help = 'Add missing change-by-consequence combinations to the output dataframe.')
@@ -33,31 +31,15 @@ def main():
     # Parse arguments
     args = parse_args()
 
-    # import header first
-    header = open(args.header).read().splitlines()
-    
-    # Import data
-    df = pl.read_csv(args.input,
-        has_header=False,
-        new_columns=header,
-        separator='\t',
-        schema_overrides={'CHROM': pl.String}
-    )
-
-    # Drop null columns
-    df = df[[s.name for s in df if not (s.null_count() == df.height)]]
-
-    # Drop unnecessary columns
-    df = df.select(pl.col("*").exclude("CHROM", "POS"))
-
-    # Remap the data to whether they have a derived allele or not
-    df = df.select(pl.all().replace(MAPPING))
-
-    # Change data type to int
-    df = df.cast({col:int for col in header[3:]})
-
-    # Summarize data
-    df = df.group_by('CHANGE').sum()
+    # Import data using the lazy API to save memory
+    df = pl.scan_csv(args.input,
+        has_header=True,
+        separator='\t'
+    ).select(
+        pl.col("*").exclude("CHROM", "POS")
+    ).group_by(
+        'CHANGE'
+    ).sum().collect()
 
     # If store all requested, add missing consequences
     if args.all:

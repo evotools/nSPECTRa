@@ -1,0 +1,41 @@
+#!/usr/bin/env python
+import os
+import polars as pl
+
+def parse_args():
+    import argparse
+    # Argument definition
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--input", metavar = 'input_dir/', type = str, help = 'Input dir with multiple files to combine',\
+                            dest = 'input', required = True)
+    parser.add_argument("-o", "--out", metavar = 'prefix', type = str, help = 'Output file.',\
+                            dest = 'out', required = False, default = "out.tsv")
+    parser.add_argument("--csq", action='store_true', help = 'Save consequences.')
+
+    return parser.parse_args()
+
+
+def main():
+    """Run entry point."""
+    # Parse arguments
+    args = parse_args()
+
+    # Get input files
+    infiles = [i for i in os.listdir(f'{args.input}/') if i.endswith('.tsv')]
+
+    # concatenate multiple files
+    df = pl.concat(
+        (
+            pl.read_csv(f'{args.input}/{fname}', separator='\t') for fname in infiles
+        ),
+        how="vertical"
+    ).group_by(
+        ['CHANGE', 'CSQ'] if args.csq else 'CHANGE'
+    ).sum()
+
+    # Save data
+    df.write_csv(args.out, separator='\t')
+
+
+if __name__ == "__main__":
+    main()

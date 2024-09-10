@@ -1,0 +1,69 @@
+#!/usr/bin/env python
+import gzip
+import sys
+import pysam
+
+MAPPING = {
+    '0/0': '0',
+    '0|0': '0',
+    '1|0': '1',
+    '0|1': '1',
+    '1|1': '1',
+    '1/1': '1',
+    '0/1': '1'
+}
+
+def parse_args():
+    import argparse
+    # Argument definition
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--input", metavar = 'input.vcf(.gz)', type = str, help = 'Input VCF file to process',\
+                            dest = 'input', required = True)
+    parser.add_argument("-o", "--out", metavar = 'prefix', type = str, help = 'Output file.',\
+                            dest = 'out', required = False, default = "output.tsv")
+    parser.add_argument("--csq", action='store_true', help = 'Save consequences.')
+    return parser.parse_args()
+
+
+def main():
+    """Run entry point."""
+    # Parse arguments
+    args = parse_args()
+
+    if 'gz' in args.out:
+        handler = gzip.open(args.out, 'w')
+    elif args.out == '-':
+        handler = sys.stdout
+    else:
+        handler = open(args.out, 'w')
+    
+    vcf = pysam.VariantFile(args.input)
+
+    # Save header first
+    header = 'CHROM\tPOS\tCHANGE\t'
+    if args.csq:
+        header += 'CSQ\t'
+    header += '\t'.join(list(vcf.header.samples))
+
+    with handler as outfile:
+        outfile.write(f'{header}\n')
+        for site in vcf:
+            outline = f"{site.chrom}\t{site.pos}\t{site.info['mutation_type'][0]}"
+            gts = '\t'.join(['1' if 1 in s['GT'] else '0'  for s in site.samples.values()])
+            if args.csq:
+                csqs = site.info['CSQ']
+                for csq in csqs:
+                    consequence = csq.split('|')[1]
+                    outfile.write(
+                        f'{outline}\t{consequence}\t{gts}\n'
+                    )
+            else:
+                outfile.write(
+                    f'{outline}\t{gts}\n'
+                )
+
+    sys.stderr.write( "All done\n" )
+
+
+if __name__ == "__main__":
+    main()
