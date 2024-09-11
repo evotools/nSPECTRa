@@ -2,9 +2,7 @@
 
 // Create chunks ensuring that contiguous sites are preserved
 process chunking {
-    tag "sdm"
-    publishDir "${params.outdir}/", mode: "${params.publish_dir_mode}", overwrite: true
-    conda {params.enable_conda ? "${baseDir}/envs/sdm-environment.yml" : null}
+    label "medium"
 
     input:
     path vcf
