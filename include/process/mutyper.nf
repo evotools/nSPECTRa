@@ -284,7 +284,7 @@ process extract_tags {
 
 process count_mutations {
     tag "count_mutations"
-    label "medium_mem"
+    label "medium_largemem"
 
     input:
     tuple val(k), val(region), path(tsv), path(levels)
@@ -352,7 +352,7 @@ process extract_csq {
 
 process count_mutations_csq {
     tag "count_mutations"
-    label "medium_mem"
+    label "medium_largemem"
 
     input:
     tuple val(k), val(region), path(tsv), path(levels), path(priority)
