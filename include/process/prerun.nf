@@ -1,4 +1,29 @@
 
+
+// Create chunks ensuring that contiguous sites are preserved
+process chunking {
+    tag "sdm"
+    publishDir "${params.outdir}/", mode: "${params.publish_dir_mode}", overwrite: true
+    conda {params.enable_conda ? "${baseDir}/envs/sdm-environment.yml" : null}
+
+    input:
+    path vcf
+    path tbi
+
+    output:
+    path "chunks.bed"
+
+    stub:
+    """
+    touch chunks.bed
+    """
+
+    script:
+    """
+    CHUNKING -v ${vcf} -o chunks.bed --chunks_size ${params.chunk_size}
+    """
+}
+
 // Get chromosome list
 process chromosomeList {
     tag "chr"

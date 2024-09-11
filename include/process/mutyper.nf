@@ -3,50 +3,6 @@
  * Phase 7: run mutyper
  */
 
-process mutyper {
-    tag "mutyper"
-    label "medium"
-    publishDir "${params.outdir}/mutyper/chrom_res", mode: "${params.publish_dir_mode}", overwrite: true
-
-
-    input:
-    tuple val(region), path(vcf), path(tbi), val(k)
-    path ancfasta
-    path ancfai
-    path masks_ch
-
-    output:
-    tuple val(k), val(region), path("mutationSpectra_${params.reference}_${region}_${k}.txt")
-
-    
-    stub:
-    """
-    touch mutationSpectra_${params.reference}_${region}_${k}.txt
-    """
-
-    script:
-    if (params.annotation)
-    """
-    echo "Run mutyper (variants)"
-    bcftools view --threads ${task.cpus} -v snps -r ${region} -m2 -M2 ${vcf} | \
-        bedtools intersect -header -v -a - -b ${masks_ch} | \
-        sed 's/_pilon//g' | \
-        vcffixup - | \
-        mutyper variants --k ${k} --strand_file ${params.annotation} ${ancfasta} - | \
-        mutyper spectra - > mutationSpectra_${params.reference}_${region}_${k}.txt
-    """
-    else
-    """
-    echo "Run mutyper (variants)"
-    bcftools view --threads ${task.cpus} -v snps  -r ${region} -m2 -M2 ${vcf} | \
-        bedtools intersect -header -v -a - -b ${masks_ch} | \
-        sed 's/_pilon//g' | \
-        vcffixup - | \
-        mutyper variants --k ${k} ${ancfasta} - | \
-        mutyper spectra - > mutationSpectra_${params.reference}_${region}_${k}.txt
-    """
-}
-
 process mutyper_variant {
     tag "mutyper"
     label "medium"
@@ -54,43 +10,46 @@ process mutyper_variant {
 
 
     input:
-    tuple val(region), path(vcf), path(tbi), val(k)
+    tuple val(chrom), val(start), val(end), path(vcf), path(tbi), val(k)
     path ancfasta
     path ancfai
     path masks_ch
 
     output:
-    tuple val(k), val(region), path("mutationSpectra_${params.reference}_${region}_${k}.vcf.gz"), path("mutationSpectra_${params.reference}_${region}_${k}.vcf.gz.tbi")
+    tuple val(k), 
+        val(chrom), val(start), val(end), 
+        path("mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.vcf.gz"), 
+        path("mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.vcf.gz.tbi")
 
     
     stub:
     """
-    touch mutationSpectra_${params.reference}_${region}_${k}.vcf.gz
-    touch mutationSpectra_${params.reference}_${region}_${k}.vcf.gz.tbi
+    touch mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.vcf.gz
+    touch mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.vcf.gz.tbi
     """
 
     script:
     if (params.annotation)
     """
     echo "Run mutyper (variants)"
-    bcftools view --threads ${task.cpus} -v snps -r ${region} -m2 -M2 ${vcf} | \
+    bcftools view --threads ${task.cpus} -v snps -r ${chrom}:${start}-${end} -m2 -M2 ${vcf} | \
         bedtools intersect -header -v -a - -b ${masks_ch} | \
         sed 's/_pilon//g' | \
         vcffixup - | \
         mutyper variants --k ${k} --strand_file ${params.annotation} ${ancfasta} - | \
-        bgzip -c > mutationSpectra_${params.reference}_${region}_${k}.vcf.gz &&
-        tabix -p vcf mutationSpectra_${params.reference}_${region}_${k}.vcf.gz
+        bgzip -c > mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.vcf.gz &&
+        tabix -p vcf mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.vcf.gz
     """
     else
     """
     echo "Run mutyper (variants)"
-    bcftools view --threads ${task.cpus} -v snps  -r ${region} -m2 -M2 ${vcf} | \
+    bcftools view --threads ${task.cpus} -v snps -r ${chrom}:${start}-${end} -m2 -M2 ${vcf} | \
         bedtools intersect -header -v -a - -b ${masks_ch} | \
         sed 's/_pilon//g' | \
         vcffixup - | \
         mutyper variants --k ${k} ${ancfasta} - | \
-        bgzip -c > mutationSpectra_${params.reference}_${region}_${k}.vcf.gz &&
-        tabix -p vcf mutationSpectra_${params.reference}_${region}_${k}.vcf.gz
+        bgzip -c > mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.vcf.gz &&
+        tabix -p vcf mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.vcf.gz
     """
 }
 
@@ -102,25 +61,25 @@ process mutyper_spectra {
 
     input:
     tuple val(k),
-        val(region),
+        val(chrom), val(start), val(end), 
         path(vcf),
         path(tbi)
 
     output:
     tuple val(k),
-        val(region),
-        path("mutationSpectra_${params.reference}_${region}_${k}.txt")
+        val(chrom), val(start), val(end),
+        path("mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.txt")
 
     
     stub:
     """
-    touch mutationSpectra_${params.reference}_${region}_${k}.txt
+    touch mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.txt
     """
 
     script:
     """
     echo "Run mutyper (variants)"
-    mutyper spectra ${vcf} > mutationSpectra_${params.reference}_${region}_${k}.txt
+    mutyper spectra ${vcf} > mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.txt
     """
 }
 
@@ -132,7 +91,7 @@ process mutyper_concat {
 
     input:
     tuple val(k),
-        val(regions),
+        val(chrom), val(start), val(end), 
         path("vcfs/*"),
         path("vcfs/*")
 
@@ -144,7 +103,7 @@ process mutyper_concat {
     
     stub:
     """
-    touch mutationSpectra_${params.reference}_${region}_${k}.txt
+    touch mutationSpectra_${params.reference}_${k}.txt
     """
 
     script:
@@ -157,127 +116,25 @@ process mutyper_concat {
 }
 
 
-process mutyper_full_parallel {
-    tag "mutyper_full"
-    label "large_multimem"
-    publishDir "${params.outdir}/mutyper/vcfs", mode: "${params.publish_dir_mode}", overwrite: true
-
-
-    input:
-    path vcf
-    path tbi
-    path ancfasta
-    path ancfai
-    path masks_ch
-    path regions
-    val k
-
-    output:
-    tuple val(k), path("mutyper_${params.reference}_${k}.vcf.gz"), path("mutyper_${params.reference}_${k}.vcf.gz.tbi")
-    
-    stub:
-    """
-    touch mutyper_${params.reference}_${k}.vcf.gz
-    touch mutyper_${params.reference}_${k}.vcf.gz.tbi
-    """
-
-    script:
-    if (params.annotation)
-    """
-    awk 'BEGIN{FS=","}; {print \$2}' $regions > chrs.txt
-    echo "Run mutyper (variants)"
-    parallel -j${task.cpus} "bcftools view -v snps -m2 -M2 -r {} ${vcf} | \
-        bedtools intersect -header -v -a - -b ${masks_ch} | \
-        sed 's/_pilon//g' | \
-        vcffixup - | \
-        mutyper variants --k ${k} --strand_file ${params.annotation} ${ancfasta} - | \
-        bgzip -c > mutyper_${params.reference}_${k}_chr{}.vcf.gz && tabix -p vcf mutyper_${params.reference}_${k}_chr{}.vcf.gz" ::: \$( while read p; do echo \$p; done < chrs.txt )
-    bcftools concat mutyper_${params.reference}_${k}_chr*.vcf.gz | bcftools sort -m 2G -O z -T ./ > mutyper_${params.reference}_${k}.vcf.gz && \
-    bcftools index -t mutyper_${params.reference}_${k}.vcf.gz
-    """
-    else
-    """
-    awk 'BEGIN{FS=","}; {print \$2}' $regions > chrs.txt
-    echo "Run mutyper (variants)"
-    parallel -j${task.cpus} "bcftools view -v snps -m2 -M2 -r {} ${vcf} | \
-        bedtools intersect -header -v -a - -b ${masks_ch} | \
-        sed 's/_pilon//g' | \
-        vcffixup - | \
-        mutyper variants --k ${k} ${ancfasta} - | \
-        bgzip -c > mutyper_${params.reference}_${k}_chr{}.vcf.gz && tabix -p vcf mutyper_${params.reference}_${k}_chr{}.vcf.gz" ::: \$( while read p; do echo \$p; done < chrs.txt )
-    bcftools concat mutyper_${params.reference}_${k}_chr*.vcf.gz | bcftools sort -m 2G -O z -T ./ > mutyper_${params.reference}_${k}.vcf.gz && \
-    bcftools index -t mutyper_${params.reference}_${k}.vcf.gz
-    """
-}
-
-process mutyper_full {
-    tag "mutyper_full"
-    label "longmem"
-    publishDir "${params.outdir}/mutyper/vcfs", mode: "${params.publish_dir_mode}", overwrite: true
-
-
-    input:
-    path vcf
-    path tbi
-    path ancfasta
-    path ancfai
-    path masks_ch
-    val k
-
-    output:
-    tuple val(k), path("mutyper_${params.reference}_${k}.vcf.gz"), path("mutyper_${params.reference}_${k}.vcf.gz.tbi")
-    
-    stub:
-    """
-    touch mutyper_${params.reference}_${k}.vcf.gz
-    touch mutyper_${params.reference}_${k}.vcf.gz.tbi
-    """
-
-    script:
-    if (params.annotation)
-    """
-    echo "Run mutyper (variants)"
-    bcftools view --threads ${task.cpus} -v snps -m2 -M2 ${vcf} | \
-        bedtools intersect -header -v -a - -b ${masks_ch} | \
-        sed 's/_pilon//g' | \
-        vcffixup - | \
-        mutyper variants --k ${k} --strand_file ${params.annotation} ${ancfasta} - | \
-        bgzip -c > mutyper_${params.reference}_${k}.vcf.gz
-    tabix -p vcf mutyper_${params.reference}_${k}.vcf.gz
-    """
-    else
-    """
-    echo "Run mutyper (variants)"
-    bcftools view --threads ${task.cpus} -v snps -m2 -M2 ${vcf} | \
-        bedtools intersect -header -v -a - -b ${masks_ch} | \
-        sed 's/_pilon//g' | \
-        vcffixup - | \
-        mutyper variants --k ${k} ${ancfasta} - | \
-        bgzip -c > mutyper_${params.reference}_${k}.vcf.gz
-    tabix -p vcf mutyper_${params.reference}_${k}.vcf.gz
-    """
-}
-
-
 process extract_tags {
     tag "count_mutations"
     label "medium"
 
     input:
-    tuple val(k), val(region), path(vcf), path(tbi)
+    tuple val(k), val(chrom), val(start), val(end), path(vcf), path(tbi)
 
     output:
-    tuple val(k), val(region), path("K${k}.tsv.gz")
+    tuple val(k), val(chrom), val(start), val(end), path("K${k}_${chrom}_${start}-${end}.tsv.gz")
 
     
     stub:
     """
-    touch K${k}.tsv.gz
+    touch K${k}_${chrom}_${start}-${end}.tsv.gz
     """
 
     script:
     """
-    extract_fields -i ${vcf} -o - | bgzip -@${task.cpus} > K${k}.tsv.gz
+    extract_fields --region ${chrom}:${start}-${end} -i ${vcf} -o - | bgzip -@${task.cpus} > K${k}_${chrom}_${start}-${end}.tsv.gz
     """    
 }
 
@@ -287,20 +144,20 @@ process count_mutations {
     label "medium_largemem"
 
     input:
-    tuple val(k), val(region), path(tsv), path(levels)
+    tuple val(k), val(chrom), val(start), val(end), path(tsv), path(levels)
 
     output:
-    tuple val(k), path("mutationSpectra_${params.reference}_${k}_${region}.tsv")
+    tuple val(k), path("mutationSpectra_${params.reference}_${k}_*.tsv")
 
     
     stub:
     """
-    touch mutationSpectra_${params.reference}_${k}_${region}.tsv
+    touch mutationSpectra_${params.reference}_${k}_${chrom}_${start}-${end}.tsv
     """
 
     script:
     """
-    compute_spectra -i ${tsv} -k ${levels} -o mutationSpectra_${params.reference}_${k}_${region}.tsv
+    compute_spectra -i ${tsv} -k ${levels} -o mutationSpectra_${params.reference}_${k}_${chrom}_${start}-${end}.tsv
     """
 }
 
@@ -333,10 +190,10 @@ process extract_csq {
     label "medium"
 
     input:
-    tuple val(k), val(region), path(vcf), path(tbi)
+    tuple val(k), val(chrom), val(start), val(end), path(vcf), path(tbi)
 
     output:
-    tuple val(k), val(region), path("K${k}.csqs.tsv.gz")
+    tuple val(k), val(chrom), val(start), val(end), path("K${k}.csqs.tsv.gz")
 
     
     stub:
@@ -346,7 +203,7 @@ process extract_csq {
 
     script:
     """
-    extract_fields -i ${vcf} -o - --csq | bgzip -@${task.cpus} > K${k}.csqs.tsv.gz
+    extract_fields --region ${chrom}:${start}-${end} -i ${vcf} -o - --csq | bgzip -@${task.cpus} > K${k}.csqs.tsv.gz
     """
 }
 
@@ -355,20 +212,20 @@ process count_mutations_csq {
     label "medium_largemem"
 
     input:
-    tuple val(k), val(region), path(tsv), path(levels), path(priority)
+    tuple val(k), val(chrom), val(start), val(end), path(tsv), path(levels), path(priority)
 
     output:
-    tuple val(k), path("mutationSpectra_${params.reference}_${k}_${region}.csq.tsv")
+    tuple val(k), path("mutationSpectra_${params.reference}_${k}_*.csq.tsv")
 
     
     stub:
     """
-    touch mutationSpectra_${params.reference}_${k}_${region}.csq.tsv
+    touch mutationSpectra_${params.reference}_${k}_${chrom}_${start}-${end}.csq.tsv
     """
 
     script:
     """
-    compute_spectra_class -i ${tsv} -k ${levels} -c ${priority} -o mutationSpectra_${params.reference}_${k}_${region}.csq.tsv
+    compute_spectra_class -i ${tsv} -k ${levels} -c ${priority} -o mutationSpectra_${params.reference}_${k}_${chrom}_${start}-${end}.csq.tsv
     """
 }
 
@@ -449,7 +306,7 @@ process group_results {
     publishDir "${params.outdir}/mutyper/results", mode: "${params.publish_dir_mode}", overwrite: true
 
     input:
-    tuple val(k), val(region), path(data)
+    tuple val(k), val(chrom), val(start), val(end), path(data)
 
     output:
     tuple val(k), path("mutyper_mutationSpectra_${params.reference}_${k}.csv")

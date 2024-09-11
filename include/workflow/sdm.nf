@@ -1,7 +1,8 @@
 include { get_individuals; get_breeds; } from "../process/prerun"
 include { sdm; filter_sdm; count_sdm } from "../process/sdm"
 include { make_ksfs; sdm_plot } from "../process/sdm"
-include { repeat_mask_split_sdm; sdm_chunking} from "../process/sdm"
+include { repeat_mask_split_sdm} from "../process/sdm"
+include { chunking as sdm_chunking } from "../process/prerun"
 
 workflow SDM {
     take:

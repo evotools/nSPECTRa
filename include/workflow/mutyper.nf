@@ -1,9 +1,7 @@
 
 include { chromosomeList } from '../process/prerun'
-include { mutyper; group_results } from '../process/mutyper'
-include { mutyper_full; ksfs } from '../process/mutyper'
+include { group_results; plot_results; ksfs } from '../process/mutyper'
 include { mutyper_variant; mutyper_spectra; mutyper_concat } from '../process/mutyper'
-include { mutyper_full_parallel; plot_results } from '../process/mutyper'
 include { count_mutations; count_mutations_csq } from '../process/mutyper'
 include { kmercount; normalize_results } from '../process/mutyper'
 include { extract_tags; extract_csq } from '../process/mutyper'
@@ -19,7 +17,7 @@ workflow MUTYPER {
         anc_fai
         chromosomeList
         masks_ch
-        vcf_by_chr
+        vcf_chunks_ch
         // ne_time_ch
 
     main:
@@ -33,8 +31,7 @@ workflow MUTYPER {
         k_list = params.k?.tokenize(',').flatten()
 
         // Define sequence ids
-        // chromosomeList( vcf, tbi )
-        combined_ch = vcf_by_chr.combine(k_list)
+        combined_ch = vcf_chunks_ch.combine(k_list)
 
         // Run meryl counter
         kmercount( anc_fa, anc_fai, Channel.from(k_list) ) 
@@ -46,18 +43,13 @@ workflow MUTYPER {
         // In the meanwhile, group the mutyper VCFs and concatenate them
         mutyper_variant.out | groupTuple(by: 0) | mutyper_concat
 
-        /* Generate mutyper-annotated vcf */
-        // mutyper_full( vcf, tbi, anc_fa, anc_fai, masks_ch, Channel.from(k_list) )
-        // mutyper_full_parallel( vcf, tbi, anc_fa, anc_fai, masks_ch, chromosomeList, Channel.from(k_list) )
-
         /* Generate the counts manually */
-        // mutyper_full_parallel.out
         mutyper_variant.out
         | filter{ it[0].toInteger() < 8 }
         | extract_tags
         | map{
-            k, region, tsv ->
-            [k, region, tsv, file("${baseDir}/assets/K${k}_mutations.txt")]
+            k, chrom, start, end, tsv ->
+            [k, chrom, start, end, tsv, file("${baseDir}/assets/K${k}_mutations.txt")]
         }
         | count_mutations
         | groupTuple(by: 0)
@@ -65,24 +57,19 @@ workflow MUTYPER {
 
         // If VEP ran, compare changes by consequence
         if (params.vep){
-            // mutyper_full_parallel.out
             mutyper_variant.out
             | filter{ it[0].toInteger() < 8 }
             | extract_csq
             | map{
-                k, region, tsv ->
-                [k, region, tsv, file("${baseDir}/assets/K${k}_mutations.txt"), file("${baseDir}/assets/VEPpriority")]
+                k, chrom, start, end, tsv ->
+                [k, chrom, start, end, tsv, file("${baseDir}/assets/K${k}_mutations.txt"), file("${baseDir}/assets/VEPpriority")]
             }
             | count_mutations_csq
             | groupTuple(by: 0)
             | combine_csqs
         }
 
-        /* Start mutyper on each chromosome separately */
-        // mutyper( combined_ch, anc_fa.collect(), anc_fai.collect(), masks_ch.collect() )
-
         /* Collect outputs */
-        // group_results( mutyper.out.groupTuple(by : 0) )
         group_results( mutyper_spectra.out.groupTuple(by : 0) )
         plot_results( group_results.out )
 

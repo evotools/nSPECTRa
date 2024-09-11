@@ -6,7 +6,7 @@ include { keep_biallelic_snps; daf_filter; get_sequences } from '../process/filt
 include { vep; makeAnnotation; annotateVcf } from '../process/annotate'
 include { shapeit5; shapeit4; beagle} from '../process/prerun' 
 include { chromosomeList; combineVcf } from '../process/prerun'
-include { daf; smile } from '../process/prerun'
+include { daf; smile; chunking } from '../process/prerun'
 include { get_beagle; get_vep_cache } from '../process/dependencies'
 
 
@@ -124,9 +124,15 @@ workflow PREPROCESS {
 
         daf(vcf_ch, tbi_ch) | smile
 
+        // Prepare chunks
+        chunks_ch = chunking(vcf_ch, tbi_ch)
+        | splitCsv(header: false, sep: '\t')
+        | combine(processed_ch, by: 0)
+
     emit:
         vcf = vcf_ch
         tbi = tbi_ch
         chroms = chr_list
         vcf_by_chr = processed_ch
+        chunks_ch = chunks_ch
 }

@@ -150,6 +150,7 @@ workflow {
         ch_var_idx_new = PREPROCESS.out.tbi
         ch_chr_lists = PREPROCESS.out.chroms
         vcf_by_chr = PREPROCESS.out.vcf_by_chr
+        vcf_chunks_ch = PREPROCESS.out.chunks_ch
 
         // Get constrined elements and remove variants in them
         if ( params.constrained ){
@@ -187,7 +188,7 @@ workflow {
           RELATE( ch_var_new, ch_var_idx_new, ANCESTRAL.out[0], ANCESTRAL.out[1], ANCESTRAL.out[2], ANCESTRAL.out[3], ch_chr_lists, ch_masks )
       }
       if (params.mutyper){
-          MUTYPER( ch_var_new, ch_var_idx_new, ANCESTRAL.out[0], ANCESTRAL.out[1], ch_chr_lists, ch_masks, vcf_by_chr )
+          MUTYPER( ch_var_new, ch_var_idx_new, ANCESTRAL.out[0], ANCESTRAL.out[1], ch_chr_lists, ch_masks, vcf_chunks_ch )
       } 
       if (params.sdm){
           SDM( ch_var_new, ch_var_idx_new, ANCESTRAL.out[0], ANCESTRAL.out[1], ANCESTRAL.out[2], ANCESTRAL.out[3], ch_masks, ch_chr_lists )
