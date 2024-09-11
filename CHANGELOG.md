@@ -18,8 +18,9 @@ All new changes are documented here.
 - Separate the filtered SDM sites based on whether they fall into a repeat masked region or not
 - Increased threads provided to selected `bcftools` processes
 - Ancestral genome now uses `cactus` official image, rather than on the downloaded tools
-- Mutyper is now computed in chunks, reducing redundancy of the analyses and allowing lower I/O with faster analysis of data
-- SDM are now computed in chunks of approximate size `chunk_size` (spltting on non-consecutive sites only)
+- The workflow now uses chunking whereever possible to speed up processing, defined by `chunk_size`
+    - The chunk size can be slightly higher when consecutive sites are found, effectively splitting only when breaks in variants are identified
+    - Both Mutyper and SDM subworkflows takes advantage of the approach, reducing redundancy of the analyses and allowing lower I/O with faster analysis of data
 - Collection of mutation type is now performed by sequence, rather on the full dataset  
 - Greatly increase performances of bed2vbed process by heavy usage of [polars](https://pola.rs/) dataframes, an improved logic and decreased I/O operations (see table):
 

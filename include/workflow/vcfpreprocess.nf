@@ -125,7 +125,12 @@ workflow PREPROCESS {
         daf(vcf_ch, tbi_ch) | smile
 
         // Prepare chunks
-        chunks_ch = chunking(vcf_ch, tbi_ch)
+        vcfs_ch = processed_ch | multiMap{
+            chrom, vcf, tbi ->
+            vcfs: vcf
+            tbis: tbi
+        }
+        chunks_ch = chunking(vcfs_ch.vcfs, vcfs_ch.tbis)
         | splitCsv(header: false, sep: '\t')
         | combine(processed_ch, by: 0)
 
