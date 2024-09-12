@@ -73,8 +73,8 @@ relate dir      : $params.relate"""
 if (params.neval){
   log.info """Ne value        : $params.neval"""  
 }
-if (params.ancestral){
-  log.info """ancestral       : $params.ancestral"""  
+if (params.ancestral_fna){
+  log.info """ancestral       : $params.ancestral_fna"""  
 }
 if (params.ref_fasta){
   log.info """refernece fasta : $params.ref_fasta"""  
