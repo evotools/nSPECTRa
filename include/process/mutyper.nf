@@ -193,17 +193,17 @@ process extract_csq {
     tuple val(k), val(chrom), val(start), val(end), path(vcf), path(tbi)
 
     output:
-    tuple val(k), val(chrom), val(start), val(end), path("K${k}.csqs.tsv.gz")
+    tuple val(k), val(chrom), val(start), val(end), path("K${k}_${chrom}_${start}-${end}.csqs.tsv.gz")
 
     
     stub:
     """
-    touch K${k}.csqs.tsv.gz
+    touch K${k}_${chrom}_${start}-${end}.csqs.tsv.gz
     """
 
     script:
     """
-    extract_fields --region ${chrom}:${start}-${end} -i ${vcf} -o - --csq | bgzip -@${task.cpus} > K${k}.csqs.tsv.gz
+    extract_fields --region ${chrom}:${start}-${end} -i ${vcf} -o - --csq | bgzip -@${task.cpus} > K${k}_${chrom}_${start}-${end}.csqs.tsv.gz
     """
 }
 
@@ -232,7 +232,7 @@ process count_mutations_csq {
 
 process combine_csqs {
     tag "count_mutations"
-    label "small"
+    label "medium_mem"
     publishDir "${params.outdir}/mutyper/full_counts_csq", mode: "${params.publish_dir_mode}", overwrite: true
 
     input:
