@@ -7,26 +7,24 @@ process sdm {
     
 
     input:
-    path vcf
-    path tbi
+    tuple val(samplename), path(samplelist), val(chrom), val(start), val(end), path(vcf), path(tbi)
     path reffasta
     path reffai
-    tuple val(samplename), path(samplelist), val(interval)
 
     output:
-    tuple val(samplename), path("sdm.${samplename}.${interval.chrom}.${interval.start}-${interval.end}.txt.gz")
+    tuple val(samplename), path("sdm.${samplename}.${chrom}.${start}-${end}.txt.gz")
 
     stub:
     """
-    touch sdm.${samplename}.${interval.chrom}.${interval.start}-${interval.end}.txt.gz
+    touch sdm.${samplename}.${chrom}.${start}-${end}.txt.gz
     """
 
     script:
     """
-    bcftools view -t ${interval.chrom}:${interval.start}-${interval.end} -O z ${vcf} > interval.vcf.gz &&
+    bcftools view -t ${chrom}:${start}-${end} -O z ${vcf} > interval.vcf.gz &&
         tabix -p vcf interval.vcf.gz
-    sdm ${vcf} ${samplelist} ${interval.chrom} ${reffasta} sdm.${samplename}.${interval.chrom}.${interval.start}-${interval.end}
-    gzip sdm.${samplename}.${interval.chrom}.${interval.start}-${interval.end}.txt
+    sdm ${vcf} ${samplelist} ${chrom} ${reffasta} sdm.${samplename}.${chrom}.${start}-${end}
+    gzip sdm.${samplename}.${chrom}.${start}-${end}.txt
     """
 }
 

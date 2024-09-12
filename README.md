@@ -58,5 +58,7 @@ The software currently supports three software to compute the mutation spectra:
  2. `--relate`: used to define the mutation spectra changes over time and an accurate estimate of the effective population size;
  3. `--sdm`: method to define sequential dinucleotide polymorphisms, MNPs and adjacent SNPs from [Prendergast et al., 2019](https://academic.oup.com/gbe/article/11/3/759/5299487).
 
+Some steps of the workflow are very computationally intensive, and can benefit from a high degree of chunking. For large datasets (e.g. 1000GP size), we recommend lower the chunk size (e.g. to 50000), facilitating some compute intensive steps.
+
 ## Input pre-filtering
 We recommend to pre-filter the vcf file to obtain samples with a reasonable coverage (>8-10 mean DP) and with variants with low call rate removed from the dataset (CCR > 90%) and minor allele count MAC >= 2.

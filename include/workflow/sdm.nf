@@ -14,6 +14,7 @@ workflow SDM {
         reffai
         masks_ch
         chromosomeList
+        vcf_chunks_ch
 
     main:
 
@@ -34,16 +35,16 @@ workflow SDM {
         // combined_ch = breeds_ch.combine(chromosomes_ch)
 
         // Prepare chunks
-        chunks = sdm_chunking(vcf, tbi)
+        // chunks = sdm_chunking(vcf, tbi)
         combined_ch = breeds_ch
         | combine(
-            chunks | splitCsv(header: ['chrom', 'start', 'end'], sep: '\t')
+            vcf_chunks_ch
         )
 
         // Run dinuc pipeline
         raw_sdm = breeds_ch
         | combine(
-            sdm( vcf, tbi, reffasta, reffai, combined_ch )
+            sdm( combined_ch, reffasta, reffai )
             | groupTuple(by: 0),
             by: 0
         )
