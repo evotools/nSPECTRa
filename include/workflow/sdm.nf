@@ -2,7 +2,6 @@ include { get_individuals; get_breeds; } from "../process/prerun"
 include { sdm; filter_sdm; count_sdm } from "../process/sdm"
 include { make_ksfs; sdm_plot } from "../process/sdm"
 include { repeat_mask_split_sdm} from "../process/sdm"
-include { chunking as sdm_chunking } from "../process/prerun"
 
 workflow SDM {
     take:
@@ -35,7 +34,6 @@ workflow SDM {
         // combined_ch = breeds_ch.combine(chromosomes_ch)
 
         // Prepare chunks
-        // chunks = sdm_chunking(vcf, tbi)
         combined_ch = breeds_ch
         | combine(
             vcf_chunks_ch
