@@ -116,35 +116,12 @@ process mutyper_concat {
 }
 
 
-process extract_tags {
-    tag "count_mutations"
-    label "medium"
-
-    input:
-    tuple val(k), val(chrom), val(start), val(end), path(vcf), path(tbi)
-
-    output:
-    tuple val(k), val(chrom), val(start), val(end), path("K${k}_${chrom}_${start}-${end}.tsv.gz")
-
-    
-    stub:
-    """
-    touch K${k}_${chrom}_${start}-${end}.tsv.gz
-    """
-
-    script:
-    """
-    extract_fields --region ${chrom}:${start}-${end} -i ${vcf} -o - | bgzip -@${task.cpus} > K${k}_${chrom}_${start}-${end}.tsv.gz
-    """    
-}
-
-
 process count_mutations {
     tag "count_mutations"
     label "medium_largemem"
 
     input:
-    tuple val(k), val(chrom), val(start), val(end), path(tsv), path(levels)
+    tuple val(k), val(chrom), val(start), val(end), path(vcf), path(tbi), path(levels)
 
     output:
     tuple val(k), path("mutationSpectra_${params.reference}_${k}_*.tsv")
@@ -157,14 +134,14 @@ process count_mutations {
 
     script:
     """
-    compute_spectra -i ${tsv} -k ${levels} -o mutationSpectra_${params.reference}_${k}_${chrom}_${start}-${end}.tsv
+    compute_spectra -i ${vcf} -k ${levels} -o mutationSpectra_${params.reference}_${k}_${chrom}_${start}-${end}.tsv
     """
 }
 
 
 process combine_counts {
     tag "count_mutations"
-    label "small"
+    label "medium"
     publishDir "${params.outdir}/mutyper/full_counts", mode: "${params.publish_dir_mode}", overwrite: true
 
     input:
@@ -185,34 +162,12 @@ process combine_counts {
     """
 }
 
-process extract_csq {
-    tag "count_mutations"
-    label "medium"
-
-    input:
-    tuple val(k), val(chrom), val(start), val(end), path(vcf), path(tbi)
-
-    output:
-    tuple val(k), val(chrom), val(start), val(end), path("K${k}_${chrom}_${start}-${end}.csqs.tsv.gz")
-
-    
-    stub:
-    """
-    touch K${k}_${chrom}_${start}-${end}.csqs.tsv.gz
-    """
-
-    script:
-    """
-    extract_fields --region ${chrom}:${start}-${end} -i ${vcf} -o - --csq | bgzip -@${task.cpus} > K${k}_${chrom}_${start}-${end}.csqs.tsv.gz
-    """
-}
-
 process count_mutations_csq {
     tag "count_mutations"
     label "medium_largemem"
 
     input:
-    tuple val(k), val(chrom), val(start), val(end), path(tsv), path(levels), path(priority)
+    tuple val(k), val(chrom), val(start), val(end), path(vcf), path(tbi), path(levels), path(priority)
 
     output:
     tuple val(k), path("mutationSpectra_${params.reference}_${k}_*.csq.tsv")
@@ -225,7 +180,7 @@ process count_mutations_csq {
 
     script:
     """
-    compute_spectra_class -i ${tsv} -k ${levels} -c ${priority} -o mutationSpectra_${params.reference}_${k}_${chrom}_${start}-${end}.csq.tsv
+    compute_spectra_class -i ${vcf} -k ${levels} -c ${priority} -o mutationSpectra_${params.reference}_${k}_${chrom}_${start}-${end}.csq.tsv
     """
 }
 

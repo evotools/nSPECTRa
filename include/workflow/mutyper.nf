@@ -4,7 +4,6 @@ include { group_results; plot_results; ksfs } from '../process/mutyper'
 include { mutyper_variant; mutyper_spectra; mutyper_concat } from '../process/mutyper'
 include { count_mutations; count_mutations_csq } from '../process/mutyper'
 include { kmercount; normalize_results } from '../process/mutyper'
-include { extract_tags; extract_csq } from '../process/mutyper'
 include { combine_counts; combine_csqs } from '../process/mutyper'
 
 
@@ -46,10 +45,9 @@ workflow MUTYPER {
         /* Generate the counts manually */
         mutyper_variant.out
         | filter{ it[0].toInteger() < 8 }
-        | extract_tags
         | map{
-            k, chrom, start, end, tsv ->
-            [k, chrom, start, end, tsv, file("${baseDir}/assets/K${k}_mutations.txt")]
+            k, chrom, start, end, vcf, tbi ->
+            [k, chrom, start, end, vcf, tbi, file("${baseDir}/assets/K${k}_mutations.txt")]
         }
         | count_mutations
         | groupTuple(by: 0)
@@ -59,10 +57,9 @@ workflow MUTYPER {
         if (params.vep){
             mutyper_variant.out
             | filter{ it[0].toInteger() < 8 }
-            | extract_csq
             | map{
-                k, chrom, start, end, tsv ->
-                [k, chrom, start, end, tsv, file("${baseDir}/assets/K${k}_mutations.txt"), file("${baseDir}/assets/VEPpriority")]
+                k, chrom, start, end, vcf, tbi ->
+                [k, chrom, start, end, vcf, tbi, file("${baseDir}/assets/K${k}_mutations.txt"), file("${baseDir}/assets/VEPpriority")]
             }
             | count_mutations_csq
             | groupTuple(by: 0)

@@ -1,27 +1,32 @@
 #!/usr/bin/env python
-import sys
-import polars as pl
+import numpy as np
+from pysam import VariantFile
 
-MAPPING = {
-    '0/0': '0',
-    '0|0': '0',
-    '1|0': '1',
-    '0|1': '1',
-    '1|1': '1',
-    '1/1': '1',
-    '0/1': '1'
-}
+def import_mutcat(mutcat, nsamples):
+    return {
+        line.strip(): np.zeros(nsamples, dtype = 'uint64')
+        for n, line in enumerate(open(mutcat))
+        if n > 0 and line.strip() != ''
+    }
+
 
 def parse_args():
     import argparse
     # Argument definition
     parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--input", metavar = 'input.tsv', type = str, help = 'Input dataframe from bcftools split-vep, with fields CHROM, POS, mutation_type, Consequence and genotypes',\
-                            dest = 'input', required = True)
+    parser.add_argument(
+        "-i",
+        "--input",
+        metavar="input.vcf",
+        type=str,
+        help="Input vcf",
+        dest="input",
+        required=True,
+    )
     parser.add_argument("-k", "--kmers", metavar = 'kmers.txt', type = str, help = 'Kmers list (with header)',\
-                            dest = 'kmer', required = False, default = None)
+                            required = False, default = None)
     parser.add_argument("-o", "--out", metavar = 'prefix', type = str, help = 'Output file.',\
-                            dest = 'out', required = False, default = "myanc.fa")
+                            required = False, default = "myanc.fa")
     parser.add_argument("--all", action='store_true', help = 'Add missing change-by-consequence combinations to the output dataframe.')
     return parser.parse_args()
 
@@ -31,42 +36,23 @@ def main():
     # Parse arguments
     args = parse_args()
 
-    # Import data using the lazy API to save memory
-    df = pl.scan_csv(args.input,
-        has_header=True,
-        separator='\t'
-    ).select(
-        pl.col("*").exclude("CHROM", "POS")
-    ).group_by(
-        'CHANGE'
-    ).sum().collect()
+    with VariantFile(args.input) as vcf:
+        # Get set of mutations
+        samples = list(vcf.header.samples)
+        header = '\t'.join( ['CHANGE'] + samples )
+        dataset = import_mutcat( args.kmers, len(samples) )
+        for line in vcf:
+            mutype = line.info['mutation_type'][0]
+            vals = np.array([1 if 1 in s["GT"] else 0 for s in line.samples.values()], dtype='uint64')
+            dataset[ mutype ] += vals
 
-    # If store all requested, add missing consequences
-    if args.all:
-        # Create minimal levels of factors to facilitate future merging.
-        # first load all kmers
-        kmers = pl.DataFrame(args.kmers, new_header=['CHANGE'])
-        # Add them to the DF
-        df = pl.concat((
-                df[['CHANGE']],
-                kmers
-            ))
-
-    # Add missing levels
-    # First, we concatenate the full consequence-by-kmer with the output
-    df = (
-        df
-            .select(pl.col(['CHANGE']).unique().implode())  # second, we find the unique values for the two level columns and implode them
-            .explode('CHANGE')  # third, we explode the values once at the time, creating every combo of vals
-            .join(df, how='left', on=['CHANGE']) # fourth, we add back the initial values
-            .fill_null(0)  # finally, we set missing to zero
-        )
-
-    # Save data
-    df.write_csv(args.out, separator='\t')
-
-    sys.stderr.write( "All done\n" )
+    # Save output
+    with open(args.out, 'w') as outfile:
+        outfile.write(header + '\n')
+        for change, vals in dataset.items():
+            outline = f"{change}\t" + '\t'.join(vals.astype('U32'))
+            outfile.write(outline + '\n')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
