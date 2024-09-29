@@ -8,12 +8,13 @@ def import_mutcat(mutcat, csqs, nsamples):
     for mut_type in mutcat:
         dataset[mut_type] = {}
         for csq in csqs:
-            dataset[mut_type][csq] = np.zeros(nsamples, dtype = 'uint64')
+            dataset[mut_type][csq] = np.zeros(nsamples, dtype="uint64")
     return dataset
 
 
 def parse_args():
     import argparse
+
     # Argument definition
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -67,33 +68,36 @@ def main():
     # Parse arguments
     args = parse_args()
 
-    all_muts = [ line.strip() for n, line in enumerate(open(args.kmers)) if n>0]
-    all_consequences = [ line.strip().split('\t')[0] for line in open(args.csqs)]
+    all_muts = [line.strip() for n, line in enumerate(open(args.kmers)) if n > 0]
+    all_consequences = [line.strip().split("\t")[0] for line in open(args.csqs)]
     with VariantFile(args.input) as vcf:
         # Get set of mutations
         samples = list(vcf.header.samples)
-        header = '\t'.join( ['CHANGE', 'CSQ'] + samples )
-        dataset = import_mutcat( all_muts, all_consequences, len(samples) )
+        header = "\t".join(["CHANGE", "CSQ"] + samples)
+        dataset = import_mutcat(all_muts, all_consequences, len(samples))
         for site in vcf:
-            mutype = site.info['mutation_type'][0]
-            vals = np.array([1 if 1 in s["GT"] else 0 for s in site.samples.values()], dtype='uint64')
+            mutype = site.info["mutation_type"][0]
+            vals = np.array(
+                [1 if 1 in s["GT"] else 0 for s in site.samples.values()],
+                dtype="uint64",
+            )
             csqs = site.info["CSQ"]
             for csq in csqs:
                 consequence = csq.split("|")[1]
                 if consequence not in dataset[mutype].keys():
-                    dataset[ mutype ][ consequence ] = vals
+                    dataset[mutype][consequence] = vals
                 else:
-                    dataset[ mutype ][ consequence ] += vals
+                    dataset[mutype][consequence] += vals
 
     # Save output
-    with open(args.out, 'w') as outfile:
-        outfile.write(header + '\n')
+    with open(args.out, "w") as outfile:
+        outfile.write(header + "\n")
         for change in all_muts:
             for csq in all_consequences:
                 vals = dataset[change][csq]
-                outline = f"{change}\t{csq}\t" + '\t'.join(vals.astype('U32'))
-                outfile.write(outline + '\n')
+                outline = f"{change}\t{csq}\t" + "\t".join(vals.astype("U32"))
+                outfile.write(outline + "\n")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
