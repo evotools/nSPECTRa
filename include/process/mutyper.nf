@@ -309,7 +309,7 @@ process plot_results {
     mutSpectra[,-1]<-mutSpectra[,-1]/rowSums(mutSpectra[,-1], na.rm=T)
     mutSpectra<-mutSpectra %>% separate(sample, c("Breed", "Id"), extra = "merge")
     pca_res <- prcomp(mutSpectra[,-c(1,2)], scale. = TRUE)
-    pdf("plot_mutyper_mutSpectra_${params.reference}_${k}.pdf", height = 8, width = 12)
+    pdf("plot_mutyper_mutSpectra_${params.reference}_${k}.pdf", height = 16, width = 16)
     autoplot(pca_res, data=mutSpectra, colour = 'Breed') + geom_mark_ellipse()
     dev.off()
     /$
