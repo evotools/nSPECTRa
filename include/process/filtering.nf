@@ -212,7 +212,6 @@ process select_noncoding {
 
 process daf_filter {
     label "medium_smallmem_parallel"
-    afterScript "rm tmp.vcf.gz*"
 
     input:
         tuple val(chrom), path('variants.vcf.gz'), path('variants.vcf.gz.tbi')
@@ -228,11 +227,8 @@ process daf_filter {
 
     script:
     """
-    bcftools +fill-tags variants.vcf.gz  -- -t AF,AC,AN |\
-        bcftools filter --threads ${task.cpus} -O z -i 'INFO/AA != "-"' > tmp.vcf.gz && \
-        bcftools index -t tmp.vcf.gz
-    # Compute DAF
-    ComputeDAF -v tmp.vcf.gz |\
+    # Keep sites with AA, then with DAF<= max value
+    bcftools filter --threads ${task.cpus} -O u -i 'INFO/AA != "-"' variants.vcf.gz | \
         bcftools filter --threads ${task.cpus} -O z -i 'INFO/DAF <= ${params.max_derivate_allele_freq}' > variants_DAF_${chrom}.vcf.gz && \
         bcftools index --threads ${task.cpus} -t variants_DAF_${chrom}.vcf.gz
     """

@@ -37,6 +37,7 @@ process makeAnnotation {
 // Annotate VCF
 process annotateVcf {
     label "medium"
+    afterScript "rm tmp.vcf.gz tmp.vcf.gz.tbi"
 
     input:
     tuple val(chrom),
@@ -62,7 +63,12 @@ process annotateVcf {
     """
     echo '##INFO=<ID=AA,Number=1,Type=String,Description="Ancestral Allele">' > header_${params.reference}.txt
     bcftools annotate -a Ancestral_annotation.txt.gz -O u -h header_${params.reference}.txt -O z -c CHROM,POS,AA input.vcf.gz | \
-        bcftools view -T ^${masks_ch} -O z > genotypes.with_ancestral_allele_${chrom}.vcf.gz && \
+        bcftools +fill-tags - -- -t AF,AC,AN |\
+        bcftools view -T ^${masks_ch} -O z > tmp.vcf.gz && \
+        tabix -p vcf tmp.vcf.gz
+    # Fill tags and drop sites with missing
+    ComputeDAF -v tmp.vcf.gz |\
+        bcftools view -O z - > genotypes.with_ancestral_allele_${chrom}.vcf.gz && \
         tabix -p vcf genotypes.with_ancestral_allele_${chrom}.vcf.gz
     """
 }

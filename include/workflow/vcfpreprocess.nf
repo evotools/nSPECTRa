@@ -93,6 +93,9 @@ workflow PREPROCESS {
         makeAnnotation(processed_ch, ch_anc.collect(), ch_anc_fai.collect())
         processed_ch = annotateVcf(makeAnnotation.out, masks_ch.collect())
 
+        // Generate derived allele frequency plots prior DAF filtering.
+        processed_ch | daf | collect | smile
+
         // Filter by derived allele freq.
         if (params.max_derivate_allele_freq){
             processed_ch = processed_ch | daf_filter
@@ -121,8 +124,6 @@ workflow PREPROCESS {
             vcf_ch = extract_exclude.out[0]
             tbi_ch = extract_exclude.out[1]
         }
-
-        daf(vcf_ch, tbi_ch) | smile
 
         // Prepare chunks
         vcfs_ch = processed_ch | multiMap{

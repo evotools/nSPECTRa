@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import pysam
+import sys
 
 revert = {
     'A': 'T',
@@ -26,7 +27,7 @@ def main():
 
     # Create new header
     in_vcf.header.add_line('##INFO=<ID=DAF,Number=A,Type=Float,Description="Estimated derived allele frequency in the range (0,1]">')
-    print(in_vcf.header)
+    sys.stdout.write(str(in_vcf.header))
 
     # Compute DAF using AF and AA information.
     # if AA == REF || REV(AA) == REF > DAF == AF
@@ -38,11 +39,11 @@ def main():
         af = site.info.get('AF')[0]
         # If no AA avalable, emit site and proceed.
         if not aa:
-            print(site)
+            sys.stdout.write(str(site))
             continue
         daf = af if aa == ref or aa == revert.get(ref) else 1-af
         site.info.update({'DAF': daf})
-        print(site)
+        sys.stdout.write(str(site))
 
     # Process bed
     return 0

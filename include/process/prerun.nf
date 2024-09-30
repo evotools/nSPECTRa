@@ -385,21 +385,23 @@ process daf {
 
 
     input:
-    path vcf
-    path tbi
+    tuple val(chrom), path(vcf), path(tbi)
 
     output:
-    path "daf.csv.gz"
+    path "daf.${chrom}.csv.gz"
 
     
     stub:
     """
-    echo "" | bgzip -c > daf.csv.gz
+    echo "" | bgzip -c > daf.${chrom}.csv.gz
     """
 
     script:
     """
-    bcftools query -H -f "%CHROM,%POS,%DAF\n" | bgzip -c > daf.csv.gz
+    # Keep sites with AA info, otherwise no DAF is available
+    bcftools filter --threads ${task.cpus} -O z -i 'INFO/AA != "-"' ${vcf} |\
+        bcftools query -H -f "%CHROM,%POS,%DAF\\n" - | \
+        bgzip -c > daf.${chrom}.csv.gz
     """
 }
 
@@ -409,7 +411,7 @@ process smile {
     publishDir "${params.outdir}/mutyper/smile", mode: "${params.publish_dir_mode}", overwrite: true
 
     input:
-    path daf
+    path "dafs/*"
 
     output:
     path "smile.pdf"
@@ -424,10 +426,17 @@ process smile {
     script:
     """
     #!/usr/bin/env Rscript
-    if (TRUE){
-        library(tidyverse)
+    library(tidyverse)
+    # Import input data
+    alldafs <- list.files('dafs', pattern='*.csv.gz', recursive = T, full.names=T)
+    myfiles<-list()
+    for (f in alldafs) {
+        chrom_id = str_match(f, "dafs/daf\\\\.*(.*?)\\\\.csv.gz")[,2]
+        myfiles[[chrom_id]]<-read_csv(f, col_names = c('chrom', 'pos', 'af'), comment = '#')
     }
-    daf <- read_csv('${daf}', col_names = c('chrom', 'pos', 'af'), comment = '#')
+
+    ## Combine files
+    daf<-bind_rows(myfiles)
 
     p <- ggplot(daf, aes(x=af)) + 
         geom_histogram(bins=100, color = "#00AFBB", fill = "#00AFBB")

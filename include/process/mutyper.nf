@@ -117,7 +117,7 @@ process mutyper_concat {
 
 
 process count_mutations {
-    tag "count_mutations"
+    tag "medium"
     label "medium_largemem"
 
     input:
@@ -164,7 +164,7 @@ process combine_counts {
 
 process count_mutations_csq {
     tag "count_mutations"
-    label "medium_largemem"
+    label "medium"
 
     input:
     tuple val(k), val(chrom), val(start), val(end), path(vcf), path(tbi), path(levels), path(priority)
@@ -187,7 +187,7 @@ process count_mutations_csq {
 
 process combine_csqs {
     tag "count_mutations"
-    label "medium_mem"
+    label "medium"
     publishDir "${params.outdir}/mutyper/full_counts_csq", mode: "${params.publish_dir_mode}", overwrite: true
 
     input:
