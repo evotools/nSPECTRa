@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import os
-import polars as pl
+
+import numpy as np
+
 
 def parse_args():
     import argparse
@@ -10,9 +12,22 @@ def parse_args():
                             dest = 'input', required = True)
     parser.add_argument("-o", "--out", metavar = 'prefix', type = str, help = 'Output file.',\
                             dest = 'out', required = False, default = "out.tsv")
-    parser.add_argument("--csq", action='store_true', help = 'Save consequences.')
 
     return parser.parse_args()
+
+
+def import_table(fname, csq=False):
+    """Import dataframe."""
+    dataset = {}
+    with open(fname) as input:
+        header = input.readline()
+        for line in input:
+            line = line.strip().split()
+            if 'CSQ' in header.split():
+                dataset[line[0]] = {line[1]: np.array(line[2:], dtype='uint64')}
+            else:
+                dataset[line[0]] = np.array(line[1:], dtype='uint64')
+    return header, dataset
 
 
 def main():
@@ -29,22 +44,33 @@ def main():
 
     # concatenate multiple 
     # Use less memory than before, but probably slower
-    df = pl.read_csv(f'{args.input}/{infiles[0]}', separator='\t')
+    header, dataset = import_table(f'{args.input}/{infiles[0]}')
+    print(dataset['TCT>TTT'])
     if len(infiles) > 1:
         for n in range(1, len(infiles)):
-            fname = infiles[n]
-            df = pl.concat(
-                (
-                    df,
-                    pl.read_csv(f'{args.input}/{fname}', separator='\t')
-                ),
-                how="vertical"
-            ).group_by(
-                ['CHANGE', 'CSQ'] if args.csq else 'CHANGE'
-            ).sum()
+            h2, df = import_table(f'{args.input}/{infiles[n]}')
+            print(df['TCT>TTT'])
+            if h2 != header:
+                raise Exception("Data have unmatched column order.")
+            for key, vals in df.items():
+                if key not in dataset:
+                    dataset[key] = vals
+                else:
+                    dataset[key] += vals
+            print(dataset['TCT>TTT'])
 
     # Save data
-    df.write_csv(args.out, separator='\t')
+    with open(args.out, 'w') as outfile:
+        outfile.write(header)
+        for key, vals in dataset.items():
+            values = '\t'.join(vals.astype('U32'))
+            if isinstance(key, tuple):
+                keys = '\t'.join(key)
+                out_string = f"{keys}\t{values}\n"
+            else:
+                out_string = f"{key}\t{values}\n"
+            outfile.write(out_string)
+
 
 
 if __name__ == "__main__":
