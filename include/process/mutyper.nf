@@ -118,7 +118,7 @@ process mutyper_concat {
 
 process count_mutations {
     tag "medium"
-    label "medium_largemem"
+    label "medium"
 
     input:
     tuple val(k), val(chrom), val(start), val(end), path(vcf), path(tbi), path(levels)
@@ -164,7 +164,7 @@ process combine_counts {
 
 process count_mutations_csq {
     tag "count_mutations"
-    label "medium"
+    label "medium_largemem"
 
     input:
     tuple val(k), val(chrom), val(start), val(end), path(vcf), path(tbi), path(levels), path(priority)
