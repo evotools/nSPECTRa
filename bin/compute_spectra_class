@@ -8,7 +8,7 @@ def import_mutcat(mutcat, csqs, nsamples):
     for mut_type in mutcat:
         dataset[mut_type] = {}
         for csq in csqs:
-            dataset[mut_type][csq] = np.zeros(nsamples, dtype="uint64")
+            dataset[mut_type][csq] = np.zeros(nsamples, dtype="int64")
     return dataset
 
 
@@ -95,7 +95,8 @@ def main():
         for change in all_muts:
             for csq in all_consequences:
                 vals = dataset[change][csq]
-                outline = f"{change}\t{csq}\t" + "\t".join(vals.astype("U32"))
+                values = "\t".join(",".join(map(str, vals)))
+                outline = f"{change}\t{csq}\t" + values
                 outfile.write(outline + "\n")
 
 

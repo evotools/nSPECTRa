@@ -5,7 +5,7 @@ from pysam import VariantFile
 
 def import_mutcat(mutcat, nsamples):
     return {
-        line.strip(): np.zeros(nsamples, dtype="uint64")
+        line.strip(): np.full(nsamples, 0, dtype="int64")
         for n, line in enumerate(open(mutcat))
         if n > 0 and line.strip() != ""
     }
@@ -65,7 +65,7 @@ def main():
             mutype = line.info["mutation_type"][0]
             vals = np.array(
                 [1 if 1 in s["GT"] else 0 for s in line.samples.values()],
-                dtype="uint64",
+                dtype="int64",
             )
             dataset[mutype] += vals
 
@@ -73,7 +73,8 @@ def main():
     with open(args.out, "w") as outfile:
         outfile.write(header + "\n")
         for change, vals in dataset.items():
-            outline = f"{change}\t" + "\t".join(vals.astype("U32"))
+            values = "\t".join(",".join(map(str, vals)))
+            outline = f"{change}\t" + values
             outfile.write(outline + "\n")
 
 
