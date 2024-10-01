@@ -204,7 +204,7 @@ process combine_csqs {
 
     script:
     """
-    combine_matrix -i ./tsvs/ -o mutationSpectra_${params.reference}_${k}.csq.tsv --csq
+    combine_matrix -i ./tsvs/ -o mutationSpectra_${params.reference}_${k}.csq.tsv
     """
 }
 
