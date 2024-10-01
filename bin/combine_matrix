@@ -53,10 +53,16 @@ def main():
             if h2 != header:
                 raise Exception("Data have unmatched column order.")
             for key, vals in df.items():
-                if key not in dataset:
-                    dataset[key] = vals
-                else:
-                    dataset[key] += vals
+                try:
+                    if key not in dataset:
+                        dataset[key] = vals
+                    else:
+                        dataset[key] += vals
+                except:
+                    print(infiles[n])
+                    print(key)
+                    print(vals)
+                    print(dataset[key])
 
     # Save data
     with open(args.out, 'w') as outfile:
