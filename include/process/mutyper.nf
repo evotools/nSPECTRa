@@ -142,6 +142,7 @@ process count_mutations {
 process combine_counts {
     tag "count_mutations"
     label "medium"
+    cpus 1
     publishDir "${params.outdir}/mutyper/full_counts", mode: "${params.publish_dir_mode}", overwrite: true
 
     input:
@@ -187,7 +188,8 @@ process count_mutations_csq {
 
 process combine_csqs {
     tag "count_mutations"
-    label "medium"
+    label "medium_largemem"
+    cpus 1
     publishDir "${params.outdir}/mutyper/full_counts_csq", mode: "${params.publish_dir_mode}", overwrite: true
 
     input:
