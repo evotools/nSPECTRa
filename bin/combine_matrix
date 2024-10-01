@@ -25,10 +25,14 @@ def import_table(fname, large=False):
         header = input.readline()
         for line in input:
             line = line.strip().split()
-            if 'CSQ' in header.split():
-                dataset[line[0]] = {line[1]: np.array(line[2:], dtype=dtype)}
-            else:
-                dataset[line[0]] = np.array(line[1:], dtype=dtype)
+            try:
+                if 'CSQ' in header.split():
+                    dataset[line[0]] = {line[1]: np.array(line[2:], dtype=dtype)}
+                else:
+                    dataset[line[0]] = np.array(line[1:], dtype=dtype)
+            except:
+                print(line)
+                exit(1)
     return header, dataset
 
 
@@ -63,6 +67,7 @@ def main():
                     print(key)
                     print(vals)
                     print(dataset[key])
+                    exit(1)
 
     # Save data
     with open(args.out, 'w') as outfile:
