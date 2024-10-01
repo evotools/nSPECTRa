@@ -79,7 +79,7 @@ def main():
             mutype = site.info["mutation_type"][0]
             vals = np.array(
                 [1 if 1 in s["GT"] else 0 for s in site.samples.values()],
-                dtype="uint64",
+                dtype="int64",
             )
             csqs = site.info["CSQ"]
             for csq in csqs:
