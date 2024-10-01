@@ -82,9 +82,11 @@ def main():
 
     # concatenate multiple 
     # Use less memory than before, but probably slower
+    print(f"Loading: {args.input}/{infiles[0]}")
     header, dataset = import_table(f'{args.input}/{infiles[0]}', large=args.large_genome)
     if len(infiles) > 1:
         for n in range(1, len(infiles)):
+            print(f"Loading: {args.input}/{infiles[n]}")
             h2, df = import_table(f'{args.input}/{infiles[n]}', large=args.large_genome)
             if h2 != header:
                 raise Exception("Data have unmatched column order.")
