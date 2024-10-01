@@ -23,17 +23,49 @@ def import_table(fname, large=False):
     dtype = "uint64" if large else "uint32"
     with open(fname) as input:
         header = input.readline()
+        has_csqs = 'CSQ' in header.split()
         for line in input:
             line = line.strip().split()
-            try:
-                if 'CSQ' in header.split():
-                    dataset[line[0]] = {line[1]: np.array(line[2:], dtype=dtype)}
+            mut = line[0]
+            if has_csqs:
+                csq = line[1]
+                values = np.array(line[2:], dtype=dtype)
+                if mut not in dataset.keys():
+                    dataset[mut] = {csq: values}
+                elif csq not in dataset[mut].keys():
+                    dataset[mut][csq] = values
                 else:
-                    dataset[line[0]] = np.array(line[1:], dtype=dtype)
-            except:
-                print(line)
-                exit(1)
-    return header, dataset
+                    dataset[mut][csq] += values
+            else:
+                dataset[mut] = np.array(line[1:], dtype=dtype)
+        return header, dataset
+
+
+def sum_datasets(d1, d2):
+    """Recursive sum of two dictionaries."""
+    for key, vals in d2.items():
+        if isinstance(vals, dict):
+            sum_datasets(d1[key], vals)
+        else:
+            if key in d1.keys():
+                d1[key] += vals
+            else:
+                d1[key] = vals
+    return d1
+
+
+def save_dataset(dataset, outfile):
+    """Save the dict as an output."""
+    for mut, vals in dataset.items():
+        if isinstance(vals, dict):
+            for csq, nparray in vals.items():
+                values = '\t'.join(nparray.astype('U32'))
+                out_string = f"{mut}\t{csq}\t{values}\n"
+                outfile.write(out_string)
+        else:
+            values = '\t'.join(vals.astype('U32'))
+            out_string = f"{mut}\t{values}\n"
+            outfile.write(out_string)
 
 
 def main():
@@ -56,30 +88,12 @@ def main():
             h2, df = import_table(f'{args.input}/{infiles[n]}', large=args.large_genome)
             if h2 != header:
                 raise Exception("Data have unmatched column order.")
-            for key, vals in df.items():
-                try:
-                    if key not in dataset:
-                        dataset[key] = vals
-                    else:
-                        dataset[key] += vals
-                except:
-                    print(infiles[n])
-                    print(key)
-                    print(vals)
-                    print(dataset[key])
-                    exit(1)
+            sum_datasets(dataset, df)
 
     # Save data
     with open(args.out, 'w') as outfile:
         outfile.write(header)
-        for key, vals in dataset.items():
-            values = '\t'.join(vals.astype('U32'))
-            if isinstance(key, tuple):
-                keys = '\t'.join(key)
-                out_string = f"{keys}\t{values}\n"
-            else:
-                out_string = f"{key}\t{values}\n"
-            outfile.write(out_string)
+        save_dataset(dataset, outfile)
 
 
 if __name__ == "__main__":
