@@ -6,7 +6,6 @@
 process mutyper_variant {
     tag "mutyper"
     label "medium"
-    publishDir "${params.outdir}/mutyper/chrom_res", mode: "${params.publish_dir_mode}", overwrite: true
 
 
     input:
@@ -86,7 +85,7 @@ process mutyper_spectra {
 process mutyper_concat {
     tag "mutyper"
     label "medium"
-    publishDir "${params.outdir}/mutyper/chrom_res", mode: "${params.publish_dir_mode}", overwrite: true
+    publishDir "${params.outdir}/mutyper/vcf", mode: "${params.publish_dir_mode}", overwrite: true
 
 
     input:
