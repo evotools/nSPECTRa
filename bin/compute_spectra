@@ -66,14 +66,14 @@ def main():
             vals = np.array(
                 [1 if 1 in s["GT"] else 0 for s in line.samples.values()],
                 dtype="int64",
-            )
-            dataset[mutype] += vals
+            ) + dataset[mutype]
+            dataset[mutype] = vals
 
     # Save output
     with open(args.out, "w") as outfile:
         outfile.write(header + "\n")
         for change, vals in dataset.items():
-            values = "\t".join(",".join(map(str, vals)))
+            values = "\t".join(map(str, vals))
             outline = f"{change}\t" + values
             outfile.write(outline + "\n")
 

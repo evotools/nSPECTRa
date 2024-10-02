@@ -81,13 +81,10 @@ def main():
                 [1 if 1 in s["GT"] else 0 for s in site.samples.values()],
                 dtype="int64",
             )
-            csqs = site.info["CSQ"]
-            for csq in csqs:
-                consequence = csq.split("|")[1]
-                if consequence not in dataset[mutype].keys():
-                    dataset[mutype][consequence] = vals
-                else:
-                    dataset[mutype][consequence] += vals
+            consequences = [csq.split("|")[1] for csq in site.info["CSQ"]]
+            for consequence in consequences:
+                values = vals + dataset[mutype].get(consequence, np.zeros(len(samples), dtype="int64"))
+                dataset[mutype][consequence] = values
 
     # Save output
     with open(args.out, "w") as outfile:
@@ -95,7 +92,7 @@ def main():
         for change in all_muts:
             for csq in all_consequences:
                 vals = dataset[change][csq]
-                values = "\t".join(",".join(map(str, vals)))
+                values = "\t".join(map(str, vals))
                 outline = f"{change}\t{csq}\t" + values
                 outfile.write(outline + "\n")
 
