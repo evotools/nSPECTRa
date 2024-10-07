@@ -234,7 +234,7 @@ process make_mask {
 
 // Relate mutation 
 process relate_mut {
-    label "medium_largemem"
+    label "large"
 
     input:
     path contig_csv
