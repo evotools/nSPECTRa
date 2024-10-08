@@ -152,7 +152,9 @@ process get_breeds {
 // Run shapeit2/beagle for each chromosome
 process beagle {
     tag "${chrom}"
-
+    errorStrategy = {task.exitStatus in [137,140] ? 'retry' : 'finish'}
+    maxRetries = 2
+ 
     input:
     tuple val(chrom), path(vcf), path(tbi)
     path beagle
@@ -168,9 +170,9 @@ process beagle {
     """
 
     script:
-    def ne = params.neval ? "ne=${params.neval}" : ""
     // Set java memory to the highest between `memoryGB - (1GB * #Cores)` or 6GB 
     def javamem = Math.max(task.memory.giga - (1 * task.cpus), 6)
+    def ne = params.neval ? "ne=${params.neval}" : ""
     """
     java -jar -Xmx${javamem}G ${beagle} \
         gt=${vcf} \
