@@ -170,9 +170,9 @@ process beagle {
 
     script:
     def ne = params.neval ? "ne=${params.neval}" : ""
+    def javamem = task.memory.giga - 1
     """
-    javamem=`python -c "import sys; maxmem=int(sys.argv[1]); print( maxmem - int(maxmem * .1) )" ${task.memory.toGiga()}`
-    java -jar -Xmx\${javamem}G ${beagle} gt=${vcf} ${ne} chrom=${chrom} out=prephase_${chrom} nthreads=${task.cpus}
+    java -jar -Xmx${task.memory.giga}G ${beagle} gt=${vcf} ${ne} chrom=${chrom} out=prephase_${chrom} nthreads=${task.cpus}
     if [ ! -e prephase_${chrom}.vcf.gz.tbi ]; then
         tabix -p vcf prephase_${chrom}.vcf.gz
     fi
