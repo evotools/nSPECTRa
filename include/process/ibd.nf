@@ -38,6 +38,11 @@ process make_map {
     output:
     path "${vcf.simpleName}.map"
 
+    stub:
+    """
+    touch ${vcf.simpleName}.map
+    """
+
     script:
     """
     bcftools query -f '%CHROM\t%ID\t%POS\n' ${vcf} | awk 'BEGIN{OFS="\t"}; {print \$1,\$2,\$3/1000000,\$3}'> ${vcf.simpleName}.map
@@ -62,7 +67,6 @@ process merge_ibd {
     """
     touch ibd.${contig}.ibd.gz
     """
-
 
     script:
     """

@@ -5,12 +5,12 @@
 process hal2maf {
     tag "hal2maf"
     publishDir "${params.outdir}/MAF", mode: "${params.publish_dir_mode}", overwrite: true
+    container { params.cactus_version ? "quay.io/comparative-genomics-toolkit/cactus:${params.cactus_version}" : "quay.io/comparative-genomics-toolkit/cactus:latest" }
 
     label "largemem"
 
     input:
     path HAL
-    path CACTUS
 
     output:
     path "${params.reference}_${params.target}.maf"  
@@ -23,7 +23,7 @@ process hal2maf {
 
     script:
     """
-    ${CACTUS}/bin/hal2maf \
+    hal2maf \
         --refGenome ${params.reference} \
         --targetGenomes ${params.target} \
         --hdf5InMemory ${HAL} ${params.reference}_${params.target}.maf
@@ -35,13 +35,13 @@ process hal2chain {
     tag "hal2chain"
     label "largemem"
     publishDir "${params.outdir}/CHAIN", mode: "${params.publish_dir_mode}", overwrite: true
+    container { params.cactus_version ? "quay.io/comparative-genomics-toolkit/cactus:${params.cactus_version}" : "quay.io/comparative-genomics-toolkit/cactus:latest" }
 
     
     input:
     path reference
     path target
     path HAL
-    path CACTUS
 
     output:
     path "${params.target}_${params.reference}.chain"  
@@ -54,7 +54,7 @@ process hal2chain {
 
     script:
     """
-    ${CACTUS}/bin/hal2maf \
+    hal2maf \
         --refGenome ${params.target} \
         --targetGenomes ${params.reference} \
         --hdf5InMemory ${HAL} stdout | \
@@ -67,11 +67,11 @@ process halSnps {
     tag "halsnps"
     label "largemem"
     publishDir "${params.outdir}/SNPs", mode: "${params.publish_dir_mode}", overwrite: true
+    container { params.cactus_version ? "quay.io/comparative-genomics-toolkit/cactus:${params.cactus_version}" : "quay.io/comparative-genomics-toolkit/cactus:latest" }
 
     
     input:
     path HAL
-    path CACTUS
 
     output:
     path "SNPs_${params.reference}_${params.target}.tsv"  
@@ -84,7 +84,7 @@ process halSnps {
 
     script:
     """
-    ${CACTUS}/bin/halSnps ${HAL} ${params.reference} ${params.target} \
+    halSnps ${HAL} ${params.reference} ${params.target} \
         --tsv SNPs_${params.reference}_${params.target}.tsv --hdf5InMemory && \
         rm ./\${halname}.hal
     """
