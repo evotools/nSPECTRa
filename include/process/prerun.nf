@@ -171,7 +171,7 @@ process beagle {
 
     script:
     // Set java memory to the highest between `memoryGB - (1GB * #Cores)` or 6GB 
-    def javamem = Math.max(task.memory.giga - (1 * task.cpus), 6)
+    def javamem = Math.max(task.memory.giga - (1 * task.cpus * task.attempt), 6)
     def ne = params.neval ? "ne=${params.neval}" : ""
     """
     java -jar -Xmx${javamem}G ${beagle} \
