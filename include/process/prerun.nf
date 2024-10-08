@@ -169,7 +169,7 @@ process beagle {
 
     script:
     def ne = params.neval ? "ne=${params.neval}" : ""
-    def javamem = task.memory.giga - 1
+    def javamem = task.memory.giga - (1 * task.cpus)
     """
     java -jar -Xmx${task.memory.giga}G ${beagle} gt=${vcf} ${ne} chrom=${chrom} out=prephase_${chrom} nthreads=${task.cpus}
     if [ ! -e prephase_${chrom}.vcf.gz.tbi ]; then
