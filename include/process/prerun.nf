@@ -171,10 +171,14 @@ process beagle {
 
     script:
     // Set java memory to the highest between `memoryGB - (1GB * #Cores)` or 6GB 
-    def javamem = Math.max(task.memory.giga - (1 * task.cpus * task.attempt), 6)
+    def javamem = Math.round(task.memory.giga * 0.9) as int
+    if (task.index == 1){
+        log.info "Setting java memory to ${javamem} (out of ${task.memory.giga} total)"
+    }
     def ne = params.neval ? "ne=${params.neval}" : ""
     """
-    java -jar -Xmx${javamem}G ${beagle} \
+    javamem=`python -c "import sys; maxmem=int(sys.argv[1]); print( maxmem - int(maxmem * .1) )" ${task.memory.toGiga()}`
+    java -jar -Xmx\${javamem}G ${beagle} \
         gt=${vcf} \
         ${ne} \
         chrom=${chrom} \
