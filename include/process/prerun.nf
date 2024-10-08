@@ -151,8 +151,7 @@ process get_breeds {
 
 // Run shapeit2/beagle for each chromosome
 process beagle {
-    tag "beagle.${chrom}"
-    label "medium_mem"
+    tag "${chrom}"
 
     input:
     tuple val(chrom), path(vcf), path(tbi)
