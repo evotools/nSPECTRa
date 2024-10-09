@@ -37,7 +37,7 @@ process makeAnnotation {
 // Annotate VCF
 process annotateVcf {
     label "medium"
-    // afterScript "rm tmp.vcf.gz tmp.vcf.gz.tbi"
+    afterScript "rm tmp.vcf.gz tmp.vcf.gz.tbi"
 
     input:
     tuple val(chrom),
