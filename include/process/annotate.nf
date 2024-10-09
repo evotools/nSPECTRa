@@ -63,7 +63,7 @@ process annotateVcf {
     """
     echo '##INFO=<ID=AA,Number=1,Type=String,Description="Ancestral Allele">' > header_${params.reference}.txt
     bcftools annotate -a Ancestral_annotation.txt.gz -O u -h header_${params.reference}.txt -O z -c CHROM,POS,AA input.vcf.gz | \
-        bcftools +fill-tags - -- -t AF,AC,AN |\
+        bcftools +fill-tags -- -t AF,AC,AN |\
         bcftools view -T ^${masks_ch} -O z > tmp.vcf.gz && \
         tabix -p vcf tmp.vcf.gz
     # Fill tags and drop sites with missing
