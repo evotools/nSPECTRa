@@ -85,6 +85,29 @@ def consense_query(input_alleles):
     return "-"
 
 
+def memory_group(sorted_df):
+    """This function has a memory efficient grouping of the data, if the inputs are sorted."""
+    result = []
+    current_group = None
+    current_vals = []
+    # Iterate through the DataFrame
+    for row in sorted_df.iter_rows(named=True):
+        group = row["start"]
+        if current_group is None:
+            current_group = group
+        if group == current_group:
+            current_vals.append(row["val"])
+        else:
+            result.append((current_group, "".join(current_vals)))
+            current_group = group
+            current_vals = [row["val"]]
+    # Don't forget to add the last group
+    if current_group is not None:
+        result.append((current_group, "".join(current_vals)))
+    # Convert result to a DataFrame
+    return pl.DataFrame(result, schema=["start", "val"])
+
+
 # Main function
 def main():
     # Import arguments
@@ -119,6 +142,7 @@ def main():
         )
         .cast({"chrom": str, "start": int, "end": int, "val": str})
         .filter(pl.col("chrom") == args.region)
+        .drop(["chrom"])
     )
 
     # Verticalize the dataset
@@ -127,30 +151,30 @@ def main():
         df.with_columns(
             val=pl.col("val").str.split(by=""),
             start=pl.int_ranges("start", "end"),
-            end=pl.int_ranges("start", "end"),
         )
-        .explode(["start", "end", "val"])
+        .explode(["start", "val"])
+        .drop(['end'])
         .filter(pl.col("val") != "-")
-        .sort(by=("chrom", "start"))
-        .with_columns(end=pl.col("end") + 1)
-        .to_pandas()
+        .sort(by=("start"))
     )
 
     # Combine bases for same position
     if args.greedy:
         logging.info("Grouping data (greedy)")
-        df = df.groupby(["chrom", "start", "end"]).agg({"val": "".join}).reset_index()
+        df = df.group_by("start").agg(pl.col("val").str.concat(""))
     else:
         logging.info("Grouping data (memory)")
-        df = df.groupby(["chrom", "start", "end"]).agg({"val": list}).reset_index()
-        df["val"] = df["val"].apply(lambda x: "".join(x))
-
-    # Return in polars
-    df = pl.from_pandas(df)
+        df = memory_group(df)
 
     # Sort positions
     logging.info("Sorting")
-    df = df.sort(by=("chrom", "start"))
+    df = (
+        df
+        .with_columns(
+            chrom=pl.lit(args.region)
+        )
+        .select(['chrom', 'start', 'val'])
+    )
 
     # Add reference bases
     logging.info("Add reference")
@@ -171,8 +195,9 @@ def main():
     df = df.with_columns(
         con=pl.col("val").map_elements(
             lambda x: consense_query(x), return_dtype=str, strategy="threading"
-        )
-    )
+        ),
+        end=pl.col("start") + 1
+    ).select(['chrom', 'start', 'end', 'val', 'con'])
 
     # Save data
     df.write_csv(args.out, separator="\t", include_header=False)
