@@ -6,6 +6,8 @@ import os
 import polars as pl
 from pysam import FastaFile
 
+global _log_name
+_log_name = 'CONSENSE'
 
 def parse_args():
     """Define arguments."""
@@ -90,12 +92,15 @@ def main():
     args = parse_args()
 
     # Define logger
-    logging.basicConfig(
-        format="[%(asctime)s - %(name)s] %(message)s",
-        datefmt="%H:%M:%S",
-        level=logging.INFO,
+    logger = (
+        logging
+        .basicConfig(
+            format="[%(asctime)s - %(name)s] %(message)s",
+            datefmt="%H:%M:%S",
+            level=logging.INFO,
+        )
+        .getLogger(_log_name)
     )
-    logger = logging.getLogger("COMBINE")
 
     # Define thread pool
     if args.threads:
@@ -134,24 +139,18 @@ def main():
     # Combine bases for same position
     if args.greedy:
         logging.info("Grouping data (greedy)")
-        try:
-            df = df.group_by(("chrom", "start", "end")).agg(pl.col("val").str.concat(""))
-        except Exception:
-            raise MemoryError("Out of memory")
+        df = df.group_by(("chrom", "start", "end")).agg(pl.col("val").str.concat(""))
     else:
         logging.info("Grouping data (memory)")
-        try:
-            df = (
-                df.group_by(("chrom", "start", "end"))
-                .agg(pl.col("val"))
-                .with_columns(
-                    val=pl.col("val").map_elements(
-                        lambda x: "".join(x), return_dtype=str, strategy="threading"
-                    )
+        df = (
+            df.group_by(("chrom", "start", "end"))
+            .agg(pl.col("val"))
+            .with_columns(
+                val=pl.col("val").map_elements(
+                    lambda x: "".join(x), return_dtype=str, strategy="threading"
                 )
             )
-        except Exception:
-            raise MemoryError("Out of memory")
+        )
 
     # Sort positions
     logging.info("Sorting")
