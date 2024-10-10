@@ -134,15 +134,18 @@ def main():
     )
 
     # Combine bases for same position
-    df = df.group_by(("chrom", "start", "end")).agg(pl.col("val"))
     if args.greedy:
         logging.info("Grouping data (greedy)")
-        df = df.with_col(pl.col("val").str.concat(""))
+        df = df.group_by(("chrom", "start", "end")).agg(pl.col("val").str.concat(""))
     else:
         logging.info("Grouping data (memory)")
-        df = df.with_columns(
-            val=pl.col("val").map_elements(
-                lambda x: "".join(x), return_dtype=str, strategy="threading"
+        df = (
+            df.group_by(("chrom", "start", "end"))
+            .agg(pl.col("val"))
+            .with_columns(
+                val=pl.col("val").map_elements(
+                    lambda x: "".join(x), return_dtype=str, strategy="threading"
+                )
             )
         )
 
@@ -179,4 +182,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except:
+        raise MemoryError("Out of memory")
