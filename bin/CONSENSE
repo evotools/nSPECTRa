@@ -92,15 +92,12 @@ def main():
     # Define logger
     global _log_name
     _log_name = 'CONSENSE'
-    logger = (
-        logging
-        .basicConfig(
-            format="[%(asctime)s - %(name)s] %(message)s",
-            datefmt="%H:%M:%S",
-            level=logging.INFO,
-        )
-        .getLogger(_log_name)
+    logging.basicConfig(
+        format="[%(asctime)s - %(name)s] %(message)s",
+        datefmt="%H:%M:%S",
+        level=logging.INFO,
     )
+    logger = logging.getLogger(_log_name)
 
     # Define thread pool
     if args.threads:
