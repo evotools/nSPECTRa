@@ -83,7 +83,6 @@ process bed2vbed{
     script:
     def greedy = params.greedy ? "--greedy" : ""
     """
-    mkdir -p TMP/
     samtools faidx ${fasta} ${contig} > ${contig}.fasta
     CONSENSE -b ${bed} -t ${task.cpus} --region ${contig} -f ${contig}.fasta -o /dev/stdout ${greedy} | \
         bgzip -c > ${contig}_ancestral_states.bed.gz
