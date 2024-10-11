@@ -145,8 +145,9 @@ def main():
     df = pl.read_csv(
         args.bed,
         has_header=True,
-        separator="\t"
-    ).cast({"start": int, "val": str})
+        separator="\t",
+        schema={"start": int, "val": str}
+    )
 
     # Combine bases for same position
     if args.greedy:
