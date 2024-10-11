@@ -23,7 +23,8 @@ dependencies:
   - matplotlib
   - numpy>=1.22.4
   - pandas
-  - polars
+  - polars-lts-cpu==1.8.2
+  - pyarrow
   - pysam
   - java-jdk=8.0.92
   - bioconda::perl-bioperl 
