@@ -146,7 +146,7 @@ def main():
         args.bed,
         has_header=True,
         separator="\t"
-    )
+    ).cast({"start": int, "val": str})
 
     # Combine bases for same position
     if args.greedy:
