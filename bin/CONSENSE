@@ -149,6 +149,11 @@ def main():
         schema={"start": pl.Int64, "val": pl.Utf8}
     )
 
+    # If the dataframe is empty, avoid going forward.
+    if df.is_empty():
+        df.write_csv(args.out, separator="\t", include_header=False)
+        return 0
+
     # Combine bases for same position
     if args.greedy:
         logging.info("Grouping data (greedy)")
