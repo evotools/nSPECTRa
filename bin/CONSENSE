@@ -146,7 +146,7 @@ def main():
         args.bed,
         has_header=True,
         separator="\t",
-        schema={"start": int, "val": str}
+        schema={"start": pl.Int64, "val": pl.Utf8}
     )
 
     # Combine bases for same position
