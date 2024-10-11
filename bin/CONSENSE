@@ -4,7 +4,6 @@ import logging
 import os
 
 import polars as pl
-import pandas as pd
 from pysam import FastaFile
 
 
@@ -131,40 +130,42 @@ def main():
     # Instatiate reference
     reference = FastaFile(args.fasta)
 
-    # Load the BED file
-    logging.info("Loading bed")
-    df = (
-        pl.read_csv(
-            args.bed,
-            has_header=False,
-            separator="\t",
-            new_columns=["chrom", "start", "end", "val"],
-        )
-        .cast({"chrom": str, "start": int, "end": int, "val": str})
-        .filter(pl.col("chrom") == args.region)
-        .drop(["chrom"])
+    # Add reference bases
+    logging.info("Add reference")
+    reference = pl.DataFrame(
+        {
+            "chrom": args.region,
+            "start": range(0, len(reference[args.region])),
+            "ref": tuple(reference[args.region]),
+        }
     )
 
-    # Verticalize the dataset
-    logging.info("Verticalizing")
-    df = (
-        df.with_columns(
-            val=pl.col("val").str.split(by=""),
-            start=pl.int_ranges("start", "end"),
-        )
-        .explode(["start", "val"])
-        .drop(['end'])
-        .filter(pl.col("val") != "-")
-        .sort(by=("start"))
+    # Load the BED file
+    logging.info("Loading vertical")
+    df = pl.read_csv(
+        args.bed,
+        has_header=False,
+        separator="\t",
+        new_columns=["start", "val"],
     )
 
     # Combine bases for same position
     if args.greedy:
         logging.info("Grouping data (greedy)")
-        df = df.group_by("start").agg(pl.col("val").str.concat(""))
+        df = df.group_by("start", maintain_order=True).agg(pl.col("val").str.concat(""))
     else:
         logging.info("Grouping data (memory)")
         df = memory_group(df)
+        # df = (
+        #     df.group_by("start", maintain_order=True)
+        #     .agg(pl.col("val"))
+        #     .with_columns(
+        #         val=pl.col("val").map_elements(
+        #             # lambda x: "".join(x), return_dtype=str, strategy="threading"
+        #             pl.col("val").map_elements(lambda x: "".join(x), return_dtype=pl.Utf8, strategy="threading").alias("val")
+        #         )
+        #     )
+        # )
 
     # Sort positions
     logging.info("Sorting")
@@ -176,19 +177,14 @@ def main():
         .select(['chrom', 'start', 'val'])
     )
 
-    # Add reference bases
-    logging.info("Add reference")
-    reference = pl.DataFrame(
-        {
-            "chrom": args.region,
-            "start": range(0, len(reference[args.region])),
-            "ref": tuple(reference[args.region]),
-        }
-    )
-    df = df.join(reference, on=("chrom", "start"), how="left")
 
     # Add reference base, then drop the ref col
-    df = df.with_columns(val=pl.concat_str(pl.col("ref"), pl.col("val"))).drop("ref")
+    df = (
+        df
+        .join(reference, on=("chrom", "start"), how="left")
+        .with_columns(val=pl.concat_str(pl.col("ref"), pl.col("val")))
+        .drop("ref")
+    )
 
     # Get consensed value
     logging.info("Run consensus")
@@ -206,7 +202,4 @@ def main():
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except:
-        raise MemoryError("Out of memory")
+    main()
