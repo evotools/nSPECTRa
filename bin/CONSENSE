@@ -144,9 +144,8 @@ def main():
     logging.info("Loading vertical")
     df = pl.read_csv(
         args.bed,
-        has_header=False,
-        separator="\t",
-        new_columns=["start", "val"],
+        has_header=True,
+        separator="\t"
     )
 
     # Combine bases for same position

@@ -113,7 +113,7 @@ def main():
     )
 
     # Save data
-    df.write_csv(args.out, separator="\t", include_header=False)
+    df.write_csv(args.out, separator="\t", include_header=True)
     logging.info("Done")
     return 0
 

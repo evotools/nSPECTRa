@@ -71,7 +71,7 @@ process bed2vbed{
     tuple val(contig), val(header)
 
     output:
-    tuple path("./${contig}_ancestral_states.bed.gz"), path("${contig}.fasta")
+    tuple path("./${contig}_ancestral_states.bed.gz"), path("${contig}.fasta"), optional: true
     
     
     stub:
@@ -84,8 +84,8 @@ process bed2vbed{
     def greedy = params.greedy ? "--greedy" : ""
     """
     samtools faidx ${fasta} ${contig} > ${contig}.fasta
-    VERTICALIZE -b ${bed} -t ${task.cpus} --region ${contig} -f ${contig}.fasta -o tmp.bed
-    CONSENSE -b tmp.bed -t ${task.cpus} --region ${contig} -f ${contig}.fasta -o ${contig}_ancestral_states.bed ${greedy}
+    VERTICALIZE -b ${bed} -t ${task.cpus} --region ${contig} -f ${contig}.fasta -o /dev/stdout |\
+        CONSENSE -b /dev/stdin -t ${task.cpus} --region ${contig} -f ${contig}.fasta -o ${contig}_ancestral_states.bed ${greedy}
     bgzip ${contig}_ancestral_states.bed && rm tmp.bed
     """
 }
