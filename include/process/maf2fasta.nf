@@ -84,9 +84,9 @@ process bed2vbed{
     def greedy = params.greedy ? "--greedy" : ""
     """
     samtools faidx ${fasta} ${contig} > ${contig}.fasta
-    VERTICALIZE -b ${bed} -t ${task.cpus} --region ${contig} -f ${contig}.fasta -o /dev/stdout | \
-        CONSENSE -b /dev/stdin -t ${task.cpus} --region ${contig} -f ${contig}.fasta -o ${contig}_ancestral_states.bed ${greedy}
-    bgzip ${contig}_ancestral_states.bed
+    VERTICALIZE -b ${bed} -t ${task.cpus} --region ${contig} -f ${contig}.fasta -o tmp.bed
+    CONSENSE -b tmp.bed -t ${task.cpus} --region ${contig} -f ${contig}.fasta -o ${contig}_ancestral_states.bed ${greedy}
+    bgzip ${contig}_ancestral_states.bed && rm tmp.bed
     """
 }
 
