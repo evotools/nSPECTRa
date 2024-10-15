@@ -175,15 +175,17 @@ process beagle {
     if (task.index == 1){
         log.info "Setting java memory to ${javamem} (out of ${task.memory.giga} total)"
     }
+    // Additional beagle settings to tweak behaviour
     def ne = params.neval ? "ne=${params.neval}" : ""
+    def window_size = params.beagle_window_size ? "window=${params.beagle_window_size}": ""
+    def overlap_size = params.beagle_overlap_size ? "overlap=${params.beagle_overlap_size}": ""
     """
-    javamem=`python -c "import sys; maxmem=int(sys.argv[1]); print( maxmem - int(maxmem * .1) )" ${task.memory.toGiga()}`
-    java -jar -Xmx\${javamem}G ${beagle} \
+    java -jar -Xmx${javamem}G ${beagle} \
         gt=${vcf} \
-        ${ne} \
         chrom=${chrom} \
         out=prephase_${chrom} \
-        nthreads=${task.cpus}
+        nthreads=${task.cpus} \
+        ${ne} ${window_size} ${overlap_size}
     if [ ! -e prephase_${chrom}.vcf.gz.tbi ]; then
         tabix -p vcf prephase_${chrom}.vcf.gz
     fi
