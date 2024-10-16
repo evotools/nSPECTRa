@@ -185,10 +185,10 @@ process beagle {
         chrom=${chrom} \
         out=prephase_${chrom} \
         nthreads=${task.cpus} \
-        ${ne} ${window_size} ${overlap_size}
-    if [ ! -e prephase_${chrom}.vcf.gz.tbi ]; then
-        tabix -p vcf prephase_${chrom}.vcf.gz
-    fi
+        ${ne} ${window_size} ${overlap_size} && \
+            if [ ! -e prephase_${chrom}.vcf.gz.tbi ]; then
+                tabix -p vcf prephase_${chrom}.vcf.gz
+            fi
     """
 }
 
