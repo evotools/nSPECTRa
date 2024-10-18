@@ -73,14 +73,15 @@ def consense_query(input_alleles):
     candidate = cnt_alts.most_common()
     second = cnt_full.most_common()
     # Refine logic
-    if ref == "-" or list(cnt_alts.keys()) == ["-"] or list(cnt_full.keys()) == ["-"]:
-        return "-"
     if len(candidate) == 1:
         return candidate[0][0]
-    if len(candidate) >= 2 and candidate[0][1] > candidate[1][1]:
-        return candidate[0][0] if len(candidate) == 2 else candidate[0][0].lower()
-    if len(candidate) >= 2 and second[0][1] > second[1][1]:
-        return second[0][0].lower()
+    else:
+        if ref == "-" or list(cnt_alts.keys()) == ["-"] or list(cnt_full.keys()) == ["-"]:
+            return "-"
+        if len(candidate) >= 2 and candidate[0][1] > candidate[1][1]:
+            return candidate[0][0] if len(candidate) == 2 else candidate[0][0].lower()
+        if len(candidate) >= 2 and second[0][1] > second[1][1]:
+            return second[0][0].lower()
     return "-"
 
 
