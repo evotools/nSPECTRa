@@ -33,6 +33,7 @@ All new changes are documented here.
 ### Fixed
 - Fixes a start-up issue when running from the directory, rather than from `main.nf`
 - Fixes `-stub` runtime issues
+- Mutyper plots ignoring groupings
 
 ### Removed
 - Legacy DSL1 code (`legacy/main.nf`)
