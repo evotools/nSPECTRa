@@ -20,6 +20,21 @@ workflow MUTYPER {
         // ne_time_ch
 
     main:
+        // check if there is a popfile, otherwise create one
+        breeds_file = Channel.fromPath("${params.pops_folder}/*.txt")
+            | map {
+                fname ->
+                [fname.baseName, fname]
+            }
+            | splitCsv
+            | map {
+                pop, iid -> [pop] + iid
+            }
+            | collectFile {
+                pop, sample ->
+                [ "meta.txt", "${pop}\t${sample}\n" ]
+            }
+
         // Get chromosome list
         chromosomeList
             .splitCsv(header: ['N','chrom'])
@@ -68,7 +83,7 @@ workflow MUTYPER {
 
         /* Collect outputs */
         group_results( mutyper_spectra.out.groupTuple(by : 0) )
-        plot_results( group_results.out )
+        plot_results( group_results.out, breeds_file.collect() )
 
         // Normalize results
         // normalize_results( group_results.out, kmercount.out.collect() )

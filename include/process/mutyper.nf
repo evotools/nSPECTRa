@@ -286,6 +286,7 @@ process plot_results {
 
     input:
     tuple val(k), path(spectra)
+    path "meta.tsv"
 
     output:
     tuple val(k), path("plot_mutyper_mutSpectra_${params.reference}_${k}.pdf")
@@ -305,13 +306,15 @@ process plot_results {
     suppressPackageStartupMessages(library(ggfortify, quietly = TRUE))
     suppressPackageStartupMessages(library(ggforce, quietly = TRUE))
  
-    mutSpectra = read_csv2("${spectra}") 
+    mutSpectra <- read_csv2("${spectra}") 
+    # Add metadata
+    meta <- read_table("meta.tsv", col_names = c("pop", "sample"))
+    mutSpectra <- merge(meta, mutSpectra, by = 'sample')
 
-    mutSpectra[,-1]<-mutSpectra[,-1]/rowSums(mutSpectra[,-1], na.rm=T)
-    mutSpectra<-mutSpectra %>% separate(sample, c("Breed", "Id"), extra = "merge")
+    mutSpectra[,-c(1, 2)]<-mutSpectra[,-c(1, 2)]/rowSums(mutSpectra[,-c(1, 2)], na.rm=T)
     pca_res <- prcomp(mutSpectra[,-c(1,2)], scale. = TRUE)
     pdf("plot_mutyper_mutSpectra_${params.reference}_${k}.pdf", height = 16, width = 16)
-    autoplot(pca_res, data=mutSpectra, colour = 'Breed') + geom_mark_ellipse()
+    autoplot(pca_res, data=mutSpectra, colour = 'pop') + geom_mark_ellipse()
     dev.off()
     /$
 }
