@@ -1,7 +1,7 @@
-include { get_individuals; get_breeds } from "../process/prerun"
-include { makeAnnotation; annotateVcf } from '../process/annotate'
+include { get_individuals; get_breeds; } from "../process/prerun"
 include { sdm; filter_sdm; count_sdm } from "../process/sdm"
 include { make_ksfs; sdm_plot } from "../process/sdm"
+include { repeat_mask_split_sdm} from "../process/sdm"
 
 workflow SDM {
     take:
@@ -13,6 +13,7 @@ workflow SDM {
         reffai
         masks_ch
         chromosomeList
+        vcf_chunks_ch
 
     main:
 
@@ -21,10 +22,6 @@ workflow SDM {
             .map{ row-> tuple(row.N, row.chrom) }
             .set{ chromosomes_ch }
 
-        // Get annotation
-        makeAnnotation(vcf, ancfa, ancfai)
-        annotateVcf(vcf, tbi, masks_ch, makeAnnotation.out[0], makeAnnotation.out[1])
-        
         // Get individuals' ids
         // get_individuals( annotateVcf.out[0], annotateVcf.out[1] )
 
@@ -33,20 +30,34 @@ workflow SDM {
             .fromPath("${params.pops_folder}/*.txt")
             .map { file -> tuple(file.simpleName, file) }
         
-        // Combine chromosomes and breeds
-        combined_ch = breeds_ch.combine(chromosomes_ch)
+        // // Combine chromosomes and breeds
+        // combined_ch = breeds_ch.combine(chromosomes_ch)
+
+        // Prepare chunks
+        combined_ch = breeds_ch
+        | combine(
+            vcf_chunks_ch
+        )
 
         // Run dinuc pipeline
-        sdm( annotateVcf.out[0], annotateVcf.out[1], reffasta, reffai, combined_ch )
+        raw_sdm = breeds_ch
+        | combine(
+            sdm( combined_ch, reffasta, reffai )
+            | groupTuple(by: 0),
+            by: 0
+        )
 
-        // Filter results
-        filter_sdm(breeds_ch, sdm.out.collect() )
+        // Filter SDMs
+        raw_sdm | filter_sdm
+
+        // Get data in/out rm
+        repeat_mask_split_sdm(filter_sdm.out.bed.combine(masks_ch))
 
         // Generate outputs
-        count_sdm( filter_sdm.out )
+        count_sdm( filter_sdm.out.rdata )
 
         // Prepare Ksfs files
-        make_ksfs(breeds_ch, sdm.out.collect())
+        raw_sdm | make_ksfs
 
         // Make plots for sdm results
         all_counts = count_sdm.out[0]

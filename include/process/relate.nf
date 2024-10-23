@@ -46,7 +46,7 @@ process chromosomeList {
 
     script:
     """
-    bcftools view ${ch_vcf} |\
+    bcftools view --threads ${task.cpus} ${ch_vcf} |\
         awk '\$1!~"#" {print \$1}' |\
         sort -T . |\
         uniq |\
@@ -58,7 +58,7 @@ process chromosomeList {
 // Relate format inputs by breed
 process relate_format {
     label "renv"
-    conda (params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null)
+    conda {params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null}
 
     input:
     path vcf
@@ -90,7 +90,7 @@ process relate_format {
     samtools faidx ${ancfa} ${contig} > anc.${contig}.fa
     samtools faidx ${maskfa} ${contig} > mask.${contig}.fa
 
-    bcftools view -r ${contig} --force-samples -O z ${vcf} > ${contig}.RECODE.vcf.gz
+    bcftools view --threads ${task.cpus} -r ${contig} --force-samples -O z ${vcf} > ${contig}.RECODE.vcf.gz
 
     ${relate}/bin/RelateFileFormats --mode ConvertFromVcf -i ${contig}.RECODE \
         --haps ${contig}.INPUT.haps \
@@ -108,7 +108,7 @@ process relate_format {
 
 process make_relate_map {
     label "renv"
-    conda (params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null)
+    conda {params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null}
 
     input:
     tuple val(contig), path(haps), path(sample), path(dist), path(annot)
@@ -152,7 +152,7 @@ process relate {
     // Define effective population size.
     def ne = params.neval ? "-N ${params.neval}" : "-N 30000"
     // Define executable
-    def relate = task.cpus == 1 ? "${params.relate}/bin/Relate" : "${params.relate}/scripts/RelateParallel/RelateParallel.sh"
+    def relate = task.cpus == 1 ? file("${params.relate_path}/bin/Relate") : file("${params.relate_path}/scripts/RelateParallel/RelateParallel.sh")
     // Define resources on core count.
     def cores = task.cpus == 1 ? "" : "--threads ${task.cpus}"
     def memory = params.relate_memory ? "--memory ${params.relate_memory}" : "--memory 5"
@@ -234,7 +234,7 @@ process make_mask {
 
 // Relate mutation 
 process relate_mut {
-    label "medium_largemem"
+    label "large"
 
     input:
     path contig_csv
@@ -299,10 +299,10 @@ process relate_mut_chr {
     stub:
     """
     mkdir ANCMUT
-    touch ANCMUT/relate_mut_chr${contig}.anc.gz
-    touch ANCMUT/relate_mut_chr${contig}.mut.gz
-    touch ANCMUT/relate_mut_chr${contig}_mut.bin
-    touch ANCMUT/relate_mut_chr${contig}_opp.bin
+    touch ANCMUT/relate_mut_ne_chr${contig}.anc.gz
+    touch ANCMUT/relate_mut_ne_chr${contig}.mut.gz
+    touch ANCMUT/relate_mut_ne_chr${contig}_mut.bin
+    touch ANCMUT/relate_mut_ne_chr${contig}_opp.bin
     """
 
     script:
@@ -376,7 +376,6 @@ process relate_mut_finalise {
 
     input:
     path inputs
-    //tuple path(ancs), path(muts), path(mutbins), path(oppbins), path(rates)
     path contig_csv
     path poplabels
     path relate
@@ -409,6 +408,7 @@ process relate_mut_finalise {
 
 
 process relate_ne {
+    label "medium_mem"
     publishDir "${params.outdir}/relate/ne", mode: "${params.publish_dir_mode}", overwrite: true
 
     input:
@@ -425,43 +425,45 @@ process relate_ne {
     path "relate_mut_ne.pdf"
     path "relate_mut_ne_avg.rate"
 
-
     stub:
-    """
-    for i in `awk 'BEGIN{FS=","};{print \$NF}' ${contig_csv}`; do 
-        touch relate_mut_ne_chr\${i}.anc.gz
-        touch relate_mut_ne_chr\${i}.mut.gz
-        touch relate_mut_ne_chr\${i}.dist
-    done
-    touch relate_mut_ne.coal
-    touch relate_mut_ne.pairwise.coal
-    touch relate_mut_ne.pairwise.bin
-    touch relate_mut_ne_avg.rate
-    """
+        """
+        touch relate_mut_ne.coal
+        touch relate_mut_ne.pairwise.coal
+        touch relate_mut_ne.pairwise.bin
+        touch relate_mut_ne_avg.rate
+        touch relate_mut_ne.pdf
+        touch relate_mut_ne.pairwise.ne
+        for i in \$( awk 'BEGIN{FS=","};{print \$NF}' ${contig_csv} ); do 
+            touch relate_mut_ne_chr\${i}.anc.gz
+            touch relate_mut_ne_chr\${i}.mut.gz
+            touch relate_mut_ne_chr\${i}.dist
+        done
+        """
 
     script:
-    """
-    # Get chromosome list
-    awk 'BEGIN{FS=","};{print \$NF}' ${contig_csv} > chroms.txt 
+        """
+        # Get chromosome list
+        awk 'BEGIN{FS=","};{print \$NF}' ${contig_csv} > chroms.txt 
 
-    # Run relate mutation spectra    
-    ${relate}/scripts/EstimatePopulationSize/EstimatePopulationSize.sh \
-            -i relate \
-            --chr chroms.txt \
-            --poplabels ${poplabels} \
-            -m 1.25e-8 \
-            --years_per_gen ${params.intergen_time} \
-            --threads ${task.cpus} \
-            -o relate_mut_ne 2> ne.err
+        # Run relate mutation spectra    
+        ${relate}/scripts/EstimatePopulationSize/EstimatePopulationSize.sh \
+                -i relate \
+                --chr chroms.txt \
+                --poplabels ${poplabels} \
+                -m 1.25e-8 \
+                --years_per_gen ${params.intergen_time} \
+                --threads ${task.cpus} \
+                -o relate_mut_ne 2> ne.err
 
-    # Generate single-pop Ne values
-    coal2ne relate_mut_ne.pairwise.coal > relate_mut_ne.pairwise.ne
-    """
+        # Generate single-pop Ne values
+        coal2ne relate_mut_ne.pairwise.coal > relate_mut_ne.pairwise.ne
+        """
 }
 
 
 process relate_mut_chr_pop {
     label "medium_mem"
+    afterScript "rm mask.${contig}.fa anc.${contig}.fa"
 
     input:
     tuple val(pop), path(popfile), val(idx), val(contig)
@@ -472,14 +474,15 @@ process relate_mut_chr_pop {
     path maskfai
     path poplabels
     path relate
+    path mutcats
 
     output:
     tuple val(pop), path("relate_mut_ne_${pop}_chr${contig}_mut.bin"), path("relate_mut_ne_${pop}_chr${contig}_opp.bin")
 
     stub:
     """
-    touch relate_mut_${pop}_chr${contig}_mut.bin
-    touch relate_mut_${pop}_chr${contig}_opp.bin
+    touch relate_mut_ne_${pop}_chr${contig}_mut.bin
+    touch relate_mut_ne_${pop}_chr${contig}_opp.bin
     """
 
     script:
@@ -496,13 +499,9 @@ process relate_mut_chr_pop {
         --years_per_gen ${params.intergen_time} \
         --poplabels ${poplabels} \
         --pop_of_interest ${pop} \
-        --mutcat ${baseDir}/assets/k3.mutcat \
+        --mutcat ${mutcats} \
         -i relate_mut_ne_chr${contig} \
         -o relate_mut_ne_${pop}_chr${contig} 2> ctx.${pop}.${contig}.err
-
-    # Remove extra fasta files
-    rm anc.${contig}.fa
-    rm mask.${contig}.fa
     """
 }
 
@@ -539,11 +538,12 @@ process relate_chr_pop_mut_finalise {
 process relate_plot_pop {
     label "renv"
     publishDir "${params.outdir}/relate/plot", mode: "${params.publish_dir_mode}", overwrite: true
-    conda (params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null)
+    conda {params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null}
 
     input:
     path rates 
     path poplabels
+    path mutcats
 
     output:
     path "plot_mutrate.pdf"
@@ -555,7 +555,7 @@ process relate_plot_pop {
 
     script:
     """
-    relate_plot_pop ${baseDir}/assets/k3.mutcat ${params.intergen_time} ${poplabels}
+    relate_plot_pop ${mutcats} ${params.intergen_time} ${poplabels}
     """
 }
 
@@ -565,7 +565,7 @@ Create modules to run relate Ne faster
 
 process ne_removetreeswithfewmutations {
     label "renv_many"
-    conda (params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null)
+    conda {params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null}
 
     input:
     path ancs
@@ -582,9 +582,10 @@ process ne_removetreeswithfewmutations {
     """
 
     script:
+    def relate = file(params.relate_path)
     """
     # Run relate mutation spectra    
-    ${params.relate}/bin/RelateExtract \
+    ${relate}/bin/RelateExtract \
         --mode RemoveTreesWithFewMutations \
         --threshold ${params.relate_mutation_threshold} \
         --anc relate_chr${contig}.anc \
@@ -598,7 +599,7 @@ process ne_removetreeswithfewmutations {
 process ne_ConstRate {
     label "renv_many"
     publishDir "${params.outdir}/relate/ne", mode: "${params.publish_dir_mode}", overwrite: true
-    conda (params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null)
+    conda {params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null}
 
     input:
     path ancs
@@ -616,12 +617,13 @@ process ne_ConstRate {
     """
 
     script:
+    def relate = file(params.relate_path)
     """
     # Get chromosome list
     awk 'BEGIN{FS=","};{print \$NF}' ${contig_csv} > chroms.txt 
 
     # Run relate mutation spectra    
-    ${params.relate}/bin/RelateCoalescentRate \
+    ${relate}/bin/RelateCoalescentRate \
         --mode GenerateConstCoalFile \
         --years_per_gen ${params.intergen_time} \
         -i 30000 \
@@ -634,7 +636,7 @@ process ne_Iterate {
     label "renv_many"
     executor 'local'
     publishDir "${params.outdir}/relate/ne/it", mode: "${params.publish_dir_mode}", overwrite: true
-    conda (params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null)
+    conda {params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null}
 
     input:
     tuple val(contig), path(anc), path(mut)
@@ -651,6 +653,7 @@ process ne_Iterate {
     """
 
     script:
+    def relate = file(params.relate_path)
     """
     runN=1
     maxN=${params.n_iterations}
@@ -658,7 +661,7 @@ process ne_Iterate {
         nextflow run ${params.baseDir}/include/iterate/relate_iterate.nf \
             --runN "\$runN" \
             --maxN "\$maxN" \
-            --relate ${params.relate} \
+            --relate ${relate} \
             --work_path \$PWD
             --base_name relate_mut_ne_subset_chr${contig}
             --outdir \$PWD/OUT

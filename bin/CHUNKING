@@ -1,0 +1,87 @@
+#!/usr/bin/env python
+import logging
+import os
+
+from pysam import VariantFile
+
+
+def parse_args():
+    """Define arguments."""
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-v",
+        "--vcf",
+        metavar="variants.vcf(.gz)",
+        type=str,
+        help="Input VCF file to chunk",
+        required=True,
+    )
+    parser.add_argument(
+        "-n",
+        "--chunks_size",
+        metavar="N",
+        type=int,
+        help="Chunk size",
+        required=False,
+        default=1000000
+    )
+    parser.add_argument(
+        "-o",
+        "--out",
+        metavar="prefix",
+        type=str,
+        help="Prefix for the output BED of intervals to process.",
+        default='chunks.bed',
+        required=False
+    )
+    return parser.parse_args()
+
+
+# Main function
+def main():
+    # Import arguments
+    args = parse_args()
+
+    # Define logger
+    logging.basicConfig(
+        format="[%(asctime)s - %(name)s] %(message)s",
+        datefmt="%H:%M:%S",
+        level=logging.INFO,
+    )
+    logger = logging.getLogger("COMBINE")
+
+    # Instatiate reference
+    vcf = VariantFile(args.vcf)
+
+    # Define header
+    pos = []
+    counter = 0
+    chrom = ''
+    with open(f'{args.out}', 'w') as out:
+        for n, site in enumerate(vcf):
+            if site.chrom != chrom and n>0:
+                out.write(f'{chrom}\t{pos[0]}\t{pos[-1] + 1}\n')
+                chrom = site.chrom
+                pos = [site.pos]
+                continue
+            elif counter >= args.chunks_size and site.pos > pos[-1] + 1:
+                out.write(f'{chrom}\t{pos[0]}\t{pos[-1] + 1}\n')
+                counter = 0
+                chrom = site.chrom
+                pos = [site.pos]
+                continue
+            chrom = site.chrom
+            pos.append(site.pos)
+            counter += 1
+        # Save final interval
+        out.write(f'{chrom}\t{pos[0]}\t{pos[-1] + 1}\n')
+
+    # Load the BED file
+    logging.info(f"Done.")
+    return 0
+
+
+if __name__ == "__main__":
+    main()
