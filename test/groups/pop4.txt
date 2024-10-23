@@ -1,0 +1,6 @@
+Female_pop4_buffalo_30x
+pop4_k_female_30x
+pop4_k_male_30x
+pop4_l_female_30x
+pop4_l_male_30x
+Male_pop4_buffalo_30x
