@@ -28,14 +28,19 @@ process mutyper_variant {
     """
 
     script:
+    String vcftools_filter = ""
+    if (params.mutyper_min_gq || params.mutyper_max_missing){
+        def min_gq = params.mutyper_min_gq ? "--minGQ ${params.mutyper_min_gq}" : ""
+        def max_miss = params.mutyper_max_missing ? "--max-missing ${params.mutyper_max_missing}" : ""
+        vcftools_filter = "| vcftools --vcf - ${minGQ} ${max_miss} --recode --recode-INFO-all --stdout"
+    }
     if (params.annotation)
     """
     echo "Run mutyper (variants)"
     bcftools view --threads ${task.cpus} -v snps -r ${chrom}:${start}-${end} -m2 -M2 ${vcf} | \
         bedtools intersect -header -v -a - -b ${masks_ch} | \
         sed 's/_pilon//g' | \
-        vcffixup - | \
-        vcftools --vcf - --minGQ ${params.mutyper_min_gq} --max-missing ${params.mutyper_max_missing} --recode --recode-INFO-all --stdout
+        vcffixup - ${vcftools_filter} |\
         mutyper variants --k ${k} --strand_file ${params.annotation} ${ancfasta} - | \
         bgzip -c > mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.vcf.gz &&
         tabix -p vcf mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.vcf.gz
@@ -46,8 +51,7 @@ process mutyper_variant {
     bcftools view --threads ${task.cpus} -v snps -r ${chrom}:${start}-${end} -m2 -M2 ${vcf} | \
         bedtools intersect -header -v -a - -b ${masks_ch} | \
         sed 's/_pilon//g' | \
-        vcffixup - | \
-        vcftools --vcf - --minGQ 30 --max-missing 0.90 --recode --recode-INFO-all --stdout
+        vcffixup - ${vcftools_filter} |\
         mutyper variants --k ${k} ${ancfasta} - | \
         bgzip -c > mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.vcf.gz &&
         tabix -p vcf mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.vcf.gz
