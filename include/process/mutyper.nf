@@ -35,6 +35,7 @@ process mutyper_variant {
         bedtools intersect -header -v -a - -b ${masks_ch} | \
         sed 's/_pilon//g' | \
         vcffixup - | \
+        vcftools --vcf - --minGQ ${params.mutyper_min_gq} --max-missing ${params.mutyper_max_missing} --recode --recode-INFO-all --stdout
         mutyper variants --k ${k} --strand_file ${params.annotation} ${ancfasta} - | \
         bgzip -c > mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.vcf.gz &&
         tabix -p vcf mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.vcf.gz
@@ -46,6 +47,7 @@ process mutyper_variant {
         bedtools intersect -header -v -a - -b ${masks_ch} | \
         sed 's/_pilon//g' | \
         vcffixup - | \
+        vcftools --vcf - --minGQ 30 --max-missing 0.90 --recode --recode-INFO-all --stdout
         mutyper variants --k ${k} ${ancfasta} - | \
         bgzip -c > mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.vcf.gz &&
         tabix -p vcf mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.vcf.gz

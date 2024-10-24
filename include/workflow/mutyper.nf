@@ -86,7 +86,7 @@ workflow MUTYPER {
         plot_results( group_results.out, breeds_file.collect() )
 
         // Normalize results
-        // normalize_results( group_results.out, kmercount.out.collect() )
+        normalize_results( group_results.out, kmercount.out.collect() )
 
         // Grep list of samples, and drop smallest groups
         ksfs_inputs = Channel.fromPath("${params.pops_folder}/*.txt")
