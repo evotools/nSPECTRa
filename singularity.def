@@ -1,11 +1,11 @@
 Bootstrap: docker
-From: continuumio/miniconda3 
+From: condaforge/miniforge3:24.3.0-0
 Stage: build
 
 %files
 environment.yml .
 %labels
-MyLabel n-spectr
+MyLabel nspectra
 authors="andrea.talenti@ed.ac.uk" 
 description="Docker image containing base requirements for nf-LO pipelines"
 %post
@@ -19,7 +19,7 @@ conda install -c conda-forge conda-pack
 
 # Use conda-pack to create a standalone enviornment
 # in /venv:
-conda-pack -n nf-LO -o /tmp/env.tar && \
+conda-pack -n nspectra -o /tmp/env.tar && \
 mkdir /venv && cd /venv && tar xf /tmp/env.tar && \
 rm /tmp/env.tar
 
@@ -34,7 +34,7 @@ rm /tmp/env.tar
 
 
 Bootstrap: docker
-From: debian:buster 
+From: ubuntu:24.04 
 Stage: runtime
 
 %files from build
@@ -42,10 +42,10 @@ Stage: runtime
 %post
 
 # Install procps in debian to make it compatible with reporting
-apt-get update && apt install -y procps g++ curl && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-curl -o datasets 'https://ftp.ncbi.nlm.nih.gov/pub/datasets/command-line/LATEST/linux-amd64/datasets' && \
-mv datasets /usr/local/bin && \
-chmod a+x /usr/local/bin/datasets
+apt-get update && apt install -y file jellyfish procps g++ curl git wget parallel && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+curl -o /usr/local/bin/datasets https://ftp.ncbi.nlm.nih.gov/pub/datasets/command-line/LATEST/linux-amd64/datasets && \
+    chmod a+x /usr/local/bin/datasets
 
 # Copy /venv from the previous stage:
 
