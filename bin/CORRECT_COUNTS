@@ -47,14 +47,29 @@ def deseq2norm(x):
 def main():
     # Get input arguments
     args = parse_args()
+    print(
+        f"""
+        Spectrum: {args.spectra}
+        Kmers: {args.kmer}
+        Mode: {args.mode}
+        """
+    )
 
-    
     if args.distinct: combine_kmer = False
     else: combine_kmer = True
     kcounts = get_base_counts( args.kmer, pool=combine_kmer )
 
     # Perform DeSeq2-like normalization first
-    indf = pd.read_csv(args.spectra, delimiter=';')
+    basename = '.'.join(args.spectra.split('.')[0:-1])
+    if args.spectra.endswith('csv'):
+        indf = pd.read_csv(args.spectra, delimiter=',')
+    else:
+        indf = pd.read_csv(args.spectra, delimiter='\t')
+    # Transpose the dataset
+    indf = indf.set_index('CHANGE').T.rename({'CHANGE': 'sample'})
+    # If input is tsv, save it in the appropriate converted format
+    indf.to_csv(f'{basename}.csv', index = True, sep=';', index_label='sample')
+
 
     # Apply DeSeq2 normalization first
     for colname in [c for c in indf.columns if ">" in c]:
@@ -67,11 +82,11 @@ def main():
             import sys
             print(kcounts)
             sys.exit('K-mer {} does not exits'.format(k))
-    indf.to_csv(args.spectra.replace('.csv', '.NKnorm.csv'), index = False)
+    indf.to_csv(f'{basename}.NKnorm.csv', index = False)
 
     # Run normalizatio by column
     indf[[c for c in indf.columns if ">" in c]] = deseq2norm(indf[[c for c in indf.columns if ">" in c]])
-    indf.to_csv(args.spectra.replace('.csv', '.NKnorm.deseq2.csv'), index = False)
+    indf.to_csv(f'{basename}.NKnorm.deseq2.csv', index = False)
 
     # # Perform DeSeq2-like normalization first
     # indf = pd.read_csv(args.spectra, delimiter=';')
@@ -81,9 +96,9 @@ def main():
     # indf.to_csv(args.spectra.replace('.csv', '.NKnorm.csv'), index = False)
 
     if args.mode == 1:
-        outf = open(args.spectra.replace('.csv', '.NTnorm.csv'), 'w')
+        outf = open(f'{basename}.NTnorm.csv', 'w')
     else:
-        outf = open(args.spectra.replace('.csv', '.NTKnorm.csv'), 'w')
+        outf = open(f'{basename}.NTKnorm.csv', 'w')
     for n, line in enumerate(open(args.spectra)):
         if n == 0:
             kstats = [ kmer.split('>')[0] for m, kmer in enumerate(line.strip().split(';')) if m > 0 ]

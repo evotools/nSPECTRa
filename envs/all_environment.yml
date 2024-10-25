@@ -26,6 +26,7 @@ dependencies:
   - polars==1.9.0
   - pyarrow
   - pysam
+  - scipy
   - java-jdk=8.0.92
   - bioconda::perl-bioperl 
   - bioconda::perl-bio-db-hts 

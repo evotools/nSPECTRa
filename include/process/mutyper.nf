@@ -32,7 +32,7 @@ process mutyper_variant {
     if (params.mutyper_min_gq || params.mutyper_max_missing){
         def min_gq = params.mutyper_min_gq ? "--minGQ ${params.mutyper_min_gq}" : ""
         def max_miss = params.mutyper_max_missing ? "--max-missing ${params.mutyper_max_missing}" : ""
-        vcftools_filter = "| vcftools --vcf - ${minGQ} ${max_miss} --recode --recode-INFO-all --stdout"
+        vcftools_filter = "| vcftools --vcf - ${min_gq} ${max_miss} --recode --recode-INFO-all --stdout"
     }
     if (params.annotation)
     """
@@ -385,15 +385,14 @@ process kmercount {
 process normalize_results {
     tag 'kcnt'
     label 'medium'
-    publishDir "${params.outdir}/mutyper/results_corrected", mode: "${params.publish_dir_mode}", overwrite: true
+    publishDir "${params.outdir}/mutyper/normalized", mode: "${params.publish_dir_mode}", overwrite: true
 
     input:
     tuple val(k), path(counts)
     path normalizers
 
     output:
-    path "${counts.baseName}.*.csv"
-    path "${counts.baseName}.*.csv"
+    path "*.csv"
 
     stub:
     """
