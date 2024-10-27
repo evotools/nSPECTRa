@@ -7,7 +7,7 @@ def parse_args():
     import argparse
     # Argument definition
     parser = argparse.ArgumentParser()
-    parser.add_argument("-s", "--spectra", metavar = 'spectra.tsv', type = str, help = 'Input mutation spectra counts to correct',\
+    parser.add_argument("-s", "--spectra", metavar = 'spectra(.tsv/.csv)', type = str, help = 'Input mutation spectra counts to correct',\
                             dest = 'spectra', required = True)
     parser.add_argument("-k", "--kmer", metavar = 'Kmer.txt', type = str, help = 'Input ancestral K-mer counts from jellyfish',\
                             dest = 'kmer', required = True)
@@ -63,12 +63,19 @@ def main():
     basename = '.'.join(args.spectra.split('.')[0:-1])
     if args.spectra.endswith('csv'):
         indf = pd.read_csv(args.spectra, delimiter=',')
+        if indf.shape[1] == 1:
+            indf = pd.read_csv(args.spectra, delimiter=';')
+        if indf.shape[1] == 1:
+            raise Exception('Invalid input!')
     else:
         indf = pd.read_csv(args.spectra, delimiter='\t')
     # Transpose the dataset
-    indf = indf.set_index('CHANGE').T.rename({'CHANGE': 'sample'})
+    if 'CHANGE' in indf.columns:
+        indf = indf.set_index('CHANGE').T.rename({'CHANGE': 'sample'})
+    
     # If input is tsv, save it in the appropriate converted format
-    indf.to_csv(f'{basename}.csv', index = True, sep=';', index_label='sample')
+    if 'CHANGE' in indf.columns or not args.spectra.endswith('csv'):
+        indf.to_csv(f'{basename}.csv', index = True, sep=';', index_label='sample')
 
 
     # Apply DeSeq2 normalization first
