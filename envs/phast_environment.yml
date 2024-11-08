@@ -9,5 +9,4 @@ dependencies:
   - bioconda::ucsc-bigwigtobedgraph
   - bioconda::ucsc-wigtobigwig
   - bioconda::phast=1.5
-  - pip:
-    - mutyper
+  - bioconda::mutyper

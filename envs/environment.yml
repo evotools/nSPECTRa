@@ -21,5 +21,4 @@ dependencies:
   - bioconda::ucsc-twobitinfo 
   - bioconda::ucsc-bigwigtobedgraph
   - bioconda::phast=1.5
-  - pip:
-    - mutyper
+  - bioconda::mutyper
