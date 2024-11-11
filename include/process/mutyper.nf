@@ -388,8 +388,7 @@ process normalize_results {
     publishDir "${params.outdir}/mutyper/normalized", mode: "${params.publish_dir_mode}", overwrite: true
 
     input:
-    tuple val(k), path(counts)
-    path normalizers
+    tuple val(k), path(counts), path(normalizers)
 
     output:
     path "*.csv"
@@ -402,7 +401,7 @@ process normalize_results {
 
     script:
     """
-    CORRECT_COUNTS -s ${counts} -k K${k}_counts.txt -m 1 
-    CORRECT_COUNTS -s ${counts} -k K${k}_counts.txt -m 2 
+    CORRECT_COUNTS -s ${counts} -k ${normalizers} -m 1 
+    CORRECT_COUNTS -s ${counts} -k ${normalizers} -m 2 
     """
 }
