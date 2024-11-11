@@ -312,7 +312,7 @@ process plot_results {
     suppressPackageStartupMessages(library(ggfortify, quietly = TRUE))
     suppressPackageStartupMessages(library(ggforce, quietly = TRUE))
  
-    mutSpectra <- read_csv2("${spectra}") 
+    mutSpectra <- read_csv2("${spectra}") %>% select(where(~ any(. != 0)))
     # Add metadata
     meta <- read_table("meta.tsv", col_names = c("pop", "sample"))
     mutSpectra <- merge(meta, mutSpectra, by = 'sample')
