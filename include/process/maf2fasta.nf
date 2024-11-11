@@ -241,8 +241,6 @@ process makefai {
     label "small"
     publishDir "${params.outdir}/ancestral/ancestral_genome", mode: "${params.publish_dir_mode}", overwrite: true
 
-
-
     input:
     path ancfa
 

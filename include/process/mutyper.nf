@@ -368,7 +368,7 @@ process kmercount {
     val k
 
     output:
-    path "K${k}_counts.txt"
+    tuple val(k), path("K${k}_counts.txt")
 
     stub:
     """
