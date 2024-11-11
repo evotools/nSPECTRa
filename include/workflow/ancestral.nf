@@ -23,13 +23,15 @@ workflow ANCESTRAL {
             // Extract the different genomes and split it into chunks to speed up the process
             if (params.ref_fasta){
                 ch_ref = file(params.ref_fasta)
-                makefai_ref(ch_ref)
+                if (file("${params.ref_fasta}.fai").exists()){
+                    ch_ref_fai = file("${params.ref_fasta}.fai")
+                } else {
+                    ch_ref_fai = makefai_ref(ch_ref)
+                }
                 if (params.ref_min_size){
-                    filter_by_size(ch_ref, makefai_ref.out)
+                    filter_by_size(ch_ref, ch_ref_fai)
                     ch_ref = filter_by_size.out[0]
                     ch_ref_fai = filter_by_size.out[1]
-                } else {
-                    ch_ref_fai = makefai_ref.out
                 }
             } else {
                 if (params.hal) { ch_hal = file(params.hal) } else { exit 1, 'Hal file not specified!' }
