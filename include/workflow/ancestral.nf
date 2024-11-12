@@ -24,7 +24,6 @@ workflow ANCESTRAL {
             if (params.ref_fasta){
                 ch_ref = Channel.fromPath(params.ref_fasta)
                 ch_ref_fai = makefai_ref(ch_ref)
-                }
                 if (params.ref_min_size){
                     filter_by_size(ch_ref, ch_ref_fai)
                     ch_ref = filter_by_size.out[0]
