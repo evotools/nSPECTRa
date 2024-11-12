@@ -89,8 +89,8 @@ workflow ANCESTRAL {
         }
         
     emit:
-        anc_fa
-        anc_fai
-        ch_ref
-        ch_ref_fai
+        anc_fa.collect()
+        anc_fai.collect()
+        ch_ref.collect()
+        ch_ref_fai.collect()
 }
