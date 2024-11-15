@@ -77,8 +77,8 @@ if (params.neval){
 if (params.ancestral_fna){
   log.info """ancestral       : $params.ancestral_fna"""  
 }
-if (params.ref_fasta){
-  log.info """refernece fasta : $params.ref_fasta"""  
+if (params.reference_fna){
+  log.info """refernece fasta : $params.reference_fna"""  
 }
 if (params.mask){
   log.info """mask            : $params.mask"""  
@@ -113,7 +113,7 @@ for (param in checkPathParamList) { if (param) { file(param, checkIfExists: true
 if (params.variants && !params.ancestral_only) { ch_var = Channel.fromPath(params.variants) } else { exit 1, 'Vcf file not specified!' }
 if (params.idx && !params.ancestral_only) { ch_var_idx = Channel.fromPath(params.idx) } else { exit 1, 'TBI file not specified!' }
 if (!params.hal) { exit 1, 'Hal file not specified and ancestral not specified!' }
-if (!params.hal && !params.ref_fasta && !params.ancestral) { exit 1, 'Ancestral and reference genomes not specified!' }
+if (!params.hal && !params.reference_fna && !params.ancestral_fna) { exit 1, 'Ancestral and reference genomes not specified!' }
 if (params.constrained && !params.exon_bed) { exit 1, 'Requested hal4d algorithm, but no bed with exons specified!' }
 
 /*

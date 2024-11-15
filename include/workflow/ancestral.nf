@@ -21,8 +21,8 @@ workflow ANCESTRAL {
             anc_fai = makefai.out
             
             // Extract the different genomes and split it into chunks to speed up the process
-            if (params.ref_fasta){
-                ch_ref = Channel.fromPath(params.ref_fasta)
+            if (params.reference_fna){
+                ch_ref = Channel.fromPath(params.reference_fna)
                 ch_ref_fai = makefai_ref(ch_ref)
                 if (params.ref_min_size){
                     filter_by_size(ch_ref, ch_ref_fai)
