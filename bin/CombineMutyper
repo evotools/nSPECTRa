@@ -3,7 +3,7 @@ import sys, os
 
 kval = sys.argv[1]
 
-list_files = [i for i in os.listdir('./') if f"_{kval}.txt" in i ]
+list_files = [i for i in os.listdir("./") if f"_{kval}.txt" in i]
 
 values = {}
 
@@ -13,19 +13,28 @@ for filename in list_files:
     changes = []
     for n, line in enumerate(open(filename)):
         line = line.strip().split()
-        if len(line) == 0: continue
-        if n == 0: 
-            changes = line[1:]
-            all_changes.update( changes )
+        if len(line) == 0:
             continue
-        for m,change in enumerate(changes):
-            if line[0] not in samples: 
-                samples = set( list(samples) + [line[0]] )
-            if (line[0], change) not in values: 
-                values[ (line[0], change) ] = int(line[ m + 1 ])
-            else: 
-                values[ (line[0], change) ] += int(line[ m + 1 ])
+        if n == 0:
+            changes = line[1:]
+            all_changes.update(changes)
+            continue
+        for m, change in enumerate(changes):
+            if line[0] not in samples:
+                samples = set(list(samples) + [line[0]])
+            if (line[0], change) not in values:
+                values[(line[0], change)] = int(line[m + 1])
+            else:
+                values[(line[0], change)] += int(line[m + 1])
 all_changes = sorted(list(all_changes))
 samples = sorted(list(samples))
-print( "sample;{}".format(';'.join(all_changes)) )    
-[ print("{};{}".format(sample,  ';'.join([ str( values.get( (sample, change) , 0 ) ) for change in all_changes ]) ), ) for sample in samples ]    
+print("sample;{}".format(";".join(all_changes)))
+[
+    print(
+        "{};{}".format(
+            sample,
+            ";".join([str(values.get((sample, change), 0)) for change in all_changes]),
+        ),
+    )
+    for sample in samples
+]

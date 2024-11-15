@@ -63,10 +63,13 @@ def main():
         dataset = import_mutcat(args.kmers, len(samples))
         for line in vcf:
             mutype = line.info["mutation_type"][0]
-            vals = np.array(
-                [1 if 1 in s["GT"] else 0 for s in line.samples.values()],
-                dtype="int64",
-            ) + dataset[mutype]
+            vals = (
+                np.array(
+                    [1 if 1 in s["GT"] else 0 for s in line.samples.values()],
+                    dtype="int64",
+                )
+                + dataset[mutype]
+            )
             dataset[mutype] = vals
 
     # Save output

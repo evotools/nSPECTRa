@@ -76,7 +76,11 @@ def consense_query(input_alleles):
     if len(candidate) == 1:
         return candidate[0][0]
     else:
-        if ref == "-" or list(cnt_alts.keys()) == ["-"] or list(cnt_full.keys()) == ["-"]:
+        if (
+            ref == "-"
+            or list(cnt_alts.keys()) == ["-"]
+            or list(cnt_full.keys()) == ["-"]
+        ):
             return "-"
         if len(candidate) >= 2 and candidate[0][1] > candidate[1][1]:
             return candidate[0][0] if len(candidate) == 2 else candidate[0][0].lower()
@@ -115,7 +119,7 @@ def main():
 
     # Define logger
     global _log_name
-    _log_name = 'CONSENSE'
+    _log_name = "CONSENSE"
     logging.basicConfig(
         format="[%(asctime)s - %(name)s] %(message)s",
         datefmt="%H:%M:%S",
@@ -147,7 +151,7 @@ def main():
         args.bed,
         has_header=True,
         separator="\t",
-        schema={"start": pl.Int64, "val": pl.Utf8}
+        schema={"start": pl.Int64, "val": pl.Utf8},
     )
 
     # If the dataframe is empty, avoid going forward.
@@ -175,19 +179,11 @@ def main():
 
     # Sort positions
     logging.info("Sorting")
-    df = (
-        df
-        .with_columns(
-            chrom=pl.lit(args.region)
-        )
-        .select(['chrom', 'start', 'val'])
-    )
-
+    df = df.with_columns(chrom=pl.lit(args.region)).select(["chrom", "start", "val"])
 
     # Add reference base, then drop the ref col
     df = (
-        df
-        .join(reference, on=("chrom", "start"), how="left")
+        df.join(reference, on=("chrom", "start"), how="left")
         .with_columns(val=pl.concat_str(pl.col("ref"), pl.col("val")))
         .drop("ref")
     )
@@ -198,8 +194,8 @@ def main():
         con=pl.col("val").map_elements(
             lambda x: consense_query(x), return_dtype=str, strategy="threading"
         ),
-        end=pl.col("start") + 1
-    ).select(['chrom', 'start', 'end', 'val', 'con'])
+        end=pl.col("start") + 1,
+    ).select(["chrom", "start", "end", "val", "con"])
 
     # Save data
     df.write_csv(args.out, separator="\t", include_header=False)

@@ -25,7 +25,7 @@ def parse_args():
         type=int,
         help="Chunk size",
         required=False,
-        default=1000000
+        default=1000000,
     )
     parser.add_argument(
         "-o",
@@ -33,8 +33,8 @@ def parse_args():
         metavar="prefix",
         type=str,
         help="Prefix for the output BED of intervals to process.",
-        default='chunks.bed',
-        required=False
+        default="chunks.bed",
+        required=False,
     )
     return parser.parse_args()
 
@@ -58,16 +58,16 @@ def main():
     # Define header
     pos = []
     counter = 0
-    chrom = ''
-    with open(f'{args.out}', 'w') as out:
+    chrom = ""
+    with open(f"{args.out}", "w") as out:
         for n, site in enumerate(vcf):
-            if site.chrom != chrom and n>0:
-                out.write(f'{chrom}\t{pos[0]}\t{pos[-1] + 1}\n')
+            if site.chrom != chrom and n > 0:
+                out.write(f"{chrom}\t{pos[0]}\t{pos[-1] + 1}\n")
                 chrom = site.chrom
                 pos = [site.pos]
                 continue
             elif counter >= args.chunks_size and site.pos > pos[-1] + 1:
-                out.write(f'{chrom}\t{pos[0]}\t{pos[-1] + 1}\n')
+                out.write(f"{chrom}\t{pos[0]}\t{pos[-1] + 1}\n")
                 counter = 0
                 chrom = site.chrom
                 pos = [site.pos]
@@ -76,7 +76,7 @@ def main():
             pos.append(site.pos)
             counter += 1
         # Save final interval
-        out.write(f'{chrom}\t{pos[0]}\t{pos[-1] + 1}\n')
+        out.write(f"{chrom}\t{pos[0]}\t{pos[-1] + 1}\n")
 
     # Load the BED file
     logging.info(f"Done.")

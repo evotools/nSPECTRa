@@ -83,7 +83,9 @@ def main():
             )
             consequences = [csq.split("|")[1] for csq in site.info["CSQ"]]
             for consequence in consequences:
-                values = vals + dataset[mutype].get(consequence, np.zeros(len(samples), dtype="int64"))
+                values = vals + dataset[mutype].get(
+                    consequence, np.zeros(len(samples), dtype="int64")
+                )
                 dataset[mutype][consequence] = values
 
     # Save output

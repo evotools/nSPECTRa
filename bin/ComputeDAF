@@ -3,18 +3,27 @@ import pysam
 import sys
 
 revert = {
-    'A': 'T',
-    'T': 'A',
-    'G': 'C',
-    'C': 'G',
+    "A": "T",
+    "T": "A",
+    "G": "C",
+    "C": "G",
 }
+
 
 def parse_args():
     import argparse
+
     # Argument definition
     parser = argparse.ArgumentParser()
-    parser.add_argument("-v", "--vcf", metavar = 'input.vcf(.gz)', type = str, help = 'Input VCF file',\
-                            dest = 'vcf', required = True)
+    parser.add_argument(
+        "-v",
+        "--vcf",
+        metavar="input.vcf(.gz)",
+        type=str,
+        help="Input VCF file",
+        dest="vcf",
+        required=True,
+    )
     return parser.parse_args()
 
 
@@ -26,7 +35,9 @@ def main():
     in_vcf = pysam.VariantFile(args.vcf)
 
     # Create new header
-    in_vcf.header.add_line('##INFO=<ID=DAF,Number=A,Type=Float,Description="Estimated derived allele frequency in the range (0,1]">')
+    in_vcf.header.add_line(
+        '##INFO=<ID=DAF,Number=A,Type=Float,Description="Estimated derived allele frequency in the range (0,1]">'
+    )
     sys.stdout.write(str(in_vcf.header))
 
     # Compute DAF using AF and AA information.
@@ -35,18 +46,19 @@ def main():
     for site in in_vcf:
         ref = site.ref.upper()
         alt = site.alts[0].upper()
-        aa = site.info.get('AA').upper()
-        af = site.info.get('AF')[0]
+        aa = site.info.get("AA").upper()
+        af = site.info.get("AF")[0]
         # If no AA avalable, emit site and proceed.
         if not aa:
             sys.stdout.write(str(site))
             continue
-        daf = af if aa == ref or aa == revert.get(ref) else 1-af
-        site.info.update({'DAF': daf})
+        daf = af if aa == ref or aa == revert.get(ref) else 1 - af
+        site.info.update({"DAF": daf})
         sys.stdout.write(str(site))
 
     # Process bed
     return 0
+
 
 if __name__ == "__main__":
     main()

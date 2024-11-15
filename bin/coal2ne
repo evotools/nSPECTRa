@@ -13,21 +13,28 @@ def main():
             continue
         else:
             line = line.strip().split()
-            pop1 = pops[ int(line[0]) ]
-            pop2 = pops[ int(line[1]) ]
-            if pop1 != pop2: continue
+            pop1 = pops[int(line[0])]
+            pop2 = pops[int(line[1])]
+            if pop1 != pop2:
+                continue
             # ne = [ 0.5/c for c in map(float, line[2:]) ]
             ne = []
             for c in line[2:]:
                 try:
                     c = float(c)
-                    if c == 0: ne.append('nan')
-                    else: ne.append(0.5/float(c))
+                    if c == 0:
+                        ne.append("nan")
+                    else:
+                        ne.append(0.5 / float(c))
                 except:
-                    ne.append('NA')
-            results[ pop1 ] = ne
+                    ne.append("NA")
+            results[pop1] = ne
     # Print results
-    [print( "{}\t{}\t{}".format(pop, times[n], ne) ) for pop in results for n,ne in enumerate(results[pop])]
+    [
+        print("{}\t{}\t{}".format(pop, times[n], ne))
+        for pop in results
+        for n, ne in enumerate(results[pop])
+    ]
     # Exit function
     return 0
 
