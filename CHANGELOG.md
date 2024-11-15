@@ -13,6 +13,7 @@ All new changes are documented here.
 - DAF are computed in preprocessing, and saved as output file
 - Introduced three separate options to trigger the different components: `--relate`, `--mutyper` and `--sdm` (runs `mutyper` only as default)
 - `--relate_path` is now used to provide the path to the relate installation directory instead of `--relate`
+- `--ancestral` is now `--ancestral_fna`, and `--ref_fasta` is now `--fasta_fna`
 - Faster preprocessing of the VCF by processing by contig wherever possible
 - Faster VCF I/O thanks to dropping most `INFO` fields when extracting biallelic sites
 - Separate the filtered SDM sites based on whether they fall into a repeat masked region or not
