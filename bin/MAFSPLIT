@@ -4,29 +4,45 @@
 #
 # Created by: Andrea Talenti
 # Date: 20 Feb, 2020
-# 
-# Script that create a fasta or bed files 
+#
+# Script that create a fasta or bed files
 # the initial reference-based maf files.
 # MAF files have to be created starting from
 # the output hal file generated from CACTUS.
-# Conversion from hal to maf with hal2maf tool. 
+# Conversion from hal to maf with hal2maf tool.
 #
 #####
 import numpy as np
 import sys, os
-revert = {"A":"T", "T":"A", "C":"G","G":"C", 
-            "a":"t", "t":"a", "c":"g", "g":"c"}
+
+revert = {
+    "A": "T",
+    "T": "A",
+    "C": "G",
+    "G": "C",
+    "a": "t",
+    "t": "a",
+    "c": "g",
+    "g": "c",
+}
+
 
 # Define reference and target sequences
 def get_ref(lines, seq):
-    rname = lines[0].strip().split()[1].split(".")[0]           # Get reference names
-    if seq is not None:                                         # If target sequence is provided, focus on that.
+    rname = lines[0].strip().split()[1].split(".")[0]  # Get reference names
+    if seq is not None:  # If target sequence is provided, focus on that.
         references = [line for line in lines if seq in line.split()[1]]
         queries = [line for line in lines if "Anc" in line or "Inner" in line]
-    else:                                                       # Otherwise keep all that share the first (ref) line spp.
-        references = [line for line in lines if "Anc" not in line and "Inner" not in line]
+    else:  # Otherwise keep all that share the first (ref) line spp.
+        references = [
+            line for line in lines if "Anc" not in line and "Inner" not in line
+        ]
         queries = [line for line in lines if "Anc" in line or "Inner" in line]
-    return references, queries                                 # Return reference-spp name and list of ref and target sequences.
+    return (
+        references,
+        queries,
+    )  # Return reference-spp name and list of ref and target sequences.
+
 
 # High memory worker (keep in memory)
 def worker(inputs):
@@ -35,17 +51,19 @@ def worker(inputs):
     # Get sequences information
     references, queries = get_ref(lines, None)
     ref_seq_id = references[0].strip().split()[1]
-    if len(references) == 0: return ""
+    if len(references) == 0:
+        return ""
 
     result = []
-    
-    for r in  references:
-        stringa = r + ''.join(queries)
-        result += [ "a\n" + stringa.strip() ]
+
+    for r in references:
+        stringa = r + "".join(queries)
+        result += ["a\n" + stringa.strip()]
 
     if ctr % 10000 == 0:
-        sys.stderr.write( "Processed chunk {}\n".format(ctr) )
-    return '\n\n'.join(result)
+        sys.stderr.write("Processed chunk {}\n".format(ctr))
+    return "\n\n".join(result)
+
 
 def reader(args):
     lines = []
@@ -54,7 +72,7 @@ def reader(args):
     for line in infile:
         if "#" in line:
             continue
-        elif line[0] == "a": 
+        elif line[0] == "a":
             continue
         elif line[0] == "s":
             lines.append(line)
@@ -64,9 +82,9 @@ def reader(args):
             lines = []
         else:
             lines = []
-    if len(lines) != 0: blocks.append(lines)
+    if len(lines) != 0:
+        blocks.append(lines)
     return blocks
-    
 
 
 def single_proc(funct, chunk):
@@ -85,26 +103,53 @@ def Pipeline(blocks, args):
         of = sys.stdout
     else:
         if "stdout" in args.outname or "-" in args.outname:
-            sys.stderr.write("Cannot print to stdout if multiple output formats are required\n")
+            sys.stderr.write(
+                "Cannot print to stdout if multiple output formats are required\n"
+            )
             args.outname = "fastafile"
-        of = open( "{}.{}".format(args.outname, fmt), "w" )
-    of.write( '\n\n'.join( ['##maf version=1 scoring=N/A'] + dat ))
+        of = open("{}.{}".format(args.outname, fmt), "w")
+    of.write("\n\n".join(["##maf version=1 scoring=N/A"] + dat))
     of.close()
     return 0
 
 
 def parse_args():
     import argparse
+
     # Argument definition
     parser = argparse.ArgumentParser()
-    parser.add_argument("-m", "--maf", metavar = 'maffile.maf', type = str, help = 'Input alignments',\
-                            dest = 'maf', required = True)
-    parser.add_argument("-o", "--out", metavar = 'prefix', type = str, help = 'Output file prefix.',\
-                            dest = 'outname', required = False, default = "myanc")
-    parser.add_argument("-O", "--OutFmt", metavar = 'fasta/bed', type = str, help = 'Output file format (fasta/bed).',\
-                            dest = 'ofmt', required = False, default = "fasta")
-    
+    parser.add_argument(
+        "-m",
+        "--maf",
+        metavar="maffile.maf",
+        type=str,
+        help="Input alignments",
+        dest="maf",
+        required=True,
+    )
+    parser.add_argument(
+        "-o",
+        "--out",
+        metavar="prefix",
+        type=str,
+        help="Output file prefix.",
+        dest="outname",
+        required=False,
+        default="myanc",
+    )
+    parser.add_argument(
+        "-O",
+        "--OutFmt",
+        metavar="fasta/bed",
+        type=str,
+        help="Output file format (fasta/bed).",
+        dest="ofmt",
+        required=False,
+        default="fasta",
+    )
+
     return parser.parse_args()
+
 
 def parse_fasta_length(fasta):
     values = {}
@@ -115,6 +160,7 @@ def parse_fasta_length(fasta):
             continue
         values[ctgid] += len(line.strip())
     return values
+
 
 def main():
     import time
@@ -136,5 +182,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-    

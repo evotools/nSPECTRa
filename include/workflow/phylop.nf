@@ -1,61 +1,82 @@
 
-include {hal4d; phyloFit; phyloPtrain; combine_bed } from '../process/phylop'
-include {phyloP; bigWigToBed; filter; phastCons} from '../process/phylop'
-include {make4dmaf; msa_view; makeMaf; collect; combine_mafs} from '../process/phylop'
-include {get_hal} from '../process/dependencies' 
+include {
+    hal4d;
+    phyloFit;
+    phyloPtrain;
+    combine_bed;
+    extract_conserved;
+    vcf_drop_conserved;
+    phyloP;
+    make4dmaf;
+    msa_view;
+    hal_genomes;
+    wig2bedgraph;
+    halTree;
+} from '../process/phylop'
+
 
 workflow CONSTRAINED {
     take:
-        hal
         vcf
         tbi
         chromosomeList
 
     main:
+        // Load hal file
+        if (params.hal) {
+            if (file(params.hal).exists()){
+                hal_ch = Channel.fromPath(params.hal)
+            } else {
+                exit 1, "Hal file ${params.hal} not found"
+            }
+        } else {
+            exit 1, 'Hal file not specified!'
+        }
+        // load exon bed file
+        if (file(params.exon_bed).exists()){
+            exons_ch = Channel.fromPath(params.exon_bed)
+        } else {
+            exit 1, "Exon BED file ${params.exon_bed} not found"
+        }
+
         // Get chromosome list
-        chromosomeList
+        chromosomes_ch = chromosomeList
             .splitCsv(header: ['N','chrom'])
             .map{ row-> tuple(row.N, row.chrom) }
-            .set{ chromosomes_ch }
 
-        makeMaf(hal, chromosomes_ch)
-        if (params.hal4d && params.exon_bed){
-            hal4d(hal)
-            make4dmaf( hal4d.out, hal )
-            msa_view( make4dmaf.out, hal )
-            //phyloPtrain(hal, hal4d.out)
-            //model_ch = phyloPtrain.out
-            phyloFit(msa_view.out, hal)
-            model_ch = phyloFit.out
-        } else {
-            //makeMaf(hal)
-            combine_mafs(makeMaf.out.collect())
-            phyloFit(combine_mafs.out, hal)
-            model_ch = phyloFit.out
+        // Extract 4d elements
+        maf4d = hal4d(hal_ch, exons_ch)
+        | combine(hal_genomes(hal_ch))
+        | map{
+            hal, maf, genomes_env ->
+            String genomes = genomes_env as String
+            [hal, maf, genomes]
         }
+        | make4dmaf
+        | msa_view
+
+        // Fit model using 4D codons
+        model_ch = maf4d
+            | combine(hal_ch | halTree)
+            | phyloFit
+
         // Run PhyloP
-        phyloP(hal, model_ch, chromosomes_ch)
-        
-        // Run phastCons
-        phastCons(hal, makeMaf.out, model_ch)
+        phylop_ch = chromosomes_ch
+        | combine(hal_ch)
+        | combine(model_ch)
+        | phyloP
+        | wig2bedgraph
+        // combine selected
+        | collect
+        | combine_bed
 
-        // Collect bed
-        bedfiles = phastCons.out[0]
-        collect( bedfiles.collect() )
-
-        // Convert single bigwig to bed
-        //bigWigToBed(phyloP.out)
-
-        // Combine single-chromosome beds
-        //combine_bed( phyloP.out.collect() )
+        // Extract conserved
+        conserved_ch = phylop_ch | extract_conserved
 
         // Perform actual filtering
-        filter(vcf, tbi, collect.out)
+        vcf_drop_conserved(vcf, tbi, conserved_ch)
 
     emit:
-        //vcf
-        //tbi
-        filter.out[0]
-        filter.out[1]
-
+        vcf_drop_conserved.out.vcf
+        vcf_drop_conserved.out.tbi
 }

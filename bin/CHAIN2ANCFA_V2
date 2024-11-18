@@ -11,12 +11,13 @@ from random import choice
 from pyliftover import LiftOver
 from Bio.Seq import reverse_complement
 
+
 def fasta_lengths(fasta):
     return {key: len(fasta[key]) for key in fasta.keys()}
 
+
 def ancestral_fasta(reference, outgroup, chain, output):
-    """subroutine for ancestor subcommand
-    """
+    """subroutine for ancestor subcommand"""
     # single chromosome fasta file for reference genome
     print(f"Read {reference}...")
     ref = pyfaidx.Fasta(reference, read_ahead=10000)
@@ -57,21 +58,22 @@ def ancestral_fasta(reference, outgroup, chain, output):
             out_coords = lo.convert_coordinate(chrom, start)
             # change ambiguously aligning sites to N bases
             if out_coords is None or len(out_coords) != 1:
-                anc[chrom][start] = 'N'
+                anc[chrom][start] = "N"
             else:
                 out_chromosome, out_position, out_strand = out_coords[0][:3]
                 out_allele = out[out_chromosome][out_position].seq
-                                # if negative strand, take reverse complement base
-                if out_strand == '-':
+                # if negative strand, take reverse complement base
+                if out_strand == "-":
                     out_allele = reverse_complement(out_allele)
                 # and finally, polarize
                 anc[chrom][start] = out_allele
-            if start % 100000 == 0: print(f"Bp for {chrom}: {start}")
+            if start % 100000 == 0:
+                print(f"Bp for {chrom}: {start}")
 
-            
+
 if __name__ == "__main__":
-    reference=sys.argv[1]
-    outgroup=sys.argv[2]
-    chain=sys.argv[3]
-    output=sys.argv[4]
+    reference = sys.argv[1]
+    outgroup = sys.argv[2]
+    chain = sys.argv[3]
+    output = sys.argv[4]
     ancestral_fasta(reference, outgroup, chain, output)

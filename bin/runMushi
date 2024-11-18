@@ -12,20 +12,20 @@ def main():
     ksfs = mushi.kSFS(file=ksfs_file)
 
     # Infer eta
-    ksfs.infer_eta(mu0,
-                (0, 1e2),  # <-- trend penalty
-                ridge_penalty = 1e-4,
-                max_iter=300,
-                verbose=True)
+    ksfs.infer_eta(
+        mu0,
+        (0, 1e2),  # <-- trend penalty
+        ridge_penalty=1e-4,
+        max_iter=300,
+        verbose=True,
+    )
 
     plt.subplot(121)
     ksfs.plot_total()
-    plt.xscale('log')
-    plt.yscale('log')
+    plt.xscale("log")
+    plt.yscale("log")
 
     plt.subplot(122)
-    eta_true.plot(label='true')
-    ksfs.eta.plot(label='inferred')
+    eta_true.plot(label="true")
+    ksfs.eta.plot(label="inferred")
     plt.legend()
-
-

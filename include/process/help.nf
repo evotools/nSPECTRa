@@ -1,27 +1,19 @@
 def helpMessage() {
   log.info '''
-========================================================================
-     .-') _   .-')     _ (`-.    ('-.             .-') _   _  .-')   
-    ( OO ) ) ( OO ).  ( (OO  ) _(  OO)           (  OO) ) ( \\( -O )  
-,--./ ,--,' (_)---\\_)_.`     \\(,------.   .-----./     '._ ,------.  
-|   \\ |  |\\ /    _ |(__...--'' |  .---'  '  .--./|'--...__)|   /`. ' 
-|    \\|  | )\\  :` `. |  /  | | |  |      |  |('-.'--.  .--'|  /  | | 
-|  .     |/  '..`''.)|  |_.' |(|  '--.  /_) |OO  )  |  |   |  |_.' | 
-|  |\\    |  .-._)   \\|  .___.' |  .--'  ||  |`-'|   |  |   |  .  '.' 
-|  | \\   |  \\       /|  |      |  `---.(_'  '--'\\   |  |   |  |\\  \\  
-`--'  `--'   `-----' `--'      `------'   `-----'   `--'   `--' '--' 
-========================================================================
+=================================================================================
+     .-') _   .-')     _ (`-.    ('-.             .-') _   _  .-')     ('-.     
+    ( OO ) ) ( OO ).  ( (OO  ) _(  OO)           (  OO) ) ( \\( -O )   ( OO ).-. 
+,--./ ,--,' (_)---\\_)_.`     \\(,------.   .-----./     '._ ,------.   / . --. / 
+|   \\ |  |\\ /    _ |(__...--'' |  .---'  '  .--./|'--...__)|   /`. '  | \\-.  \\  
+|    \\|  | )\\  :` `. |  /  | | |  |      |  |('-.'--.  .--'|  /  | |.-'-'  |  | 
+|  .     |/  '..`''.)|  |_.' |(|  '--.  /_) |OO  )  |  |   |  |_.' | \\| |_.'  | 
+|  |\\    |  .-._)   \\|  .___.' |  .--'  ||  |`-'|   |  |   |  .  '.'  |  .-.  | 
+|  | \\   |  \\       /|  |      |  `---.(_'  '--'\\   |  |   |  |\\  \\   |  | |  | 
+`--'  `--'   `-----' `--'      `------'   `-----'   `--'   `--' '--'  `--' `--' 
+=================================================================================
       '''
 
-
-params {
-    annotation = false
-    help = false
-    publish_dir_mode = 'copy'
-}
-
-  
-    log.info"""
+  log.info"""
 
     Usage:
 
@@ -37,10 +29,12 @@ params {
       --target [ancestralID]          Ancestral genome id present into the hal archive
       --pops_folder [PATH]            Path to folder with lists of samples in each population (relate workflow)
       --annotation [PATH]             Path to a bed file with the negative strands section (for mutyper) 
-      --ancestral [PATH]              Provide pre-computed ancestral genome to use instead of the hal file
+      --ancestral_fna [PATH]          Provide pre-computed ancestral genome to use instead of the hal file
     
     Algorithms selection:
-      --algorithm [name]              Name of the algorithm to use for the mutation spectra definition (Default: mutyper; options: mutyper, relate, sdm)
+      --mutyper [name]                Run mutyper (Default: true)
+      --sdm [name]                    Run sdm (Default: false)
+      --relate_path [name]                 Run relate (Default: false)
       --imputation [name]             Name of the algorithm to use to perform imputation (Default: shapeit4; options: beagle, shapeit4)
       --species [name]                Species ID for VEP (e.g. 'bos_taurus')
 
@@ -92,8 +86,7 @@ params {
 
     Constrained elements detection
       --gone                          Run GONE to calculate effective population size (Default: false)
-      --phast                         Provide path to phast installation
-      --hal4d                         Use hal4d to define the neutral regions
+      --constrained                   Use hal4d to define the neutral regions
       --exon_bed                      Provide path to bed file with exonic regions for hal4d
 
     Other

@@ -22,7 +22,7 @@ process relate_format_legacy {
 
     script:
     """
-    bcftools view -S ${samplelist} -r ${contig} --force-samples -O z ${vcf} > ${contig}.${samplename}.RECODE.vcf.gz
+    bcftools view --threads ${task.cpus} -S ${samplelist} -r ${contig} --force-samples -O z ${vcf} > ${contig}.${samplename}.RECODE.vcf.gz
 
     ${params.relate}/bin/RelateFileFormats --mode ConvertFromVcf -i ${contig}.${samplename}.RECODE \
         --haps ${contig}.${samplename}.INPUT.haps \
@@ -84,13 +84,13 @@ process relate_format {
     script:
     """
     # Extract population of interest
-    bcftools view -S ${samplelist} -r ${contig} --force-samples -O z ${vcf} > ${contig}.${samplename}.RECODE.vcf.gz
+    bcftools view --threads ${task.cpus} -S ${samplelist} -r ${contig} --force-samples -O z ${vcf} > ${contig}.${samplename}.RECODE.vcf.gz
 
     # Extract single-chr fastas
     samtools faidx ${ancfa} ${contig} > anc.${contig}.fa
     samtools faidx ${maskfa} ${contig} > mask.${contig}.fa
 
-    bcftools view -r ${contig} --force-samples -O z ${vcf} > ${contig}.RECODE.vcf.gz
+    bcftools view --threads ${task.cpus} -r ${contig} --force-samples -O z ${vcf} > ${contig}.RECODE.vcf.gz
 
     ${params.relate}/bin/RelateFileFormats --mode ConvertFromVcf -i ${contig}.RECODE \
         --haps ${contig}.INPUT.haps \
@@ -143,7 +143,7 @@ process relate_format_breed {
     samtools faidx ${ancfa} ${contig} > anc.${contig}.fa
     samtools faidx ${maskfa} ${contig} > mask.${contig}.fa
 
-    bcftools view -S ${samplelist} -r ${contig} --force-samples -O z ${vcf} > ${contig}.${samplename}.RECODE.vcf.gz
+    bcftools view --threads ${task.cpus} -S ${samplelist} -r ${contig} --force-samples -O z ${vcf} > ${contig}.${samplename}.RECODE.vcf.gz
 
     ${params.relate}/bin/RelateFileFormats --mode ConvertFromVcf -i ${contig}.${samplename}.RECODE \
         --haps ${contig}.${samplename}.INPUT.haps \

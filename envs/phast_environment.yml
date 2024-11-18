@@ -5,9 +5,8 @@ channels:
   - defaults
 dependencies:
   - bioconda::bedtools
-  - python=3.8
+  - python=3.10
   - bioconda::ucsc-bigwigtobedgraph
   - bioconda::ucsc-wigtobigwig
   - bioconda::phast=1.5
-  - pip:
-    - mutyper
+  - bioconda::mutyper

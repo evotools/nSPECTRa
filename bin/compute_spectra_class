@@ -1,63 +1,103 @@
 #!/usr/bin/env python
-import sys
 import numpy as np
+from pysam import VariantFile
 
-def revert_mutation(mutation):
-    table = { "A": "T",
-            "T":"A",
-            "G":"C",
-            "C":"G"
-            }
-    initial, final = mutation.split('>')
-    initial = ''.join([ table.get(i, i) for i in initial[::-1] ])
-    final =   ''.join([ table.get(i, i) for i in final[::-1] ])
-    return "{}>{}".format(initial, final)
 
-def import_mutcat(mutcat, nsamples):
-    #return { "{0}{2}{1}>{0}{3}{1}".format( line[0], line[2], line[4], line[6] ): np.zeros(nsamples, dtype = 'int64') for n, line in enumerate(open(mutcat)) if n > 0 }
-    return { line.strip(): np.zeros(nsamples, dtype = 'int64') for n, line in enumerate(open(mutcat)) if n > 0 and line.strip() != '' }
+def import_mutcat(mutcat, csqs, nsamples):
+    dataset = {}
+    for mut_type in mutcat:
+        dataset[mut_type] = {}
+        for csq in csqs:
+            dataset[mut_type][csq] = np.zeros(nsamples, dtype="int64")
+    return dataset
 
-if '.gz' in sys.argv[1]:
-    import gzip
-    infile = gzip.open(sys.argv[1])
-elif '-' in sys.argv[1]:
-    infile = sys.stdin
-else:
-    infile = open(sys.argv[1])
 
-samples = [ i.strip() for n,i in enumerate(open(sys.argv[2])) if n >= 4 ]
-# mutcat = import_mutcat(sys.argv[3], len(samples))
-dataset = {}
-csqs = []
+def parse_args():
+    import argparse
 
-# Start process changes
-for n, line in enumerate(infile):
-    try: line = line.decode()
-    except: line = line
-    line = line.strip().split()
-    mutype = line[2]
-    csq = line[3]
-    vals = np.array([ 1 if '1' in i else 0 for i in line[4:] ], dtype = 'int64')
-    if mutype not in dataset.keys():
-        dataset[mutype] = {}
-    if csq not in dataset[mutype].keys():
-        dataset[ mutype ][ csq ] = vals
-    else:
-        dataset[ mutype ][ csq ] += vals
-    if csq not in csqs: csqs.append(csq)
-    if n%1000000 == 0: sys.stderr.write( "Last position: {}:{}\n".format(line[0], line[1]) )
+    # Argument definition
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-i",
+        "--input",
+        metavar="input.vcf",
+        type=str,
+        help="Input vcf",
+        dest="input",
+        required=True,
+    )
+    parser.add_argument(
+        "-k",
+        "--kmers",
+        metavar="kmers.txt",
+        type=str,
+        help="Kmers list (with header)",
+        required=False,
+        default=None,
+    )
+    parser.add_argument(
+        "-c",
+        "--csqs",
+        metavar="csqs.txt",
+        type=str,
+        help="Dataset of VEP consequences and impacts",
+        dest="csqs",
+        required=False,
+        default=None,
+    )
+    parser.add_argument(
+        "-o",
+        "--out",
+        metavar="prefix",
+        type=str,
+        help="Output file.",
+        dest="out",
+        required=False,
+        default="myanc.fa",
+    )
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Add missing change-by-consequence combinations to the output dataframe.",
+    )
+    return parser.parse_args()
 
-# Load all changes
-changes = []
-for n, line in enumerate(open(sys.argv[3])):
-    if n == 0 or len(line.strip()) == 0: continue
-    changes.append(line.strip())
 
-print( '\t'.join( ['Change', 'CSQ'] + samples ) )
-for change in changes:
-    for csq in csqs:
-        try: outline = [change, csq] + list( map( str, dataset[change][csq] ) )
-        except: outline = [change, csq] + ['0' for i in range(0, len(samples))]
-        print( '\t'.join(outline) )
+def main():
+    """Run entry point."""
+    # Parse arguments
+    args = parse_args()
 
-sys.stderr.write( "All done\n" )
+    all_muts = [line.strip() for n, line in enumerate(open(args.kmers)) if n > 0]
+    all_consequences = [line.strip().split("\t")[0] for line in open(args.csqs)]
+    with VariantFile(args.input) as vcf:
+        # Get set of mutations
+        samples = list(vcf.header.samples)
+        header = "\t".join(["CHANGE", "CSQ"] + samples)
+        dataset = import_mutcat(all_muts, all_consequences, len(samples))
+        for site in vcf:
+            mutype = site.info["mutation_type"][0]
+            vals = np.array(
+                [1 if 1 in s["GT"] else 0 for s in site.samples.values()],
+                dtype="int64",
+            )
+            consequences = [csq.split("|")[1] for csq in site.info["CSQ"]]
+            for consequence in consequences:
+                values = vals + dataset[mutype].get(
+                    consequence, np.zeros(len(samples), dtype="int64")
+                )
+                dataset[mutype][consequence] = values
+
+    # Save output
+    with open(args.out, "w") as outfile:
+        outfile.write(header + "\n")
+        for change in all_muts:
+            for csq in all_consequences:
+                vals = dataset[change][csq]
+                values = "\t".join(map(str, vals))
+                outline = f"{change}\t{csq}\t" + values
+                outfile.write(outline + "\n")
+
+
+if __name__ == "__main__":
+    main()

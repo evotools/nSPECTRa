@@ -4,35 +4,57 @@
 #
 # Created by: Andrea Talenti
 # Date: 20 Feb, 2020
-# 
-# Script that create a fasta or bed files 
+#
+# Script that create a fasta or bed files
 # the initial reference-based maf files.
 # MAF files have to be created starting from
 # the output hal file generated from CACTUS.
-# Conversion from hal to maf with hal2maf tool. 
+# Conversion from hal to maf with hal2maf tool.
 #
 #####
 import numpy as np
 import sys, os
-revert = {"A":"T", "T":"A", "C":"G","G":"C", 
-            "a":"t", "t":"a", "c":"g", "g":"c"}
+
+revert = {
+    "A": "T",
+    "T": "A",
+    "C": "G",
+    "G": "C",
+    "a": "t",
+    "t": "a",
+    "c": "g",
+    "g": "c",
+}
+
 
 # Define reference and target sequences
 def get_ref(lines, seq):
-    rname = lines[0].strip().split()[1].split(".")[0]           # Get reference names
-    if seq is not None:                                         # If target sequence is provided, focus on that.
+    rname = lines[0].strip().split()[1].split(".")[0]  # Get reference names
+    if seq is not None:  # If target sequence is provided, focus on that.
         references = [line for line in lines if seq in line.split()[1]]
         queries = [line for line in lines if "Anc" in line or "Inner" in line]
-    else:                                                       # Otherwise keep all that share the first (ref) line spp.
-        references = [line for line in lines if "Anc" not in line and "Inner" not in line]
+    else:  # Otherwise keep all that share the first (ref) line spp.
+        references = [
+            line for line in lines if "Anc" not in line and "Inner" not in line
+        ]
         queries = [line for line in lines if "Anc" in line or "Inner" in line]
-    return references, queries                                 # Return reference-spp name and list of ref and target sequences.
+    return (
+        references,
+        queries,
+    )  # Return reference-spp name and list of ref and target sequences.
+
 
 # Executor module to process one reference sequence out of the options
 def executor(reference, queries):
     ref = reference.strip().split()
-    refChrom, refBpi, refStrand, refLen, refseq = ref[1], int(ref[2]), ref[4], int(ref[5]), np.array(list(ref[6]))
-    mystr = '{}\t{}\t{}\n'
+    refChrom, refBpi, refStrand, refLen, refseq = (
+        ref[1],
+        int(ref[2]),
+        ref[4],
+        int(ref[5]),
+        np.array(list(ref[6])),
+    )
+    mystr = "{}\t{}\t{}\n"
     # if refStrand == "-":
     #     refBpi = refLen - refBpi - sum(refseq != "-")
     #     refseq = np.array([ revert.get(i, i) for i in refseq ])
@@ -40,12 +62,12 @@ def executor(reference, queries):
     newseq = np.full(sum(idxNonRef), "-")
     for query in queries:
         seq = np.array(list(query.strip().split()[6]))
-        # if query.split()[4] == "-": 
+        # if query.split()[4] == "-":
         #     seq = np.array([ revert.get(i, i) for i in seq ])
         seq = seq[idxNonRef]
         idx = seq != "-"
-        newseq[idx] = seq[idx] 
-    return mystr.format(refChrom, refBpi, ''.join(newseq))
+        newseq[idx] = seq[idx]
+    return mystr.format(refChrom, refBpi, "".join(newseq))
 
 
 # High memory worker (keep in memory)
@@ -55,12 +77,13 @@ def worker(inputs):
     # Get sequences information
     references, queries = get_ref(lines, seq)
     finalStr = ""
-    if len(references) == 0: return finalStr
+    if len(references) == 0:
+        return finalStr
     result = ""
     reference = references[0]
     result += executor(reference, queries)
     if ctr % 10000 == 0:
-        sys.stderr.write( "Processed chunk {}\n".format(ctr) )
+        sys.stderr.write("Processed chunk {}\n".format(ctr))
     return result.strip()
 
 
@@ -71,7 +94,7 @@ def reader(args):
     for line in infile:
         if "#" in line:
             continue
-        elif line[0] == "a": 
+        elif line[0] == "a":
             continue
         elif line[0] == "s":
             lines.append(line)
@@ -82,7 +105,6 @@ def reader(args):
         else:
             lines = []
     return blocks
-    
 
 
 def single_proc(funct, chunk, seq):
@@ -91,15 +113,19 @@ def single_proc(funct, chunk, seq):
 
 def multi_proc(funct, chunk, seq, nthreads):
     from multiprocessing import Pool
+
     pool = Pool(nthreads)
-    return pool.map(funct, zip(chunk,list(range(0, len(chunk))), [seq for i in range(0, len(chunk))] ) )
+    return pool.map(
+        funct,
+        zip(chunk, list(range(0, len(chunk))), [seq for i in range(0, len(chunk))]),
+    )
 
 
 def sort(dat):
-    dat = dat.strip().split('\n')
+    dat = dat.strip().split("\n")
     sys.stderr.write("Removing duplicates...\n")
     dat = list(set(dat))
-    try: 
+    try:
         seqLength = sum([len(d.split()[2]) for d in dat])
     except:
         print(dat[0])
@@ -109,6 +135,7 @@ def sort(dat):
     dat = sorted(dat)
     return dat
 
+
 def dat2fasta_dev(data, outfile, args):
     tmpname = data[0][0]
     if args.drop_prefix is not None:
@@ -116,24 +143,30 @@ def dat2fasta_dev(data, outfile, args):
     maxV = max([i[2] for i in data if i[0] == tmpname])
     sys.stderr.write("Highest bp value covered is {} (0-based value)\n".format(maxV))
     tmpseq = np.full(maxV + 1, "-")
-    outfile.write(">{}\n".format( tmpname  ))
+    outfile.write(">{}\n".format(tmpname))
     for seq in data:
         if seq[0] != tmpname:
-            [outfile.write( "{}\n".format(''.join(tmpseq[i:i+60])) ) for i in range(0, tmpseq.shape[0], 60)]
+            [
+                outfile.write("{}\n".format("".join(tmpseq[i : i + 60])))
+                for i in range(0, tmpseq.shape[0], 60)
+            ]
             tmpname = seq[0]
             maxV = max([i[2] for i in data if i[0] == tmpname])
             tmpseq = np.full(maxV + 1, "-")
-            outfile.write(">{}\n".format( '.'.join( tmpname.split('.')[1:] ) ))
+            outfile.write(">{}\n".format(".".join(tmpname.split(".")[1:])))
             continue
         try:
-            tmpseq[ seq[1] : (seq[1] + len(seq[3])) ] = np.array(list(seq[3]))
+            tmpseq[seq[1] : (seq[1] + len(seq[3]))] = np.array(list(seq[3]))
         except:
             print(seq[0:3])
             print(seq[3])
             print(len(seq[3]))
             sys.exit()
-        
-    [outfile.write( "{}\n".format(''.join(tmpseq[i:i+60])) ) for i in range(0, tmpseq.shape[0], 60)]
+
+    [
+        outfile.write("{}\n".format("".join(tmpseq[i : i + 60])))
+        for i in range(0, tmpseq.shape[0], 60)
+    ]
     return None
 
 
@@ -142,6 +175,7 @@ def dat2bed(dat, of, args):
         if args.drop_prefix is not None:
             d[0] = d[0].replace(args.drop_prefix + ".", "")
         of.write("{}\t{}\t{}\t{}\n".format(d[0], d[1], d[2], d[3]))
+
 
 def createEndBp(dat):
     endBps = [[d[0], d[1], d[1] + len(d[2]), d[2]] for d in dat]
@@ -155,11 +189,13 @@ def Pipeline(blocks, args):
         sys.stderr.write("Start processing the data\n")
         dat = single_proc(worker, blocks, args.seq)
     else:
-        sys.stderr.write("Start processing the data using {} threads.\n".format(args.threads) )
+        sys.stderr.write(
+            "Start processing the data using {} threads.\n".format(args.threads)
+        )
         dat = multi_proc(worker, blocks, args.seq, args.threads)
     # Sort sequences by base
-    dat = createEndBp(sort('\n'.join(dat)))
-    
+    dat = createEndBp(sort("\n".join(dat)))
+
     # Create output
     if "fasta" in args.ofmt or "fa" in args.ofmt:
         fmt = "fasta"
@@ -169,9 +205,11 @@ def Pipeline(blocks, args):
             of = sys.stdout
         else:
             if "stdout" in args.outname:
-                sys.stderr.write("Cannot print to stdout if multiple output formats are required\n")
+                sys.stderr.write(
+                    "Cannot print to stdout if multiple output formats are required\n"
+                )
                 args.outname = "fastafile"
-            of = open( "{}.{}".format(args.outname, fmt), "w" )
+            of = open("{}.{}".format(args.outname, fmt), "w")
         dat2fasta_dev(dat, of, args)
         of.close()
     if "bed" in args.ofmt:
@@ -182,9 +220,11 @@ def Pipeline(blocks, args):
             of = sys.stdout
         else:
             if "stdout" in args.outname:
-                sys.stderr.write("Cannot print to stdout if multiple output formats are required\n")
+                sys.stderr.write(
+                    "Cannot print to stdout if multiple output formats are required\n"
+                )
                 args.outname = "bedfile"
-            of = open( "{}.{}".format(args.outname, fmt), "w" )
+            of = open("{}.{}".format(args.outname, fmt), "w")
         dat2bed(dat, of, args)
         of.close()
     return 0
@@ -192,22 +232,70 @@ def Pipeline(blocks, args):
 
 def parse_args():
     import argparse
+
     # Argument definition
     parser = argparse.ArgumentParser()
-    parser.add_argument("-m", "--maf", metavar = 'maffile.maf', type = str, help = 'Input alignments',\
-                            dest = 'maf', required = True)
-    parser.add_argument("-t", "--threads", metavar = '1', type = int, help = 'Number of threads to use',\
-                            dest = 'threads', required = False)
-    parser.add_argument("-s", "--seq", metavar = 'tgtseq', type = str, help = 'Target sequence to compute ancestral allele',\
-                            dest = 'seq', required = False, default = None)
-    parser.add_argument("-d", "--drop_prefix", metavar = 'prefix', type = str, help = 'Drop prefix from sequence ID',\
-                            dest = 'drop_prefix', required = False, default = None)
-    parser.add_argument("-o", "--out", metavar = 'prefix', type = str, help = 'Output file prefix.',\
-                            dest = 'outname', required = False, default = "myanc")
-    parser.add_argument("-O", "--OutFmt", metavar = 'fasta/bed', type = str, help = 'Output file format (fasta/bed).',\
-                            dest = 'ofmt', required = False, default = "fasta")
-    
+    parser.add_argument(
+        "-m",
+        "--maf",
+        metavar="maffile.maf",
+        type=str,
+        help="Input alignments",
+        dest="maf",
+        required=True,
+    )
+    parser.add_argument(
+        "-t",
+        "--threads",
+        metavar="1",
+        type=int,
+        help="Number of threads to use",
+        dest="threads",
+        required=False,
+    )
+    parser.add_argument(
+        "-s",
+        "--seq",
+        metavar="tgtseq",
+        type=str,
+        help="Target sequence to compute ancestral allele",
+        dest="seq",
+        required=False,
+        default=None,
+    )
+    parser.add_argument(
+        "-d",
+        "--drop_prefix",
+        metavar="prefix",
+        type=str,
+        help="Drop prefix from sequence ID",
+        dest="drop_prefix",
+        required=False,
+        default=None,
+    )
+    parser.add_argument(
+        "-o",
+        "--out",
+        metavar="prefix",
+        type=str,
+        help="Output file prefix.",
+        dest="outname",
+        required=False,
+        default="myanc",
+    )
+    parser.add_argument(
+        "-O",
+        "--OutFmt",
+        metavar="fasta/bed",
+        type=str,
+        help="Output file format (fasta/bed).",
+        dest="ofmt",
+        required=False,
+        default="fasta",
+    )
+
     return parser.parse_args()
+
 
 def parse_fasta_length(fasta):
     values = {}
@@ -218,6 +306,7 @@ def parse_fasta_length(fasta):
             continue
         values[ctgid] += len(line.strip())
     return values
+
 
 def main():
     import time
@@ -239,5 +328,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-    

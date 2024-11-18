@@ -1,28 +1,30 @@
+// SDM processes
+
 process sdm {
     tag "sdm"
     publishDir "${params.outdir}/sdm/raw", mode: "${params.publish_dir_mode}", overwrite: true
-    conda (params.enable_conda ? "${baseDir}/envs/sdm-environment.yml" : null)
+    conda {params.enable_conda ? "${baseDir}/envs/sdm-environment.yml" : null}
     
 
     input:
-    file vcf
-    file tbi
-    file reffasta
-    file reffai
-    tuple val(samplename), path(samplelist), val(idx), val(contig)
+    tuple val(samplename), path(samplelist), val(chrom), val(start), val(end), path(vcf), path(tbi)
+    path reffasta
+    path reffai
 
     output:
-    path "sdm.${samplename}.${contig}.txt.gz"
+    tuple val(samplename), path("sdm.${samplename}.${chrom}.${start}-${end}.txt.gz")
 
     stub:
     """
-    touch sdm.${samplename}.${contig}.txt.gz
+    touch sdm.${samplename}.${chrom}.${start}-${end}.txt.gz
     """
 
     script:
     """
-    sdm ${vcf} ${samplelist} ${contig} ${reffasta} sdm.${samplename}.${contig}
-    gzip sdm.${samplename}.${contig}.txt
+    bcftools view -t ${chrom}:${start}-${end} -O z ${vcf} > interval.vcf.gz &&
+        tabix -p vcf interval.vcf.gz
+    sdm ${vcf} ${samplelist} ${chrom} ${reffasta} sdm.${samplename}.${chrom}.${start}-${end}
+    gzip sdm.${samplename}.${chrom}.${start}-${end}.txt
     """
 }
 
@@ -30,15 +32,15 @@ process filter_sdm {
     tag "filter_sdm"
     label "renv_large"
     publishDir "${params.outdir}/sdm/filtered", mode: "${params.publish_dir_mode}", overwrite: true
-    conda (params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null)
+    conda {params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null}
     
 
     input:
-    tuple val(samplename), file(samplelist)
-    path sdms
+    tuple val(samplename), path(samplelist), path("sdms/*")
 
     output:
-    tuple val(samplename), path(samplelist), path("sdm.${samplename}.filtered.RData")
+    tuple val(samplename), path(samplelist), path("sdm.${samplename}.filtered.RData"), emit: 'rdata'
+    tuple val(samplename), path(samplelist), path("sdm.${samplename}.filtered.bed"), emit: 'bed'
 
     stub:
     """
@@ -51,12 +53,39 @@ process filter_sdm {
     """
 }
 
+// Split data in/out repetitive elements.
+process repeat_mask_split_sdm {
+    tag "split_sdm"
+    label "medium"
+    publishDir "${params.outdir}/sdm/repeat", mode: "${params.publish_dir_mode}", overwrite: true
+    
+
+    input:
+    tuple val(samplename), path(samplelist), path(inbed), path("rm.bed")
+
+    output:
+    tuple val(samplename), path(samplelist), path("${inbed.baseName}.in_repeat.bed")
+    tuple val(samplename), path(samplelist), path("${inbed.baseName}.out_repeat.bed")
+
+    stub:
+    """
+    touch ${inbed.baseName}.in_repeat.bed
+    touch ${inbed.baseName}.out_repeat.bed
+    """
+
+    script:
+    """
+    bedtools intersect -a ${inbed} -b rm.bed -u > ${inbed.baseName}.in_repeat.bed
+    bedtools intersect -a ${inbed} -b rm.bed -v > ${inbed.baseName}.out_repeat.bed
+    """
+}
+
 
 process count_sdm {
     tag "count_sdm"
     label "renv_large"
     publishDir "${params.outdir}/sdm/counts/${samplelist.simpleName}", mode: "${params.publish_dir_mode}", overwrite: true
-    conda (params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null)
+    conda {params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null}
     
 
     input:
@@ -91,12 +120,11 @@ process make_ksfs {
     tag "ksfs"
     label "renv_large"
     publishDir "${params.outdir}/sdm/ksfs/${breedname}", mode: "${params.publish_dir_mode}", overwrite: true
-    conda (params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null)
+    conda {params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null}
     
 
     input:
-    tuple val(breedname), path(breedfile)
-    path raw_sdms
+    tuple val(breedname), path(breedfile), path("sdms/*")
 
 
     output:
@@ -122,7 +150,7 @@ process sdm_plot {
     tag "sdm_plot"
     label "renv_large"
     publishDir "${params.outdir}/sdm/plot/", mode: "${params.publish_dir_mode}", overwrite: true
-    conda (params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null)
+    conda {params.enable_conda ? "${baseDir}/envs/r-environment.yml" : null}
     
 
     input:

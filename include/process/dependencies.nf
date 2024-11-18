@@ -89,6 +89,11 @@ process get_merge_ibd {
     output: 
     path "GONE"
   
+    stub:
+    """
+    mkdir GONE
+    """
+
     script:
     """
     # Get GONE

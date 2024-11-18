@@ -7,11 +7,14 @@
 The workflow comes with an anaconda environment which delivers most of the dependencies.
 However, you need to install:
  1. [anaconda](https://www.anaconda.com/products/individual)
+    * if run with [conda](https://www.anaconda.com/), install [gcc](https://gcc.gnu.org/) > 5 (tested with version 7.3.0)
  2. [nextflow](https://www.nextflow.io/)
- 3. if run with conda, install [gcc]() > 5, tested with version 7.3.0
- 4. [beagle v5](https://faculty.washington.edu/browning/beagle/beagle.html#download) or newer jar file. The workflow can download this automatically if not specified.
- 5. [relate](https://myersgroup.github.io/relate/) software suite
+ 3. [beagle v5](https://faculty.washington.edu/browning/beagle/beagle.html#download) or newer jar file. The workflow can download this automatically if not specified.
+ 4. [relate](https://myersgroup.github.io/relate/) software suite
 Most of the remaining dependencies are downloaded by *nSPECTRa* at runtime.
+
+## Updates
+Check the [CHANGELOG](./CHANGELOG.md) for updates to this workflow.
 
 ## Inputs
 To run the workflow effectively, you'll need:
@@ -47,15 +50,15 @@ The user can choose to impute either with [shapeit]() v4 or [beagle]() v5 or new
 Both are supported, but only shapeit is included in the anaconda environment, which is the reason why it is the default choice.
 In case the user prefers to use beagle, this needs to be downloaded manually and the path provided with the flag `--beagle`. 
 If `--beagle` is not provided, the workflow will download the version 5.2 automatically.  
-The user can choose what algorithm to use, but keep in mind that they are mutually exclusive, and shapeit will be prioritized over beagle.
+The user can choose what software to use, but keep in mind that they are mutually exclusive, and shapeit will be prioritized over beagle.
 
 ### Mutation spectra
 The software currently supports three software to compute the mutation spectra:
- 1. mutyper: the default choice, it can compute the spectra for different K-mer size;
- 2. relate: used to define the mutation spectra changes over time and an accurate estimate of the effective population size;
- 3. sdm: method to define sequential dinucleotide polymorphisms, MNPs and adjacent SNPs from [Prendergast et al., 2019](https://academic.oup.com/gbe/article/11/3/759/5299487).
+ 1. `--mutyper`: the default choice, it can compute the spectra for different K-mer size;
+ 2. `--relate`: used to define the mutation spectra changes over time and an accurate estimate of the effective population size;
+ 3. `--sdm`: method to define sequential dinucleotide polymorphisms, MNPs and adjacent SNPs from [Prendergast et al., 2019](https://academic.oup.com/gbe/article/11/3/759/5299487).
 
-Mutiple choices are possible, and the user is free to use all of them by setting `--algorithm sdm,mutyper,relate`. 
+Some steps of the workflow are very computationally intensive, and can benefit from a high degree of chunking. For large datasets (e.g. 1000GP size), we recommend lower the chunk size (e.g. to 50000), facilitating some compute intensive steps.
 
 ## Input pre-filtering
 We recommend to pre-filter the vcf file to obtain samples with a reasonable coverage (>8-10 mean DP) and with variants with low call rate removed from the dataset (CCR > 90%) and minor allele count MAC >= 2.

@@ -3,185 +3,155 @@
  * Phase 7: run mutyper
  */
 
-process mutyper {
+process mutyper_variant {
+    tag "mutyper"
+    label "medium"
+
+
+    input:
+    tuple val(chrom), val(start), val(end), path(vcf), path(tbi), val(k)
+    path ancfasta
+    path ancfai
+    path masks_ch
+
+    output:
+    tuple val(k), 
+        val(chrom), val(start), val(end), 
+        path("mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.vcf.gz"), 
+        path("mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.vcf.gz.tbi")
+
+    
+    stub:
+    """
+    touch mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.vcf.gz
+    touch mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.vcf.gz.tbi
+    """
+
+    script:
+    String vcftools_filter = ""
+    if (params.mutyper_min_gq || params.mutyper_max_missing){
+        def min_gq = params.mutyper_min_gq ? "--minGQ ${params.mutyper_min_gq}" : ""
+        def max_miss = params.mutyper_max_missing ? "--max-missing ${params.mutyper_max_missing}" : ""
+        vcftools_filter = "| vcftools --vcf - ${min_gq} ${max_miss} --recode --recode-INFO-all --stdout"
+    }
+    if (params.annotation)
+    """
+    echo "Run mutyper (variants)"
+    bcftools view --threads ${task.cpus} -v snps -r ${chrom}:${start}-${end} -m2 -M2 ${vcf} | \
+        bedtools intersect -header -v -a - -b ${masks_ch} | \
+        sed 's/_pilon//g' | \
+        vcffixup - ${vcftools_filter} |\
+        mutyper variants --k ${k} --strand_file ${params.annotation} ${ancfasta} - | \
+        bgzip -c > mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.vcf.gz &&
+        tabix -p vcf mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.vcf.gz
+    """
+    else
+    """
+    echo "Run mutyper (variants)"
+    bcftools view --threads ${task.cpus} -v snps -r ${chrom}:${start}-${end} -m2 -M2 ${vcf} | \
+        bedtools intersect -header -v -a - -b ${masks_ch} | \
+        sed 's/_pilon//g' | \
+        vcffixup - ${vcftools_filter} |\
+        mutyper variants --k ${k} ${ancfasta} - | \
+        bgzip -c > mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.vcf.gz &&
+        tabix -p vcf mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.vcf.gz
+    """
+}
+
+process mutyper_spectra {
     tag "mutyper"
     label "medium"
     publishDir "${params.outdir}/mutyper/chrom_res", mode: "${params.publish_dir_mode}", overwrite: true
 
 
     input:
-    path vcf
-    path tbi
-    path ancfasta
-    path ancfai
-    path masks_ch
-    tuple val(idx), val(region), val(k)
+    tuple val(k),
+        val(chrom), val(start), val(end), 
+        path(vcf),
+        path(tbi)
 
     output:
-    tuple val(k), val(region), path("mutationSpectra_${params.reference}_${region}_${k}.txt")
+    tuple val(k),
+        val(chrom), val(start), val(end),
+        path("mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.txt")
 
     
     stub:
     """
-    touch mutationSpectra_${params.reference}_${region}_${k}.txt
+    touch mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.txt
     """
 
     script:
-    if (params.annotation)
     """
     echo "Run mutyper (variants)"
-    bcftools view -v snps  -r ${region} -m2 -M2 ${vcf} |
-        bedtools intersect -header -v -a - -b ${masks_ch} |
-        sed 's/_pilon//g' |
-        vcffixup - | 
-        mutyper variants --k ${k} --strand_file ${params.annotation} ${ancfasta} - |
-        mutyper spectra - > mutationSpectra_${params.reference}_${region}_${k}.txt
-    """
-    else
-    """
-    echo "Run mutyper (variants)"
-    bcftools view -v snps  -r ${region} -m2 -M2 ${vcf} |
-        bedtools intersect -header -v -a - -b ${masks_ch} | \
-        sed 's/_pilon//g' |
-        vcffixup - | 
-        mutyper variants --k ${k} ${ancfasta} - |
-        mutyper spectra - > mutationSpectra_${params.reference}_${region}_${k}.txt
+    mutyper spectra ${vcf} > mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.txt
     """
 }
 
-
-process mutyper_full_parallel {
-    tag "mutyper_full"
-    label "large_multimem"
-    publishDir "${params.outdir}/mutyper/vcfs", mode: "${params.publish_dir_mode}", overwrite: true
+process mutyper_concat {
+    tag "mutyper"
+    label "medium"
+    publishDir "${params.outdir}/mutyper/vcf", mode: "${params.publish_dir_mode}", overwrite: true
 
 
     input:
-    path vcf
-    path tbi
-    path ancfasta
-    path ancfai
-    path masks_ch
-    path regions
-    val k
+    tuple val(k),
+        val(chrom), val(start), val(end), 
+        path("vcfs/*"),
+        path("vcfs/*")
 
     output:
-    tuple val(k), path("mutyper_${params.reference}_${k}.vcf.gz"), path("mutyper_${params.reference}_${k}.vcf.gz.tbi")
+    tuple val(k),
+        path("mutyper_${params.reference}_${k}.vcf.gz"),
+        path("mutyper_${params.reference}_${k}.vcf.gz.tbi")
+
     
     stub:
     """
-    touch mutyper_${params.reference}_${k}.vcf.gz
-    touch mutyper_${params.reference}_${k}.vcf.gz.tbi
+    touch mutationSpectra_${params.reference}_${k}.txt
     """
 
     script:
-    if (params.annotation)
     """
-    awk 'BEGIN{FS=","}; {print \$2}' $regions > chrs.txt
     echo "Run mutyper (variants)"
-    parallel -j${task.cpus} "bcftools view -v snps -m2 -M2 -r {} ${vcf} | 
-        bedtools intersect -header -v -a - -b ${masks_ch} | 
-        sed 's/_pilon//g' | 
-        vcffixup - | 
-        mutyper variants --k ${k} --strand_file ${params.annotation} ${ancfasta} - | 
-        bgzip -c > mutyper_${params.reference}_${k}_chr{}.vcf.gz && tabix -p vcf mutyper_${params.reference}_${k}_chr{}.vcf.gz" ::: \$( while read p; do echo \$p; done < chrs.txt )
-    bcftools concat mutyper_${params.reference}_${k}_chr*.vcf.gz | bcftools sort -m 2G -O z -T ./ > mutyper_${params.reference}_${k}.vcf.gz && \
-    bcftools index -t mutyper_${params.reference}_${k}.vcf.gz
-    """
-    else
-    """
-    awk 'BEGIN{FS=","}; {print \$2}' $regions > chrs.txt
-    echo "Run mutyper (variants)"
-    parallel -j${task.cpus} "bcftools view -v snps -m2 -M2 -r {} ${vcf} | 
-        bedtools intersect -header -v -a - -b ${masks_ch} | 
-        sed 's/_pilon//g' | 
-        vcffixup - | 
-        mutyper variants --k ${k} ${ancfasta} - | 
-        bgzip -c > mutyper_${params.reference}_${k}_chr{}.vcf.gz && tabix -p vcf mutyper_${params.reference}_${k}_chr{}.vcf.gz" ::: \$( while read p; do echo \$p; done < chrs.txt )
-    bcftools concat mutyper_${params.reference}_${k}_chr*.vcf.gz | bcftools sort -m 2G -O z -T ./ > mutyper_${params.reference}_${k}.vcf.gz && \
+    bcftools concat -O u vcfs/*.vcf.gz | \
+        bcftools sort -O z > mutyper_${params.reference}_${k}.vcf.gz
     bcftools index -t mutyper_${params.reference}_${k}.vcf.gz
     """
 }
 
-process mutyper_full {
-    tag "mutyper_full"
-    label "longmem"
-    publishDir "${params.outdir}/mutyper/vcfs", mode: "${params.publish_dir_mode}", overwrite: true
-
-
-    input:
-    path vcf
-    path tbi
-    path ancfasta
-    path ancfai
-    path masks_ch
-    val k
-
-    output:
-    tuple val(k), path("mutyper_${params.reference}_${k}.vcf.gz"), path("mutyper_${params.reference}_${k}.vcf.gz.tbi")
-    
-    stub:
-    """
-    touch mutyper_${params.reference}_${k}.vcf.gz
-    touch mutyper_${params.reference}_${k}.vcf.gz.tbi
-    """
-
-    script:
-    if (params.annotation)
-    """
-    echo "Run mutyper (variants)"
-    bcftools view -v snps -m2 -M2 ${vcf} |
-        bedtools intersect -header -v -a - -b ${masks_ch} | 
-        sed 's/_pilon//g' |
-        vcffixup - | 
-        mutyper variants --k ${k} --strand_file ${params.annotation} ${ancfasta} - |
-        bgzip -c > mutyper_${params.reference}_${k}.vcf.gz
-    tabix -p vcf mutyper_${params.reference}_${k}.vcf.gz
-    """
-    else
-    """
-    echo "Run mutyper (variants)"
-    bcftools view -v snps -m2 -M2 ${vcf} |
-        bedtools intersect -header -v -a - -b ${masks_ch} |  
-        sed 's/_pilon//g' |
-        vcffixup - | 
-        mutyper variants --k ${k} ${ancfasta} - |
-        bgzip -c > mutyper_${params.reference}_${k}.vcf.gz
-    tabix -p vcf mutyper_${params.reference}_${k}.vcf.gz
-    """
-}
 
 process count_mutations {
+    tag "medium"
+    label "medium"
+
+    input:
+    tuple val(k), val(chrom), val(start), val(end), path(vcf), path(tbi), path(levels)
+
+    output:
+    tuple val(k), path("mutationSpectra_${params.reference}_${k}_*.tsv")
+
+    
+    stub:
+    """
+    touch mutationSpectra_${params.reference}_${k}_${chrom}_${start}-${end}.tsv
+    """
+
+    script:
+    """
+    compute_spectra -i ${vcf} -k ${levels} -o mutationSpectra_${params.reference}_${k}_${chrom}_${start}-${end}.tsv
+    """
+}
+
+
+process combine_counts {
     tag "count_mutations"
     label "medium"
+    cpus 1
     publishDir "${params.outdir}/mutyper/full_counts", mode: "${params.publish_dir_mode}", overwrite: true
 
     input:
-    tuple val(k), val(vcf), path(tbi)
-
-    output:
-    tuple val(k), path("mutationSpectra_${params.reference}_${k}.csv")
-
-    
-    stub:
-    """
-    touch mutationSpectra_${params.reference}_${k}.csv
-    """
-
-    script:
-    """
-    compute_spectra ${vcf} ${baseDir}/assets/K${k}_mutations.txt > mutationSpectra_${params.reference}_${k}.tmp
-    transpose mutationSpectra_${params.reference}_${k}.tmp > mutationSpectra_${params.reference}_${k}.csv
-    """
-}
-
-process count_mutations_csq {
-    tag "count_mutations"
-    label "medium"
-    publishDir "${params.outdir}/mutyper/full_counts_csq", mode: "${params.publish_dir_mode}", overwrite: true
-
-    input:
-    tuple val(k), val(vcf), path(tbi)
+    tuple val(k), path("tsvs/*")
 
     output:
     tuple val(k), path("mutationSpectra_${params.reference}_${k}.tsv")
@@ -194,9 +164,54 @@ process count_mutations_csq {
 
     script:
     """
-    bcftools +split-vep ${vcf} -d -f '%CHROM\t%POS\\t%INFO/mutation_type\\t%Consequence\\t[%GT\\t]\n' | bgzip -c > K${k}.csqs.tsv.gz
-    vcfsamplenames $i | awk 'NR==1 {print "CHROM\nPOS\nCHANGE\nCSQ"}; {print}' > K${k}.csqs.header
-    compute_spectra_class K${k}.csqs.tsv.gz K${k}.csqs.header ${baseDir}/assets/K${k}_mutations.txt ${baseDir}/assets/VEPpriority > mutationSpectra_${params.reference}_${k}.csq.tsv
+    combine_matrix -i ./tsvs/ -o mutationSpectra_${params.reference}_${k}.tsv
+    """
+}
+
+process count_mutations_csq {
+    tag "count_mutations"
+    label "medium_largemem"
+
+    input:
+    tuple val(k), val(chrom), val(start), val(end), path(vcf), path(tbi), path(levels), path(priority)
+
+    output:
+    tuple val(k), path("mutationSpectra_${params.reference}_${k}_*.csq.tsv")
+
+    
+    stub:
+    """
+    touch mutationSpectra_${params.reference}_${k}_${chrom}_${start}-${end}.csq.tsv
+    """
+
+    script:
+    """
+    compute_spectra_class -i ${vcf} -k ${levels} -c ${priority} -o mutationSpectra_${params.reference}_${k}_${chrom}_${start}-${end}.csq.tsv
+    """
+}
+
+
+process combine_csqs {
+    tag "count_mutations"
+    label "medium_largemem"
+    cpus 1
+    publishDir "${params.outdir}/mutyper/full_counts_csq", mode: "${params.publish_dir_mode}", overwrite: true
+
+    input:
+    tuple val(k), path("tsvs/*")
+
+    output:
+    tuple val(k), path("mutationSpectra_${params.reference}_${k}.csq.tsv")
+
+    
+    stub:
+    """
+    touch mutationSpectra_${params.reference}_${k}.csq.tsv
+    """
+
+    script:
+    """
+    combine_matrix -i ./tsvs/ -o mutationSpectra_${params.reference}_${k}.csq.tsv
     """
 }
 
@@ -253,7 +268,7 @@ process group_results {
     publishDir "${params.outdir}/mutyper/results", mode: "${params.publish_dir_mode}", overwrite: true
 
     input:
-    tuple val(k), val(region), path(data)
+    tuple val(k), val(chrom), val(start), val(end), path(data)
 
     output:
     tuple val(k), path("mutyper_mutationSpectra_${params.reference}_${k}.csv")
@@ -277,6 +292,7 @@ process plot_results {
 
     input:
     tuple val(k), path(spectra)
+    path "meta.tsv"
 
     output:
     tuple val(k), path("plot_mutyper_mutSpectra_${params.reference}_${k}.pdf")
@@ -296,13 +312,15 @@ process plot_results {
     suppressPackageStartupMessages(library(ggfortify, quietly = TRUE))
     suppressPackageStartupMessages(library(ggforce, quietly = TRUE))
  
-    mutSpectra = read_csv2("${spectra}") 
+    mutSpectra <- read_csv2("${spectra}") %>% select(where(~ any(. != 0)))
+    # Add metadata
+    meta <- read_table("meta.tsv", col_names = c("pop", "sample"))
+    mutSpectra <- merge(meta, mutSpectra, by = 'sample')
 
-    mutSpectra[,-1]<-mutSpectra[,-1]/rowSums(mutSpectra[,-1], na.rm=T)
-    mutSpectra<-mutSpectra %>% separate(sample, c("Breed", "Id"), extra = "merge")
+    mutSpectra[,-c(1, 2)]<-mutSpectra[,-c(1, 2)]/rowSums(mutSpectra[,-c(1, 2)], na.rm=T)
     pca_res <- prcomp(mutSpectra[,-c(1,2)], scale. = TRUE)
-    pdf("plot_mutyper_mutSpectra_${params.reference}_${k}.pdf", height = 8, width = 12)
-    autoplot(pca_res, data=mutSpectra, colour = 'Breed') + geom_mark_ellipse()
+    pdf("plot_mutyper_mutSpectra_${params.reference}_${k}.pdf", height = 16, width = 16)
+    autoplot(pca_res, data=mutSpectra, colour = 'pop') + geom_mark_ellipse()
     dev.off()
     /$
 }
@@ -334,7 +352,7 @@ process ksfs {
     script:
     """
     echo "Run mutyper (ksfs)"
-    bcftools view -S ${samplelist} ${vcf} |
+    bcftools view --threads ${task.cpus} -S ${samplelist} ${vcf} | \
         mutyper ksfs - > ksfs_${samplename}_${k}.tsv
     """
 }
@@ -350,7 +368,7 @@ process kmercount {
     val k
 
     output:
-    path "K${k}_counts.txt"
+    tuple val(k), path("K${k}_counts.txt")
 
     stub:
     """
@@ -367,15 +385,13 @@ process kmercount {
 process normalize_results {
     tag 'kcnt'
     label 'medium'
-    publishDir "${params.outdir}/mutyper/results_corrected", mode: "${params.publish_dir_mode}", overwrite: true
+    publishDir "${params.outdir}/mutyper/normalized", mode: "${params.publish_dir_mode}", overwrite: true
 
     input:
-    tuple val(k), path(counts)
-    path normalizers
+    tuple val(k), path(counts), path(normalizers)
 
     output:
-    path "${counts.baseName}.*.csv"
-    path "${counts.baseName}.*.csv"
+    path "*.csv"
 
     stub:
     """
@@ -385,7 +401,7 @@ process normalize_results {
 
     script:
     """
-    CORRECT_COUNTS -s ${counts} -k K${k}_counts.txt -m 1 
-    CORRECT_COUNTS -s ${counts} -k K${k}_counts.txt -m 2 
+    CORRECT_COUNTS -s ${counts} -k ${normalizers} -m 1 
+    CORRECT_COUNTS -s ${counts} -k ${normalizers} -m 2 
     """
 }

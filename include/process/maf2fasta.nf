@@ -60,7 +60,9 @@ process maf2bed {
 }
 
 process bed2vbed{
-    label "large"
+    cpus = 4
+    memory = { params.greedy ? 96.GB * task.attempt : 32.GB * task.attempt }
+    time = { 23.h * task.attempt }
 
     input:
     path bed
@@ -69,24 +71,22 @@ process bed2vbed{
     tuple val(contig), val(header)
 
     output:
-    tuple path("./${contig}_ancestral_states.bed.gz"), path("${contig}.fasta")
+    tuple path("./${contig}_ancestral_states.bed.gz"), path("${contig}.fasta"), optional: true
     
     
     stub:
     """
     touch ./${contig}_ancestral_states.bed.gz
+    touch ${contig}.fasta
     """
 
     script:
+    def greedy = params.greedy ? "--greedy" : ""
     """
-    mkdir TMP/
     samtools faidx ${fasta} ${contig} > ${contig}.fasta
-    awk -v chrid=${contig} '\$1==chrid {print}' ${bed} > ./${contig}.bed
-    BED2VBED -b ./${contig}.bed | \
-            sort --buffer-size=512M --parallel=${task.cpus} -T ./TMP/ -k1,1 -k2,2n - | \
-            COMBINE -b - -f ${contig}.fasta | \
-            CONSENSE -b - | \
-            bgzip -c > ${contig}_ancestral_states.bed.gz && rm ./${contig}.bed 
+    VERTICALIZE -b ${bed} -t ${task.cpus} --region ${contig} -f ${contig}.fasta -o /dev/stdout |\
+        CONSENSE -b /dev/stdin -t ${task.cpus} --region ${contig} -f ${contig}.fasta -o ${contig}_ancestral_states.bed ${greedy}
+    bgzip ${contig}_ancestral_states.bed
     """
 }
 
@@ -96,10 +96,10 @@ process bed2vbed{
 process makeRefTgtFasta {
     tag "reftgtfasta"
     label "medium"
+    container { params.cactus_version ? "quay.io/comparative-genomics-toolkit/cactus:${params.cactus_version}" : "quay.io/comparative-genomics-toolkit/cactus:latest" }
 
     input:
     path HAL
-    path CACTUS
 
     output:
     path "${params.reference}.fasta", emit: reffasta
@@ -110,16 +110,27 @@ process makeRefTgtFasta {
     
     stub:
     """
-    touch ${params.reference}.fasta
-    touch ${params.target}.fasta
-    touch ${params.reference}.fasta.fai
-    touch ${params.target}.fasta.fai
+    echo '>seq1.r' > ${params.reference}.fasta
+    echo 'AACCTTGG' >> ${params.reference}.fasta
+    echo '>seq2.r' >> ${params.reference}.fasta
+    echo 'AACCTTGT' >> ${params.reference}.fasta
+    echo '>seq3.r' >> ${params.reference}.fasta
+    echo 'TTCCTTGT' >> ${params.reference}.fasta
+    samtools faidx ${params.reference}.fasta
+
+    echo '>seq1.t' > ${params.target}.fasta
+    echo 'AACCTTGG' >> ${params.target}.fasta
+    echo '>seq2.t' >> ${params.target}.fasta
+    echo 'AACCTTGT' >> ${params.target}.fasta
+    echo '>seq3.t' >> ${params.target}.fasta
+    echo 'TTCCTTGT' >> ${params.target}.fasta
+    samtools faidx ${params.target}.fasta
     """
 
     script:
     """
-    ${CACTUS}/bin/hal2fasta --hdf5InMemory ${HAL} ${params.target} > ${params.target}.fasta
-    ${CACTUS}/bin/hal2fasta --hdf5InMemory ${HAL} ${params.reference} > ${params.reference}.fasta
+    hal2fasta --hdf5InMemory ${HAL} ${params.target} > ${params.target}.fasta
+    hal2fasta --hdf5InMemory ${HAL} ${params.reference} > ${params.reference}.fasta
     samtools faidx ${params.target}.fasta
     samtools faidx ${params.reference}.fasta
     """
@@ -229,8 +240,6 @@ process collectAncfa {
 process makefai {
     label "small"
     publishDir "${params.outdir}/ancestral/ancestral_genome", mode: "${params.publish_dir_mode}", overwrite: true
-
-
 
     input:
     path ancfa

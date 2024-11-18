@@ -1,92 +1,207 @@
 #!/usr/bin/env python
-import sys
-import numpy as np
-# from shutil import copyfile
+from collections import Counter
+import logging
+import os
+
+import polars as pl
+from pysam import FastaFile
+
 
 def parse_args():
+    """Define arguments."""
     import argparse
-    # Argument definition
+
     parser = argparse.ArgumentParser()
-    parser.add_argument("-b", "--bed", metavar = 'ancestral_bed.bed', type = str, help = 'Input ancestral bed file',\
-                            dest = 'bed', required = True)
-    parser.add_argument("-o", "--out", metavar = 'prefix', type = str, help = 'Output file.',\
-                            dest = 'outname', required = False, default = "myanc.fa")
+    parser.add_argument(
+        "-b",
+        "--bed",
+        metavar="ancestral_bed.bed",
+        type=str,
+        help="Input ancestral bed file",
+        dest="bed",
+        required=True,
+    )
+    parser.add_argument(
+        "-f",
+        "--fasta",
+        metavar="reference.fasta",
+        type=str,
+        help="Input fasta file",
+        dest="fasta",
+        required=True,
+    )
+    parser.add_argument(
+        "-r",
+        "--region",
+        metavar="str",
+        type=str,
+        help="Sequence ID to process",
+        dest="region",
+        required=True,
+    )
+    parser.add_argument(
+        "-t",
+        "--threads",
+        metavar="N",
+        type=int,
+        help="Number of threads; defaults all of them",
+        dest="threads",
+        required=False,
+    )
+    parser.add_argument(
+        "-g", "--greedy", action="store_true", help="Run in greedy mode.", dest="greedy"
+    )
+    parser.add_argument(
+        "-o",
+        "--out",
+        metavar="prefix",
+        type=str,
+        help="Output file.",
+        dest="out",
+        required=False,
+        default="myanc.fa",
+    )
     return parser.parse_args()
 
-# Bed parser
-def parse_bed(bed):
-    if "stdin" in bed or bed == "-":
-        inbed = sys.stdin
-    else:
-        inbed = open(bed)
-    for line in inbed:
-        line = line.strip().split()
-        if len(line[-1]) != line[-1].count("-"): 
-            yield [ line[0], int(line[1]), int(line[2]), line[3] ]
-
-# Bed to positions
-def bedtopos(interval):
-    for i in range(interval[1], interval[2]):
-        if interval[-1][i - interval[1]] != "-": 
-            yield [ interval[0], str(i), str(i+1), interval[-1][i - interval[1]] ]
-
-# Parse fai
-def parse_fai(fai):
-    return { line.split()[0]: int(line.split()[1]) for line in open(fai) }
 
 # Define consensus allele
 def consense_query(input_alleles):
-    # If reference is N, continue:
-    if input_alleles[0] in 'N': 
-        return "-"
-    # if all alleles are "N/-/.", return "-"
-    if len( set( ''.join(input_alleles).upper() ) ) == 1 and list(set(input_alleles))[0].upper() in ['N', '-', "."]:
-        return "-"
-
-    # Extract ref/alt alleles from the input
-    seqs = np.array(list(input_alleles))
-    r_allele, a_alleles = seqs[0], seqs[1:]
-
-    # Drop "N/-/." from alt alleles from the input
-    a_alleles = a_alleles[np.invert(np.isin(np.char.upper(a_alleles), ["-", ".", "N"])) ]
-
-    # if no ALT alleles are left are dropping "N/-/.", return "-"
-    if len(a_alleles) == 0:
-        return "-"
-    
-    # Progress to defining the ancestral state
-    values, counts = np.unique(np.char.upper(a_alleles), return_counts=True)
-    maxallele = np.max(counts)
-    if len(values) == 1: 
-        return values[0].upper()
-    elif len(values) > 1 and len(values) <= 2:
-        if np.sum(counts == maxallele) == 1:
-            alleles = a_alleles[ np.char.upper(a_alleles) == values[ counts == maxallele ] ]
-            return alleles[0].upper()
-        elif np.sum(counts == maxallele) == 2 and r_allele.upper() in np.char.upper(a_alleles[ np.in1d(np.char.upper(a_alleles), values[counts == maxallele]) ]):
-            return r_allele.lower()
-        else:
-            return "-"
+    input_alleles = input_alleles.upper().replace("N", "-").replace(".", "-")
+    ref = input_alleles[0]
+    cnt_full = Counter(input_alleles)
+    cnt_alts = Counter(input_alleles[1:])
+    candidate = cnt_alts.most_common()
+    second = cnt_full.most_common()
+    # Refine logic
+    if len(candidate) == 1:
+        return candidate[0][0]
     else:
-        if np.sum(counts == maxallele) == 1:
-            alleles = a_alleles[ np.char.upper(a_alleles) == values[ counts == maxallele ] ]
-            return alleles[0].lower()
-        elif np.sum(counts == maxallele) == 2 and r_allele.upper() in np.char.upper(a_alleles[ np.in1d(np.char.upper(a_alleles), values[counts == maxallele]) ]):
-            return r_allele.lower()
-        else:
+        if (
+            ref == "-"
+            or list(cnt_alts.keys()) == ["-"]
+            or list(cnt_full.keys()) == ["-"]
+        ):
             return "-"
-            
+        if len(candidate) >= 2 and candidate[0][1] > candidate[1][1]:
+            return candidate[0][0] if len(candidate) == 2 else candidate[0][0].lower()
+        if len(candidate) >= 2 and second[0][1] > second[1][1]:
+            return second[0][0].lower()
+    return "-"
+
+
+def memory_group(sorted_df):
+    """This function has a memory efficient grouping of the data, if the inputs are sorted."""
+    result = []
+    current_group = None
+    current_vals = []
+    # Iterate through the DataFrame
+    for row in sorted_df.iter_rows(named=True):
+        group = row["start"]
+        if current_group is None:
+            current_group = group
+        if group == current_group:
+            current_vals.append(row["val"])
+        else:
+            result.append((current_group, "".join(current_vals)))
+            current_group = group
+            current_vals = [row["val"]]
+    # Don't forget to add the last group
+    if current_group is not None:
+        result.append((current_group, "".join(current_vals)))
+    # Convert result to a DataFrame
+    return pl.DataFrame(result, schema=["start", "val"])
+
 
 # Main function
 def main():
+    # Import arguments
     args = parse_args()
 
-    # Parse bed file and get multiple bases
-    for itv in parse_bed(args.bed):
-        print( '\t'.join([ itv[0], str(itv[1]), str(itv[2]), itv[-1], consense_query(np.array(list(itv[-1]))) ]) )
+    # Define logger
+    global _log_name
+    _log_name = "CONSENSE"
+    logging.basicConfig(
+        format="[%(asctime)s - %(name)s] %(message)s",
+        datefmt="%H:%M:%S",
+        level=logging.INFO,
+    )
+    logger = logging.getLogger(_log_name)
 
-    # Process bed
+    # Define thread pool
+    if args.threads:
+        logger.info(f"Setting threads to: {args.threads}")
+        os.environ["POLARS_MAX_THREADS"] = f"{args.threads}"
+
+    # Instatiate reference
+    reference = FastaFile(args.fasta)
+
+    # Add reference bases
+    logging.info("Add reference")
+    reference = pl.DataFrame(
+        {
+            "chrom": args.region,
+            "start": range(0, len(reference[args.region])),
+            "ref": tuple(reference[args.region]),
+        }
+    )
+
+    # Load the BED file
+    logging.info("Loading vertical")
+    df = pl.read_csv(
+        args.bed,
+        has_header=True,
+        separator="\t",
+        schema={"start": pl.Int64, "val": pl.Utf8},
+    )
+
+    # If the dataframe is empty, avoid going forward.
+    if df.is_empty():
+        df.write_csv(args.out, separator="\t", include_header=False)
+        return 0
+
+    # Combine bases for same position
+    if args.greedy:
+        logging.info("Grouping data (greedy)")
+        df = df.group_by("start", maintain_order=True).agg(pl.col("val").str.concat(""))
+    else:
+        logging.info("Grouping data (memory)")
+        df = memory_group(df)
+        # df = (
+        #     df.group_by("start", maintain_order=True)
+        #     .agg(pl.col("val"))
+        #     .with_columns(
+        #         val=pl.col("val").map_elements(
+        #             # lambda x: "".join(x), return_dtype=str, strategy="threading"
+        #             pl.col("val").map_elements(lambda x: "".join(x), return_dtype=pl.Utf8, strategy="threading").alias("val")
+        #         )
+        #     )
+        # )
+
+    # Sort positions
+    logging.info("Sorting")
+    df = df.with_columns(chrom=pl.lit(args.region)).select(["chrom", "start", "val"])
+
+    # Add reference base, then drop the ref col
+    df = (
+        df.join(reference, on=("chrom", "start"), how="left")
+        .with_columns(val=pl.concat_str(pl.col("ref"), pl.col("val")))
+        .drop("ref")
+    )
+
+    # Get consensed value
+    logging.info("Run consensus")
+    df = df.with_columns(
+        con=pl.col("val").map_elements(
+            lambda x: consense_query(x), return_dtype=str, strategy="threading"
+        ),
+        end=pl.col("start") + 1,
+    ).select(["chrom", "start", "end", "val", "con"])
+
+    # Save data
+    df.write_csv(args.out, separator="\t", include_header=False)
+    logging.info("Done")
     return 0
+
 
 if __name__ == "__main__":
     main()

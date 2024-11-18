@@ -1,4 +1,27 @@
 
+
+// Create chunks ensuring that contiguous sites are preserved
+process chunking {
+    label "medium"
+
+    input:
+    path vcf
+    path tbi
+
+    output:
+    path "chunks.bed"
+
+    stub:
+    """
+    touch chunks.bed
+    """
+
+    script:
+    """
+    CHUNKING -v ${vcf} -o chunks.bed --chunks_size ${params.chunk_size}
+    """
+}
+
 // Get chromosome list
 process chromosomeList {
     tag "chr"
@@ -28,6 +51,7 @@ process chromosomeList {
 // Exzclude lists of small populations
 process get_masks{
     label "small"
+    publishDir "${params.outdir}/mask", mode: "${params.publish_dir_mode}", overwrite: true
 
     input:
     path genome
@@ -55,7 +79,7 @@ process splitvcf {
     label "small"
 
     input:
-    tuple file(ch_vcf), file(ch_tbi)
+    tuple path(ch_vcf), path(ch_tbi)
     tuple val(index), val(chrom)
 
     output:
@@ -70,7 +94,7 @@ process splitvcf {
 
     script:
     """
-    bcftools view -r ${chrom} -O z -o subset_${chrom}.vcf.gz ${ch_vcf} && \
+    bcftools view --threads ${task.cpus} -r ${chrom} -O z -o subset_${chrom}.vcf.gz ${ch_vcf} && \
         tabix -p vcf subset_${chrom}.vcf.gz
     """
 }
@@ -127,29 +151,44 @@ process get_breeds {
 
 // Run shapeit2/beagle for each chromosome
 process beagle {
-    tag "beagle.${chrom}"
-    label "large_largemem"
-
+    tag "${chrom}"
+    errorStrategy = {task.exitStatus in [137,140] ? 'retry' : 'finish'}
+    maxRetries = 2
+ 
     input:
-    tuple val(idx), val(chrom)
-    path vcf
-    path tbi
+    tuple val(chrom), path(vcf), path(tbi)
     path beagle
 
     output:
-    tuple val(chrom), file("prephase_${chrom}.vcf.gz")
+    tuple val(chrom), path("prephase_${chrom}.vcf.gz"), path("prephase_${chrom}.vcf.gz.tbi")
 
     
     stub:
     """
     touch prephase_${chrom}.vcf.gz
+    touch prephase_${chrom}.vcf.gz.tbi
     """
 
     script:
+    // Set java memory to the highest between `memoryGB - (1GB * #Cores)` or 6GB 
+    def javamem = Math.round(task.memory.giga * 0.9) as int
+    if (task.index == 1){
+        log.info "Setting java memory to ${javamem} (out of ${task.memory.giga} total)"
+    }
+    // Additional beagle settings to tweak behaviour
     def ne = params.neval ? "ne=${params.neval}" : ""
+    def window_size = params.beagle_window_size ? "window=${params.beagle_window_size}": ""
+    def overlap_size = params.beagle_overlap_size ? "overlap=${params.beagle_overlap_size}": ""
     """
-    javamem=`python -c "import sys; maxmem=int(sys.argv[1]); print( maxmem - int(maxmem * .1) )" ${task.memory.toGiga()}`
-    java -jar -Xmx\${javamem}G ${beagle} gt=${vcf} ${ne} chrom=${chrom} out=prephase_${chrom} nthreads=${task.cpus}
+    java -jar -Xmx${javamem}G ${beagle} \
+        gt=${vcf} \
+        chrom=${chrom} \
+        out=prephase_${chrom} \
+        nthreads=${task.cpus} \
+        ${ne} ${window_size} ${overlap_size} && \
+            if [ ! -e prephase_${chrom}.vcf.gz.tbi ]; then
+                tabix -p vcf prephase_${chrom}.vcf.gz
+            fi
     """
 }
 
@@ -158,17 +197,16 @@ process shapeit4 {
     label "medium_multi"
 
     input:
-    tuple val(idx), val(chrom)
-    path vcf
-    path tbi
+    tuple val(chrom), path(vcf), path(tbi)
 
     output:
-    tuple val(chrom), file("prephase_${chrom}.vcf.gz")
+    tuple val(chrom), path("prephase_${chrom}.vcf.gz"), path("prephase_${chrom}.vcf.gz.tbi")
 
     
     stub:
     """
     touch prephase_${chrom}.vcf.gz
+    touch prephase_${chrom}.vcf.gz.tbi
     """
 
     script:
@@ -177,6 +215,9 @@ process shapeit4 {
     def ne = params.neval ? "--effective-size ${params.neval}" : ""
     """
     ${shapeit} --input ${vcf} -T ${task.cpus} --region ${chrom} ${ne} --output prephase_${chrom}.vcf.gz --sequencing ${psfield}
+    if [ ! -e prephase_${chrom}.vcf.gz.tbi ]; then
+        tabix -p vcf prephase_${chrom}.vcf.gz
+    fi
     """
     // if (params.shapeit)
     // """
@@ -188,10 +229,35 @@ process shapeit4 {
     // """
 }
 
+process shapeit5 {
+    tag "impute.${chrom}"
+    label "medium_multi"
+
+    input:
+    tuple val(chrom), path(vcf), path(tbi)
+
+    output:
+    tuple val(chrom), path("prephase_${chrom}.vcf.gz"), path("prephase_${chrom}.vcf.gz.tbi")
+
+    
+    stub:
+    """
+    touch prephase_${chrom}.vcf.gz
+    touch prephase_${chrom}.vcf.gz.tbi
+    """
+
+    script:
+    def shapeit = params.shapeit ? "${params.shapeit}" : "phase_common"
+    def ne = params.neval ? "--hmm-ne ${params.neval}" : ""
+    """
+    ${shapeit} --input ${vcf} --region ${chrom} --filter-maf 0.001 --output prephase_${chrom}.vcf.gz --thread ${task.cpus}
+    """
+}
+
 // Split VCf by chromosome
 process split_vcf {
     tag "split.${chrom}"
-    label "large_largemem"
+    label "small"
 
     input:
     tuple val(idx), val(chrom)
@@ -199,7 +265,7 @@ process split_vcf {
     path tbi
 
     output:
-    tuple val(chrom), file("prephase_${chrom}.vcf.gz")
+    tuple val(chrom), path("prephase_${chrom}.vcf.gz")
 
     
     stub:
@@ -209,36 +275,34 @@ process split_vcf {
 
     script:
     """
-    bcftools view -O z -r ${chrom} ${vcf} > prephase_${chrom}.vcf.gz
+    bcftools view --threads ${task.cpus} -O z -r ${chrom} ${vcf} > prephase_${chrom}.vcf.gz
     """
 }
 
-process combine {
+process combineVcf {
     tag "combine"
     label 'medium'
     publishDir "${params.outdir}/imputed", mode: "${params.publish_dir_mode}", overwrite: true
 
 
     input:
-        path prephased
-        path prephased_tbi
+        path "vcfs/*"
 
     output:
-        path "IMPUTED.vcf.gz" 
-        path "IMPUTED.vcf.gz.tbi"
+        path "processed.vcf.gz" 
+        path "processed.vcf.gz.tbi"
   
     
     stub:
     """
-    touch IMPUTED.vcf.gz
-    touch IMPUTED.vcf.gz.tbi
+    touch processed.vcf.gz
+    touch processed.vcf.gz.tbi
     """
 
     script:
     """
-    echo $prephased
-    bcftools concat -O u ${prephased} | bcftools sort -T ./ -O z -m 5G > IMPUTED.vcf.gz && \
-        tabix -p vcf IMPUTED.vcf.gz
+    bcftools concat -O u vcfs/*.vcf.gz | bcftools sort -T ./ -O z -m 5G > processed.vcf.gz && \
+        tabix -p vcf processed.vcf.gz
     """
 }
 
@@ -257,11 +321,11 @@ process ibd {
     clusterOptions "-P roslin_ctlgh -l h_vmem=${task.memory.toString().replaceAll(/[\sB]/,'')}"
 
     input: 
-        tuple val(chrom), file(imputed)
+        tuple val(chrom), path(imputed), path(imputed_tbi)
 
     output: 
-        tuple val(chrom), file("IBD.${chrom}.ibd.gz")
-        tuple val(chrom), file("IBD.${chrom}.hbd.gz")
+        tuple val(chrom), path("IBD.${chrom}.ibd.gz")
+        tuple val(chrom), path("IBD.${chrom}.hbd.gz")
   
     
     stub:
@@ -285,7 +349,7 @@ process ibd {
 process collect_vcf {
 
     input:
-    path file(subset)
+    path path(subset)
 
     output:
     path "ready.vcf.gz"
@@ -308,10 +372,10 @@ process make_shapeit{
     tag "shapeit.${chrom}"
 
     input:
-    tuple val(chrom), file(vcf)
+    tuple val(chrom), path(vcf)
 
     output:
-    tuple val(chrom), file("${chrom}.SHAPEIT.*")
+    tuple val(chrom), path("${chrom}.SHAPEIT.*")
 
     
     stub:
@@ -325,3 +389,71 @@ process make_shapeit{
     """
 }
 
+
+// Compute derived allele freq.
+process daf {
+    tag "mutyper"
+    label "medium"
+    publishDir "${params.outdir}/mutyper/daf", mode: "${params.publish_dir_mode}", overwrite: true
+
+
+    input:
+    tuple val(chrom), path(vcf), path(tbi)
+
+    output:
+    path "daf.${chrom}.csv.gz"
+
+    
+    stub:
+    """
+    echo "" | bgzip -c > daf.${chrom}.csv.gz
+    """
+
+    script:
+    """
+    # Keep sites with AA info, otherwise no DAF is available
+    bcftools filter --threads ${task.cpus} -O z -i 'INFO/AA != "-"' ${vcf} |\
+        bcftools query -H -f "%CHROM,%POS,%DAF\\n" - | \
+        bgzip -c > daf.${chrom}.csv.gz
+    """
+}
+
+// Smile plot for the derived allele frequencies
+process smile {
+    label "renv"
+    publishDir "${params.outdir}/mutyper/smile", mode: "${params.publish_dir_mode}", overwrite: true
+
+    input:
+    path "dafs/*"
+
+    output:
+    path "smile.pdf"
+    path "smile.png"
+
+    stub:
+    """
+    touch smile.pdf
+    touch smile.png
+    """
+
+    script:
+    """
+    #!/usr/bin/env Rscript
+    library(tidyverse)
+    # Import input data
+    alldafs <- list.files('dafs', pattern='*.csv.gz', recursive = T, full.names=T)
+    myfiles<-list()
+    for (f in alldafs) {
+        chrom_id = str_match(f, "dafs/daf\\\\.*(.*?)\\\\.csv.gz")[,2]
+        myfiles[[chrom_id]]<-read_csv(f, col_names = c('chrom', 'pos', 'af'), comment = '#')
+    }
+
+    ## Combine files
+    daf<-bind_rows(myfiles)
+
+    p <- ggplot(daf, aes(x=af)) + 
+        geom_histogram(bins=100, color = "#00AFBB", fill = "#00AFBB")
+    ggsave('smile.pdf', device = 'pdf', height=9, width=16)
+    ggsave('smile.png', device = 'png', height=9, width=16)
+    """
+}

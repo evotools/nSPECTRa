@@ -2,11 +2,14 @@
 import sys
 
 
-conversion = {line.strip().split()[0]:line.strip().split()[1] for line in open(sys.argv[2])}
+conversion = {
+    line.strip().split()[0]: line.strip().split()[1] for line in open(sys.argv[2])
+}
 
 for line in open(sys.argv[1]):
-    if ">" not in line: print(line.strip()); continue
-    ctgid = line.replace('>', '').split()[0]
-    line = line.replace( ctgid, conversion.get(ctgid, ctgid) )
+    if ">" not in line:
+        print(line.strip())
+        continue
+    ctgid = line.replace(">", "").split()[0]
+    line = line.replace(ctgid, conversion.get(ctgid, ctgid))
     print(line.strip())
-    

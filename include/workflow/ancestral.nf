@@ -10,34 +10,29 @@ include { get_hal } from '../process/dependencies'
 
 // Workflow
 workflow ANCESTRAL {
-    take:
-        cactus
-        
     main:
         /*Create ancestral fasta file*/
         // hal to maf, needed for constrained elements
 
-        if (params.ancestral){
+        if (params.ancestral_fna){
             // Import ancestral fasta
-            anc_fa = file(params.ancestral)
+            anc_fa = Channel.fromPath(params.ancestral_fna)
             makefai(anc_fa)
             anc_fai = makefai.out
             
             // Extract the different genomes and split it into chunks to speed up the process
-            if (params.ref_fasta){
-                ch_ref = file(params.ref_fasta)
-                makefai_ref(ch_ref)
+            if (params.reference_fna){
+                ch_ref = Channel.fromPath(params.reference_fna)
+                ch_ref_fai = makefai_ref(ch_ref)
                 if (params.ref_min_size){
-                    filter_by_size(ch_ref, makefai_ref.out)
+                    filter_by_size(ch_ref, ch_ref_fai)
                     ch_ref = filter_by_size.out[0]
                     ch_ref_fai = filter_by_size.out[1]
-                } else {
-                    ch_ref_fai = makefai_ref.out
                 }
             } else {
                 if (params.hal) { ch_hal = file(params.hal) } else { exit 1, 'Hal file not specified!' }
-                hal2maf( ch_hal, cactus )
-                makeRefTgtFasta( ch_hal, cactus )
+                // hal2maf( ch_hal )
+                makeRefTgtFasta( ch_hal )
                 if (params.ref_min_size){
                     filter_by_size(makeRefTgtFasta.out[0], makeRefTgtFasta.out[2])
                     ch_ref = filter_by_size.out[0]
@@ -49,13 +44,13 @@ workflow ANCESTRAL {
             }
         } else {
             if (params.hal) { ch_hal = file(params.hal) } else { exit 1, 'Hal file not specified!' }
-            hal2maf( ch_hal, cactus )
+            hal2maf( ch_hal )
 
             // maf to bed
             maf2bed(hal2maf.out)
 
             // Extract the different genomes and split it into chunks to speed up the process
-            makeRefTgtFasta( ch_hal, cactus )
+            makeRefTgtFasta( ch_hal )
             if (params.ref_min_size){
                 filter_by_size(makeRefTgtFasta.out[0], makeRefTgtFasta.out[2])
                 ch_ref = filter_by_size.out[0]
@@ -94,8 +89,8 @@ workflow ANCESTRAL {
         }
         
     emit:
-        anc_fa
-        anc_fai
-        ch_ref
-        ch_ref_fai
+        anc_fa.collect()
+        anc_fai.collect()
+        ch_ref.collect()
+        ch_ref_fai.collect()
 }

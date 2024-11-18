@@ -1,0 +1,92 @@
+#!/usr/bin/env python3
+
+
+def parse_args():
+    """Define arguments."""
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-m",
+        "--maf",
+        metavar="input.maf",
+        type=str,
+        help="Input MAF file",
+        dest="maf",
+        required=True,
+    )
+    parser.add_argument(
+        "-i",
+        "--ids_old",
+        metavar="ID1,ID2",
+        type=str,
+        help="Comma-separated list of IDs",
+        dest="ids_old",
+        required=True,
+    )
+    parser.add_argument(
+        "-o",
+        "--out",
+        metavar="out.maf",
+        type=str,
+        help="Output MAF file.",
+        dest="out",
+        required=False,
+        default="converted.maf",
+    )
+    return parser.parse_args()
+
+
+def maf_reader(maf):
+    lines = []
+    blocks = []
+    infile = open(maf)
+    for line in infile:
+        if "#" in line:
+            continue
+        elif line[0] == "a":
+            continue
+        elif line[0] == "s":
+            lines.append(line)
+            continue
+        elif line.strip() == "" and len(lines) != 0:
+            blocks.append(lines)
+            lines = []
+        else:
+            lines = []
+    if len(lines) != 0:
+        blocks.append(lines)
+    return blocks
+
+
+def main():
+    args = parse_args()
+
+    old_ids = args.ids_old.split(",")
+    new_ids = [f"GENOME_{n}" for n in range(0, len(old_ids))]
+    conversion = dict(zip(old_ids, new_ids))
+
+    # Save the new list of ids
+    with open("conversion.csv", "w") as new_id_list:
+        new_id_list.write(",".join(new_ids))
+
+    # Start converting the MAF file
+    with open(args.out, "w") as outf:
+        outf.write("##maf version=1 scoring=N/A\n\n")
+        for block in maf_reader(args.maf):
+            converted = []
+            for bl in block:
+                bl = bl.split("\t")
+                fixed = [
+                    bl[1].replace(key, value)
+                    for key, value in conversion.items()
+                    if key in bl[1]
+                ][0]
+                bl[1] = fixed if fixed else bl[1]
+                converted.append("\t".join(bl))
+            converted = "".join(converted)
+            outf.write(f"a\n{converted}\n")
+
+
+if __name__ == "__main__":
+    main()

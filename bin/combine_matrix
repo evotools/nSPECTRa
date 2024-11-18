@@ -1,0 +1,117 @@
+#!/usr/bin/env python
+import os
+
+import numpy as np
+
+
+def parse_args():
+    import argparse
+
+    # Argument definition
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-i",
+        "--input",
+        metavar="input_dir/",
+        type=str,
+        help="Input dir with multiple files to combine",
+        dest="input",
+        required=True,
+    )
+    parser.add_argument(
+        "-o",
+        "--out",
+        metavar="prefix",
+        type=str,
+        help="Output file.",
+        dest="out",
+        required=False,
+        default="out.tsv",
+    )
+
+    return parser.parse_args()
+
+
+def import_table(fname):
+    """Import dataframe."""
+    dataset = {}
+    dtype = "int64"
+    with open(fname) as input:
+        header = input.readline()
+        has_csqs = "CSQ" in header.split()
+        for line in input:
+            line = line.strip().split()
+            mut = line[0]
+            if has_csqs:
+                csq = line[1]
+                values = np.array(line[2:], dtype=dtype)
+                if mut not in dataset.keys():
+                    dataset[mut] = {csq: values}
+                elif csq not in dataset[mut].keys():
+                    dataset[mut][csq] = values
+                else:
+                    dataset[mut][csq] += values
+            else:
+                dataset[mut] = np.array(line[1:], dtype=dtype)
+        return header, dataset
+
+
+def sum_datasets(d1, d2):
+    """Recursive sum of two dictionaries."""
+    for key, vals in d2.items():
+        if isinstance(vals, dict):
+            sum_datasets(d1[key], vals)
+        else:
+            if key in d1.keys():
+                d1[key] += vals
+            else:
+                d1[key] = vals
+    return d1
+
+
+def save_dataset(dataset, outfile):
+    """Save the dict as an output."""
+    for mut, vals in dataset.items():
+        if isinstance(vals, dict):
+            for csq, nparray in vals.items():
+                values = "\t".join(nparray.astype("U32"))
+                out_string = f"{mut}\t{csq}\t{values}\n"
+                outfile.write(out_string)
+        else:
+            values = "\t".join(vals.astype("U32"))
+            out_string = f"{mut}\t{values}\n"
+            outfile.write(out_string)
+
+
+def main():
+    """Run entry point."""
+    # Parse arguments
+    args = parse_args()
+
+    # Get input files
+    infiles = [i for i in os.listdir(f"{args.input}/") if i.endswith(".tsv")]
+
+    # Check if dataframe is empty
+    if not infiles:
+        return 1
+
+    # concatenate multiple
+    # Use less memory than before, but probably slower
+    print(f"Loading: {args.input}/{infiles[0]}")
+    header, dataset = import_table(f"{args.input}/{infiles[0]}")
+    if len(infiles) > 1:
+        for n in range(1, len(infiles)):
+            print(f"Loading: {args.input}/{infiles[n]}")
+            h2, df = import_table(f"{args.input}/{infiles[n]}")
+            if h2 != header:
+                raise Exception("Data have unmatched column order.")
+            sum_datasets(dataset, df)
+
+    # Save data
+    with open(args.out, "w") as outfile:
+        outfile.write(header)
+        save_dataset(dataset, outfile)
+
+
+if __name__ == "__main__":
+    main()

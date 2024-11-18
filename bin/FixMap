@@ -7,9 +7,9 @@ convTable = {}
 of = open("{}.map".format(sys.argv[2]), "w")
 conv = open("{}.conv".format(sys.argv[2]), "w")
 for line in open(sys.argv[1]):
-        chrom, varid, cm, bp = line.strip().split()
-        if chrom not in convTable:
-                nchr += 1
-                convTable[chrom] = nchr
-                conv.write("{}\t{}\n".format(chrom, convTable.get(chrom, chrom)))
-        of.write("{}\t{}\t{}\t{}\n".format(convTable.get(chrom, chrom), varid, cm, bp))
+    chrom, varid, cm, bp = line.strip().split()
+    if chrom not in convTable:
+        nchr += 1
+        convTable[chrom] = nchr
+        conv.write("{}\t{}\n".format(chrom, convTable.get(chrom, chrom)))
+    of.write("{}\t{}\t{}\t{}\n".format(convTable.get(chrom, chrom), varid, cm, bp))

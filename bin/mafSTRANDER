@@ -4,30 +4,40 @@
 #
 # Created by: Andrea Talenti
 # Date: 20 Feb, 2020
-# 
-# Script that create a fasta or bed files 
+#
+# Script that create a fasta or bed files
 # the initial reference-based maf files.
 # MAF files have to be created starting from
 # the output hal file generated from CACTUS.
-# Conversion from hal to maf with hal2maf tool. 
+# Conversion from hal to maf with hal2maf tool.
 #
 #####
 import numpy as np
 import sys, os
-revert = {"A":"T", "T":"A", "C":"G","G":"C", 
-            "a":"t", "t":"a", "c":"g", "g":"c"}
+
+revert = {
+    "A": "T",
+    "T": "A",
+    "C": "G",
+    "G": "C",
+    "a": "t",
+    "t": "a",
+    "c": "g",
+    "g": "c",
+}
+
 
 def reader(args):
     lines = []
     blocks = []
-    if args.maf == "stdin" or args.maf == '-':
+    if args.maf == "stdin" or args.maf == "-":
         infile = sys.stdin
     else:
         infile = open(args.maf)
     for line in infile:
         if "#" in line:
             continue
-        elif line[0] == "a": 
+        elif line[0] == "a":
             continue
         elif line[0] == "s":
             lines.append(line)
@@ -39,42 +49,62 @@ def reader(args):
             lines = []
     return blocks
 
+
 def parse_args():
     import argparse
+
     # Argument definition
     parser = argparse.ArgumentParser()
-    parser.add_argument("-m", "--maf", metavar = 'maffile.maf', type = str, help = 'Input alignments',\
-                            dest = 'maf', required = True)
+    parser.add_argument(
+        "-m",
+        "--maf",
+        metavar="maffile.maf",
+        type=str,
+        help="Input alignments",
+        dest="maf",
+        required=True,
+    )
     # parser.add_argument("-s", "--seq", metavar = 'tgtseq', type = str, help = 'Target sequence to restrand',\
     #                         dest = 'seq', required = False, default = None)
-    parser.add_argument("-s", "--strand", metavar = '+/-', type = str, help = 'Strand to force',\
-                            dest = 'strand', required = False, default = None)
-    
+    parser.add_argument(
+        "-s",
+        "--strand",
+        metavar="+/-",
+        type=str,
+        help="Strand to force",
+        dest="strand",
+        required=False,
+        default=None,
+    )
+
     return parser.parse_args()
 
 
 # Worker function
 # s hereford.22           60772952  83 -  60773035 aaaaaaagaattttgtGAGAAATCAAGATTAAATTTGCAATGTAGaaaaaaaGGGATTAggggacttccttggtggttcagtg
-restrand = {"+":"-", "-":"+"}
+restrand = {"+": "-", "-": "+"}
+
+
 def process(block, args):
     if len(block) == 1:
-        print(f'a\n{block[0].strip()}\n')
+        print(f"a\n{block[0].strip()}\n")
         return 0
     else:
         ref = block[0].split()
         tgt = block[1].split()
         if ref[4] == args.strand:
-            print(f'a\n{block[0].strip()}\n{block[1].strip()}\n')
+            print(f"a\n{block[0].strip()}\n{block[1].strip()}\n")
         else:
-            ref[2] = str( int(ref[5]) - int(ref[3]) - int(ref[2]) )
+            ref[2] = str(int(ref[5]) - int(ref[3]) - int(ref[2]))
             ref[4] = restrand.get(ref[4])
-            ref[-1] = ''.join( [revert.get(i,i) for i in ref[-1][::-1] ] )
-            tgt[2] = str( int(tgt[5]) - int(tgt[3]) - int(tgt[2]) )
+            ref[-1] = "".join([revert.get(i, i) for i in ref[-1][::-1]])
+            tgt[2] = str(int(tgt[5]) - int(tgt[3]) - int(tgt[2]))
             tgt[4] = restrand.get(tgt[4])
-            tgt[-1] = ''.join( [revert.get(i,i) for i in tgt[-1][::-1] ] )
-            block = ['\t'.join(ref), '\t'.join(tgt)]
-            print( f"a\n{ block[0] }\n{ block[1] }\n" )
+            tgt[-1] = "".join([revert.get(i, i) for i in tgt[-1][::-1]])
+            block = ["\t".join(ref), "\t".join(tgt)]
+            print(f"a\n{ block[0] }\n{ block[1] }\n")
     return 0
+
 
 def main():
     import time
@@ -97,5 +127,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-    

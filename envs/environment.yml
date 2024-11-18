@@ -9,14 +9,16 @@ dependencies:
   - bioconda::vcftools
   - bioconda::bedtools
   - bioconda::plink=1.90
-  - python=3.8
+  - python=3.10
+  - pysam
+  - pyarrow
+  - polars==1.9.0
   - pip
-  - bioconda::vcflib
+  - scipy
   - bioconda::java-jdk
   - bioconda::shapeit4
   - bioconda::ucsc-fatotwobit 
   - bioconda::ucsc-twobitinfo 
   - bioconda::ucsc-bigwigtobedgraph
   - bioconda::phast=1.5
-  - pip:
-    - mutyper
+  - bioconda::mutyper
