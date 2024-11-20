@@ -1,0 +1,20 @@
+import sys
+
+
+def main():
+    """Simplify data."""
+    for line in open(sys.argv[1]):
+        chromosome, position, change, consequences, codons = line.strip().split()
+        csqs = consequences.split(",")
+        codons = codons.split(",")
+        opts = []
+        for c, d in zip(csqs, codons):
+            c = c.split("&")
+            opts += list(zip(c, [d] * len(c)))
+        opts = list(set(opts))
+        for consequence, codon in opts:
+            print(f"{chromosome}\t{position}\t{change}\t{consequence}\t{codon}")
+
+
+if __name__ == "__main__":
+    main()

@@ -121,6 +121,34 @@ process mutyper_concat {
 }
 
 
+process consequence_table {
+    tag "medium"
+    label "medium"
+    publishDir "${params.outdir}/mutyper/csq_table", mode: "${params.publish_dir_mode}", overwrite: true
+
+    input:
+    tuple val(k), path(vcf), path(tbi)
+
+    output:
+    tuple val(k), path("mutyper_${params.reference}_${k}.singled_csqs.counts.tsv.gz")
+
+    
+    stub:
+    """
+    touch mutyper_${params.reference}_${k}.singled_csqs.counts.tsv.gz
+    """
+
+    script:
+    """
+    bcftools +split-vep \
+            -f "%CHROM\t%POS\t%mutation_type\t%Consequence\t%Codons\n" \
+            RESULTS/pig_result_102024_r4/mutyper/vcf/mutyper_Sus_scrofa_3.vcf.gz | \
+        python single_consequences.py /dev/stdin | \
+        bgzip -c > mutyper_${params.reference}_${k}.singled_csqs.counts.tsv.gz
+    """
+}
+
+
 process count_mutations {
     tag "medium"
     label "medium"

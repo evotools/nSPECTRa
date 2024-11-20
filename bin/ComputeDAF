@@ -52,7 +52,14 @@ def main():
         if not aa:
             sys.stdout.write(str(site))
             continue
-        daf = af if aa == ref or aa == revert.get(ref) else 1 - af
+        if aa == ref:
+            daf = af
+        elif aa == alt:
+            daf = 1 - af
+        elif aa == revert.get(ref):
+            daf = af
+        else:
+            daf = 1 - af
         site.info.update({"DAF": daf})
         sys.stdout.write(str(site))
 
