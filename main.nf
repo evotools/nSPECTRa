@@ -78,7 +78,7 @@ if (params.ancestral_fna){
   log.info """ancestral       : $params.ancestral_fna"""  
 }
 if (params.reference_fna){
-  log.info """refernece fasta : $params.reference_fna"""  
+  log.info """reference fasta : $params.reference_fna"""  
 }
 if (params.mask){
   log.info """mask            : $params.mask"""  
