@@ -1,7 +1,7 @@
 # Changelog
 All new changes are documented here.
 
-## [v1.1.0]
+## [v1.1.1]
 ### Changed
 - The workflow now filters out all sites where the ancestral allele does not match either REF or ALT in the VCF
 
