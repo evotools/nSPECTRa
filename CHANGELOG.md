@@ -2,6 +2,13 @@
 All new changes are documented here.
 
 ## [v1.1.0]
+### Changed
+- The workflow now filters out all sites where the ancestral allele does not match either REF or ALT in the VCF
+
+### Fixed
+- Few cases where the workflow would mix up the DAF
+
+## [v1.1.0]
 
 ### Added
 - Create a "smile plot" for the derived allele frequencies (DAF)

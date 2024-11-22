@@ -219,18 +219,27 @@ process daf_filter {
     output:
         tuple val(chrom), path("variants_DAF_${chrom}.vcf.gz"), path("variants_DAF_${chrom}.vcf.gz.tbi")
 
+    script:
+    if (params.max_derivate_allele_freq)
+    """
+    # Keep sites with AA, then with DAF<= max value
+    bcftools filter --threads ${task.cpus} -O u -i 'AA != "-"' variants.vcf.gz | \
+        bcftools filter --threads ${task.cpus} -O u -e 'REF!=AA && ALT!=AA' variants.vcf.gz | \
+        bcftools filter --threads ${task.cpus} -O z -i 'INFO/DAF <= ${params.max_derivate_allele_freq}' > variants_DAF_${chrom}.vcf.gz && \
+        bcftools index --threads ${task.cpus} -t variants_DAF_${chrom}.vcf.gz
+    """
+    else
+    """
+    # Keep sites with AA, then with DAF<= max value
+    bcftools filter --threads ${task.cpus} -O u -i 'AA != "-"' variants.vcf.gz | \
+        bcftools filter --threads ${task.cpus} -O z -e 'REF!=AA && ALT!=AA' > variants_DAF_${chrom}.vcf.gz && \
+        bcftools index --threads ${task.cpus} -t variants_DAF_${chrom}.vcf.gz
+    """
+
     stub:
     """
     touch variants_DAF_${chrom}.vcf.gz
     touch variants_DAF_${chrom}.vcf.gz.tbi
-    """
-
-    script:
-    """
-    # Keep sites with AA, then with DAF<= max value
-    bcftools filter --threads ${task.cpus} -O u -i 'INFO/AA != "-"' variants.vcf.gz | \
-        bcftools filter --threads ${task.cpus} -O z -i 'INFO/DAF <= ${params.max_derivate_allele_freq}' > variants_DAF_${chrom}.vcf.gz && \
-        bcftools index --threads ${task.cpus} -t variants_DAF_${chrom}.vcf.gz
     """
 }
 
