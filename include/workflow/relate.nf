@@ -12,10 +12,10 @@ workflow RELATE {
     take:
         vcf
         tbi
-        anc_fa
-        anc_fai
         ref_fa
         ref_fai
+        anc_fa
+        anc_fai
         chromosomeList
         bedmask
 
@@ -90,10 +90,10 @@ workflow RELATE {
         // Plot the relate results
         // relate_plot_pop( relate_chr_pop_mut_finalise.out.collect(), popfile_ch, mutcats )
         
-    emit:
+    // emit:
         //relate_ne.out[2] 
-        ne_out[2] 
-        relate_avg_mut.out
+        // relate_ne = ne_out[2]
+        // relate_mut = relate_avg_mut.out
 
 
 }

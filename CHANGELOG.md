@@ -4,6 +4,7 @@ All new changes are documented here.
 ## [v1.1.1]
 ### Changed
 - The workflow now filters out all sites where the ancestral allele does not match either REF or ALT in the VCF
+- Heavy code maintainance, with much better code linting
 
 ### Fixed
 - Few cases where the workflow would mix up the DAF

@@ -20,12 +20,6 @@ process mutyper_variant {
         path("mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.vcf.gz"), 
         path("mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.vcf.gz.tbi")
 
-    
-    stub:
-    """
-    touch mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.vcf.gz
-    touch mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.vcf.gz.tbi
-    """
 
     script:
     String vcftools_filter = ""
@@ -56,6 +50,12 @@ process mutyper_variant {
         bgzip -c > mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.vcf.gz &&
         tabix -p vcf mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.vcf.gz
     """
+    
+    stub:
+    """
+    touch mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.vcf.gz
+    touch mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.vcf.gz.tbi
+    """
 }
 
 process mutyper_spectra {
@@ -75,16 +75,15 @@ process mutyper_spectra {
         val(chrom), val(start), val(end),
         path("mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.txt")
 
-    
-    stub:
-    """
-    touch mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.txt
-    """
-
     script:
     """
     echo "Run mutyper (variants)"
     mutyper spectra ${vcf} > mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.txt
+    """
+    
+    stub:
+    """
+    touch mutationSpectra_${params.reference}_${chrom}_${start}-${end}_${k}.txt
     """
 }
 
@@ -105,18 +104,17 @@ process mutyper_concat {
         path("mutyper_${params.reference}_${k}.vcf.gz"),
         path("mutyper_${params.reference}_${k}.vcf.gz.tbi")
 
-    
-    stub:
-    """
-    touch mutationSpectra_${params.reference}_${k}.txt
-    """
-
     script:
     """
     echo "Run mutyper (variants)"
     bcftools concat -O u vcfs/*.vcf.gz | \
         bcftools sort -O z > mutyper_${params.reference}_${k}.vcf.gz
     bcftools index -t mutyper_${params.reference}_${k}.vcf.gz
+    """
+    
+    stub:
+    """
+    touch mutationSpectra_${params.reference}_${k}.txt
     """
 }
 
@@ -132,11 +130,6 @@ process consequence_table {
     output:
     tuple val(k), path("mutyper_${params.reference}_${k}.singled_csqs.counts.tsv.gz")
 
-    
-    stub:
-    """
-    touch mutyper_${params.reference}_${k}.singled_csqs.counts.tsv.gz
-    """
 
     script:
     """
@@ -145,6 +138,11 @@ process consequence_table {
             RESULTS/pig_result_102024_r4/mutyper/vcf/mutyper_Sus_scrofa_3.vcf.gz | \
         python single_consequences.py /dev/stdin | \
         bgzip -c > mutyper_${params.reference}_${k}.singled_csqs.counts.tsv.gz
+    """
+    
+    stub:
+    """
+    touch mutyper_${params.reference}_${k}.singled_csqs.counts.tsv.gz
     """
 }
 
@@ -159,15 +157,14 @@ process count_mutations {
     output:
     tuple val(k), path("mutationSpectra_${params.reference}_${k}_*.tsv")
 
+    script:
+    """
+    compute_spectra -i ${vcf} -k ${levels} -o mutationSpectra_${params.reference}_${k}_${chrom}_${start}-${end}.tsv
+    """
     
     stub:
     """
     touch mutationSpectra_${params.reference}_${k}_${chrom}_${start}-${end}.tsv
-    """
-
-    script:
-    """
-    compute_spectra -i ${vcf} -k ${levels} -o mutationSpectra_${params.reference}_${k}_${chrom}_${start}-${end}.tsv
     """
 }
 
@@ -184,15 +181,14 @@ process combine_counts {
     output:
     tuple val(k), path("mutationSpectra_${params.reference}_${k}.tsv")
 
+    script:
+    """
+    combine_matrix -i ./tsvs/ -o mutationSpectra_${params.reference}_${k}.tsv
+    """
     
     stub:
     """
     touch mutationSpectra_${params.reference}_${k}.tsv
-    """
-
-    script:
-    """
-    combine_matrix -i ./tsvs/ -o mutationSpectra_${params.reference}_${k}.tsv
     """
 }
 
@@ -206,15 +202,14 @@ process count_mutations_csq {
     output:
     tuple val(k), path("mutationSpectra_${params.reference}_${k}_*.csq.tsv")
 
+    script:
+    """
+    compute_spectra_class -i ${vcf} -k ${levels} -c ${priority} -o mutationSpectra_${params.reference}_${k}_${chrom}_${start}-${end}.csq.tsv
+    """
     
     stub:
     """
     touch mutationSpectra_${params.reference}_${k}_${chrom}_${start}-${end}.csq.tsv
-    """
-
-    script:
-    """
-    compute_spectra_class -i ${vcf} -k ${levels} -c ${priority} -o mutationSpectra_${params.reference}_${k}_${chrom}_${start}-${end}.csq.tsv
     """
 }
 
@@ -231,15 +226,14 @@ process combine_csqs {
     output:
     tuple val(k), path("mutationSpectra_${params.reference}_${k}.csq.tsv")
 
+    script:
+    """
+    combine_matrix -i ./tsvs/ -o mutationSpectra_${params.reference}_${k}.csq.tsv
+    """
     
     stub:
     """
     touch mutationSpectra_${params.reference}_${k}.csq.tsv
-    """
-
-    script:
-    """
-    combine_matrix -i ./tsvs/ -o mutationSpectra_${params.reference}_${k}.csq.tsv
     """
 }
 
@@ -257,14 +251,9 @@ process group_results_old {
 
     output:
     tuple val(k), path("mutyper_mutationSpectra_${params.reference}_${k}.csv")
-    
-    stub:
-    """
-    touch mutyper_mutationSpectra_${params.reference}_${k}.csv
-    """
 
     script:
-    $/
+    """
     #!/usr/bin/env Rscript
     options(stringsAsFactors = F, warn=-1, message = FALSE, readr.num_columns = 0, dplyr.summarise.inform = FALSE)
     suppressPackageStartupMessages(library(tidyverse, quietly = TRUE))
@@ -286,7 +275,12 @@ process group_results_old {
         pivot_wider(names_from = Change, values_from = sum)
 
     write.csv2(mutSpectra, "mutyper_mutationSpectra_${params.reference}_${k}.csv")
-    /$
+    """
+    
+    stub:
+    """
+    touch mutyper_mutationSpectra_${params.reference}_${k}.csv
+    """
 }
 
 
@@ -301,15 +295,14 @@ process group_results {
     output:
     tuple val(k), path("mutyper_mutationSpectra_${params.reference}_${k}.csv")
 
+    script:
+    """
+    CombineMutyper ${k} > mutyper_mutationSpectra_${params.reference}_${k}.csv
+    """
     
     stub:
     """
     touch mutyper_mutationSpectra_${params.reference}_${k}.csv
-    """
-
-    script:
-    """
-    CombineMutyper ${k} > mutyper_mutationSpectra_${params.reference}_${k}.csv
     """
 }
 
@@ -325,14 +318,8 @@ process plot_results {
     output:
     tuple val(k), path("plot_mutyper_mutSpectra_${params.reference}_${k}.pdf")
 
-    
-    stub:
-    """
-    touch plot_mutyper_mutSpectra_${params.reference}_${k}.pdf
-    """
-
     script:
-    $/
+    """
     #!/usr/bin/env Rscript
     options(stringsAsFactors = F, warn=-1, message = FALSE, readr.num_columns = 0, dplyr.summarise.inform = FALSE)
     suppressPackageStartupMessages(library(tidyverse, quietly = TRUE))
@@ -350,13 +337,13 @@ process plot_results {
     pdf("plot_mutyper_mutSpectra_${params.reference}_${k}.pdf", height = 16, width = 16)
     autoplot(pca_res, data=mutSpectra, colour = 'pop') + geom_mark_ellipse()
     dev.off()
-    /$
+    """
+    
+    stub:
+    """
+    touch plot_mutyper_mutSpectra_${params.reference}_${k}.pdf
+    """
 }
-
-
-
-
-
 
 // Extract Ksfs
 process ksfs {
@@ -371,17 +358,16 @@ process ksfs {
     output:
     tuple val(k), path("ksfs_${samplename}_${k}.tsv")
 
-    
-    stub:
-    """
-    touch ksfs_${samplename}_${k}.tsv
-    """
-
     script:
     """
     echo "Run mutyper (ksfs)"
     bcftools view --threads ${task.cpus} -S ${samplelist} ${vcf} | \
         mutyper ksfs - > ksfs_${samplename}_${k}.tsv
+    """
+    
+    stub:
+    """
+    touch ksfs_${samplename}_${k}.tsv
     """
 }
 
@@ -398,15 +384,15 @@ process kmercount {
     output:
     tuple val(k), path("K${k}_counts.txt")
 
-    stub:
-    """
-    touch K${k}_counts.txt
-    """
-
     script:
     """
     jellyfish count -t 4 -m ${k} -s 3G ${ancfa} -o K${k}.jf
     jellyfish dump -o K${k}_counts.txt -c K${k}.jf && rm K${k}.jf
+    """
+
+    stub:
+    """
+    touch K${k}_counts.txt
     """
 }
 
@@ -421,15 +407,15 @@ process normalize_results {
     output:
     path "*.csv"
 
-    stub:
-    """
-    touch ${counts.baseName}.Knorm.csv
-    touch ${counts.baseName}.KCnorm.csv
-    """
-
     script:
     """
     CORRECT_COUNTS -s ${counts} -k ${normalizers} -m 1 
     CORRECT_COUNTS -s ${counts} -k ${normalizers} -m 2 
+    """
+
+    stub:
+    """
+    touch ${counts.baseName}.Knorm.csv
+    touch ${counts.baseName}.KCnorm.csv
     """
 }

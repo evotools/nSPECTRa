@@ -18,16 +18,15 @@ process hal4d {
 
     output:
     tuple path(hal), path("neutralRegions.bed")
-    
-    
-    stub:
-    """
-    touch neutralRegions.bed 
-    """
 
     script:
     """
     hal4dExtract --hdf5InMemory ${hal} "${params.reference}" ${exon_bed} neutralRegions.bed 
+    """
+    
+    stub:
+    """
+    touch neutralRegions.bed 
     """
 }
 
@@ -42,17 +41,16 @@ process halTree {
     path hal
 
     output:
-    env TREE
-    
-    
-    stub:
-    """
-    TREE="((spp1, spp2), spp3)"
-    """
+    env "TREE"
 
     script:
     """
     TREE=`halStats --tree ${hal}`
+    """
+
+    stub:
+    """
+    TREE="((spp1, spp2), spp3)"
     """
 }
 
@@ -67,16 +65,15 @@ process phyloFit {
 
     output:
     path "neutralModel.mod"
-    
-    
-    stub:
-    """
-    touch neutralModel.mod
-    """
 
     script:
     """
     phyloFit --tree "${TREE}" --msa-format SS --subst-mod SSREV --sym-freqs --precision HIGH --out-root neutralModel ${ss} 
+    """
+    
+    stub:
+    """
+    touch neutralModel.mod
     """
 }
 
@@ -93,11 +90,6 @@ process make4dmaf {
 
     output:
     tuple path(hal), path("4d.maf"), val(GENOMES)
-    
-    stub:
-    """
-    touch 4d.maf
-    """
 
     script:
     """
@@ -112,6 +104,11 @@ process make4dmaf {
         --hdf5InMemory
     sed -i -e 2d 4d.maf
     """
+    
+    stub:
+    """
+    touch 4d.maf
+    """
 }
 
 process hal_genomes {
@@ -125,17 +122,16 @@ process hal_genomes {
     path hal
 
     output:
-    env(GENOMES)
-    
-    
-    stub:
-    """
-    GENOMES='spp1,spp2,spp3'
-    """
+    env "GENOMES"
 
     script:
     """
     GENOMES=\$( halStats ${hal} --genomes | sed 's/ /\\n/g' | paste -sd, )
+    """
+    
+    stub:
+    """
+    GENOMES='spp1,spp2,spp3'
     """
 }
 
@@ -150,12 +146,6 @@ process msa_view {
 
     output:
     path "${maf.simpleName}.ss"
-    
-    
-    stub:
-    """
-    touch ${maf.simpleName}.ss
-    """
 
     script:
     """
@@ -163,6 +153,11 @@ process msa_view {
     CONV=\$( cat conversion.csv )
     msa_view -o SS -z --in-format MAF --aggregate "\$CONV" renamed.maf | \
         sed "s/NAMES = \$CONV/NAMES = ${GENOMES}/g" > ${maf.simpleName}.ss
+    """
+    
+    stub:
+    """
+    touch ${maf.simpleName}.ss
     """
 }
 
@@ -180,16 +175,15 @@ process phyloPtrain {
 
     output:
     path "neutralModel.mod"
-    
+
+    script:
+    """
+    halPhyloPTrain.py ${hal} ${params.reference} ${ss} neutralModel.mod --numProc ${task.cpus} 
+    """
     
     stub:
     """
     touch neutralModel.mod
-    """
-
-    script:
-    """
-    halPhyloPTrain.py ${hal} ${params.reference} ${neutral} neutralModel.mod --numProc ${task.cpus} 
     """
 }
 
@@ -205,11 +199,6 @@ process phyloP {
 
     output:
     tuple val(n), val(chr), path(hal), path(model), path("phylop_${chr}.wig"), path("${params.reference}.sizes")
-    
-    stub:
-    """
-    touch phylop_${chr}.wig
-    """
 
     script:
     """
@@ -221,6 +210,11 @@ process phyloP {
         --refSequence ${chr} \
         --chromSizes ${params.reference}.sizes \
         --numProc ${task.cpus} 
+    """
+    
+    stub:
+    """
+    touch phylop_${chr}.wig
     """
 }
 
@@ -235,18 +229,17 @@ process wig2bedgraph {
 
     output:
     path "${wig.baseName}.bed"
-    
-    
-    stub:
-    """
-    touch ${wig.baseName}.bed
-    """
 
     script:
     """
     wigToBigWig ${wig} ${sizes} ${wig.baseName}.bw
     bigWigToBedGraph ${wig.baseName}.bw  /dev/stdout | \
         sort -k1,1 -k2,2n --parallel ${task.cpus} - > ${wig.baseName}.bed
+    """
+    
+    stub:
+    """
+    touch ${wig.baseName}.bed
     """
 }
 
@@ -263,16 +256,15 @@ process bedtobigwig {
 
     output:
     path "${bw.simpleName}.bed"
-    
-    
-    stub:
-    """
-    touch ${bw.simpleName}.bed
-    """
 
     script:
     """
     bigWigToBedGraph ${bw} /dev/stdout | bedtools sort -i - > ${bw.simpleName}.bed
+    """
+    
+    stub:
+    """
+    touch ${bw.simpleName}.bed
     """
 }
 
@@ -287,16 +279,15 @@ process combine_bed {
 
     output:
     path "phylop.bed"
-    
-    
-    stub:
-    """
-    touch phylop.bed
-    """
 
     script:
     """
     cat ${beds} | bedtools sort -i - > phylop.bed
+    """
+    
+    stub:
+    """
+    touch phylop.bed
     """
 }
 
@@ -310,12 +301,6 @@ process extract_conserved {
 
     output:
     path "phylop_conserved.bed"
-    
-    
-    stub:
-    """
-    touch phylop_conserved.bed
-    """
 
     script:
     """
@@ -343,6 +328,11 @@ process extract_conserved {
         quote = FALSE
     )
     """
+    
+    stub:
+    """
+    touch phylop_conserved.bed
+    """
 }
 
 
@@ -359,18 +349,17 @@ process vcf_drop_conserved {
     output:
     path "${vcf.simpleName}.non-conserved.vcf.gz", emit: vcf
     path "${vcf.simpleName}.non-conserved.vcf.gz.tbi", emit: tbi
-    
-    
-    stub:
-    """
-    touch ${vcf.simpleName}.non-conserved.vcf.gz
-    touch ${vcf.simpleName}.non-conserved.vcf.gz.tbi
-    """
 
     script:
     """
     bedtools intersect -header -v -a ${vcf} -b ${bed} | bgzip -c > ${vcf.simpleName}.non-conserved.vcf.gz
     tabix -p vcf ${vcf.simpleName}.non-conserved.vcf.gz
+    """
+    
+    stub:
+    """
+    touch ${vcf.simpleName}.non-conserved.vcf.gz
+    touch ${vcf.simpleName}.non-conserved.vcf.gz.tbi
     """
 }
 

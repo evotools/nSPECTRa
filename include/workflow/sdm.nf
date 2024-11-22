@@ -2,15 +2,16 @@ include { get_individuals; get_breeds; } from "../process/prerun"
 include { sdm; filter_sdm; count_sdm } from "../process/sdm"
 include { make_ksfs; sdm_plot } from "../process/sdm"
 include { repeat_mask_split_sdm} from "../process/sdm"
+include { sdm_matrix } from '../process/sdm.nf'
 
 workflow SDM {
     take:
         vcf
         tbi
-        ancfa
-        ancfai
         reffasta
         reffai
+        ancfa
+        ancfai
         masks_ch
         chromosomeList
         vcf_chunks_ch
@@ -55,6 +56,9 @@ workflow SDM {
 
         // Generate outputs
         count_sdm( filter_sdm.out.rdata )
+
+        // Create matrix of SDMs
+        count_sdm.out[0] | collect | sdm_matrix
 
         // Prepare Ksfs files
         raw_sdm | make_ksfs
