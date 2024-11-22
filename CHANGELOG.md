@@ -2,6 +2,9 @@
 All new changes are documented here.
 
 ## [v1.1.1]
+### Added
+- Generation of the matrix of SDM changes in CSV format
+
 ### Changed
 - The workflow now filters out all sites where the ancestral allele does not match either REF or ALT in the VCF
 - Heavy code maintainance, with much better code linting
