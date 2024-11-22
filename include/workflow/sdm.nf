@@ -45,13 +45,13 @@ workflow SDM {
         )
 
         // Filter SDMs
-        raw_sdm | filter_sdm
+        filtered_ch = raw_sdm | filter_sdm
 
         // Get data in/out rm
-        repeat_mask_split_sdm(filter_sdm.out.bed.combine(masks_ch))
+        repeat_mask_split_sdm(filtered_ch.bed.combine(masks_ch))
 
         // Generate outputs
-        count_sdm( filter_sdm.out.rdata )
+        count_sdm( filtered_ch.rdata )
 
         // Create matrix of SDMs
         count_sdm.out[0] | collect | sdm_matrix
