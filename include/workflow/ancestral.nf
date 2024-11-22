@@ -17,10 +17,10 @@ workflow ANCESTRAL {
         if (params.ancestral_fna){
             // Import ancestral fasta
             anc_fa = Channel.fromPath(params.ancestral_fna)
-            log.info "Using ancestral genome: ${anc_fa}"
+            log.info "Using ancestral genome: ${anc_fa.toUriString()}"
             if (file("${params.ancestral_fna}.fai").exists()){
                 anc_fai = Channel.fromPath("${params.ancestral_fna}.fai")
-                log.info "Using ancestral genome index: ${anc_fa}"
+                log.info "Using ancestral genome index: ${anc_fa.toUriString()}"
             } else {
                 anc_fai = makefai(anc_fa)
             }
@@ -28,10 +28,10 @@ workflow ANCESTRAL {
             // Extract the different genomes and split it into chunks to speed up the process
             if (params.reference_fna){
                 ch_ref = Channel.fromPath(params.reference_fna)
-                log.info "Using ancestral genome: ${ch_ref}"
+                log.info "Using reference genome: ${ch_ref.toUriString()}"
                 if (file("${params.reference_fna}.fai").exists()){
                     ch_ref_fai = Channel.fromPath("${params.reference_fna}.fai")
-                    log.info "Using ancestral genome index: ${ch_ref_fai}"
+                    log.info "Using reference genome index: ${ch_ref_fai.toUriString()}"
                 } else {
                     ch_ref_fai = makefai_ref(ch_ref)
                 }
