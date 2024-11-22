@@ -6,15 +6,11 @@ include { sdm_matrix } from '../process/sdm.nf'
 
 workflow SDM {
     take:
-        vcf
-        tbi
+        vcf_chunks_ch
         reffasta
         reffai
-        ancfa
-        ancfai
         masks_ch
         chromosomeList
-        vcf_chunks_ch
 
     main:
 

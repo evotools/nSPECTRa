@@ -1,4 +1,3 @@
-include { chromosomeList } from "../process/prerun"
 include { relate_format; relate; relate_mut; relate_mut_chr } from '../process/relate'
 include { relate_mut_finalise; relate_mut_chr_finalise; relate_avg_mut } from '../process/relate'
 include { relate_mut_chr_pop; relate_chr_pop_mut_finalise } from '../process/relate'
@@ -12,8 +11,6 @@ workflow RELATE {
     take:
         vcf
         tbi
-        ref_fa
-        ref_fai
         anc_fa
         anc_fai
         chromosomeList
@@ -30,11 +27,9 @@ workflow RELATE {
             popfile_ch = makepopfile.out
         }
 
-
-        chromosomeList
+        chromosomes_ch = chromosomeList
             .splitCsv(header: ['N','chrom'])
             .map{ row-> tuple(row.N, row.chrom) }
-            .set{ chromosomes_ch }
 
         // Grep list of samples, and drop smallest groups
         breeds_ch = Channel

@@ -168,13 +168,13 @@ workflow {
 
     // Run the actual mutation spectra
     if (params.relate){
-        RELATE( ch_var_new, ch_var_idx_new, reference_fna, reference_fai, ancestral_fna, ancestral_fai, ch_chr_lists, ch_masks )
+        RELATE( ch_var_new, ch_var_idx_new, ancestral_fna, ancestral_fai, ch_chr_lists, ch_masks )
     }
     if (params.mutyper){
         MUTYPER( ch_var_new, ch_var_idx_new, ancestral_fna, ancestral_fai, ch_chr_lists, ch_masks, vcf_chunks_ch )
     } 
     if (params.sdm){
-        SDM( ch_var_new, ch_var_idx_new, reference_fna, reference_fai, ancestral_fna, ancestral_fai, ch_masks, ch_chr_lists, vcf_chunks_ch )
+        SDM( vcf_chunks_ch, reference_fna, reference_fai, ch_masks, ch_chr_lists )
     }
   }
 }
