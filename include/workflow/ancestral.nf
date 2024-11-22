@@ -17,13 +17,20 @@ workflow ANCESTRAL {
         if (params.ancestral_fna){
             // Import ancestral fasta
             anc_fa = Channel.fromPath(params.ancestral_fna)
-            makefai(anc_fa)
-            anc_fai = makefai.out
+            if (file("${anc_fa}.fai").exists()){
+                anc_fai = Channel.fromPath("${anc_fa}.fai")
+            } else {
+                anc_fai = makefai(anc_fa)
+            }
             
             // Extract the different genomes and split it into chunks to speed up the process
             if (params.reference_fna){
                 ch_ref = Channel.fromPath(params.reference_fna)
-                ch_ref_fai = makefai_ref(ch_ref)
+                if (file("${ch_ref}.fai").exists()){
+                    ch_ref_fai = Channel.fromPath("${ch_ref}.fai")
+                } else {
+                    ch_ref_fai = makefai_ref(ch_ref)
+                }
                 if (params.ref_min_size){
                     filter_by_size(ch_ref, ch_ref_fai)
                     ch_ref = filter_by_size.out[0]
