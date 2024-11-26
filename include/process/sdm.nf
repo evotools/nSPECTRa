@@ -214,7 +214,7 @@ process sdm_matrix {
     pivot_wider(values_from = Count, names_from = Change)
     counts[is.na(counts)] = 0
     counts<-counts %>% separate(IID, c("Breed", "sample"), extra = "merge", sep = '-') %>% select(-Breed)
-    write.csv2(counts, file = "sdm_${params.reference}_K3.csv", quote=F)
+    write.table(counts, file = "sdm_${params.reference}_K3.csv", sep = ";", row.names = F, col.names = T, quote=F)
     """
 
     stub:
