@@ -38,7 +38,7 @@ def main():
 
     # Create new header
     in_vcf.header.add_line(
-        '##INFO=<ID=DAF,Number=A,Type=Float,Description="Estimated derived allele frequency in the range (0,1]">'
+        '##INFO=<ID=DAF,Number=A,Type=Float,Description="Estimated derived allele frequency in the range [0,1]">'
     )
     sys.stdout.write(str(in_vcf.header))
 
@@ -55,10 +55,6 @@ def main():
             sys.stdout.write(str(site))
             continue
         daf = None
-        if site.pos == 128168:
-            print(ref)
-            print(alt)
-            print(aa)
         if aa == ref:
             daf = af
         elif aa == alt:
@@ -69,7 +65,7 @@ def main():
             daf = 1 - af
         else:
             site.info.update({"AA": "-"})
-        if daf:
+        if daf is not None:
             site.info.update({"DAF": daf})
         sys.stdout.write(str(site))
 
