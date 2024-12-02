@@ -55,7 +55,7 @@ def main():
             sys.stdout.write(str(site))
             continue
         daf = None
-        if site.chrom == '8' and site.pos == 128168:
+        if site.pos == 128168:
             print(site.info.get('AA'))
             print(site)
         if aa == ref:
