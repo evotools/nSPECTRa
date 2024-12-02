@@ -56,8 +56,9 @@ def main():
             continue
         daf = None
         if site.pos == 128168:
-            print(site.info.get('AA'))
-            print(site)
+            print(ref)
+            print(alt)
+            print(aa)
         if aa == ref:
             daf = af
         elif aa == alt:
