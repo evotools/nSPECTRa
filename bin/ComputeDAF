@@ -54,6 +54,7 @@ def main():
         if not aa:
             sys.stdout.write(str(site))
             continue
+        daf = None
         if aa == ref:
             daf = af
         elif aa == alt:
@@ -64,7 +65,6 @@ def main():
             daf = 1 - af
         else:
             site.info.update({"AA": "-"})
-            daf = None
         if daf:
             site.info.update({"DAF": daf})
         sys.stdout.write(str(site))
