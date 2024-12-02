@@ -2,8 +2,12 @@
 All new changes are documented here.
 
 ## [v1.1.2]
+### Added
+- Generation of the matrix of SDM changes in CSV format
+
 ### Changed
 - The filtering of sites where ancestral allele does not match either REF or ALT in the VCF is now optional, with `--strict_allele_matching`
+- Heavy code maintainance, with much better code linting
 - `--species` now provides the species name to use in output files
 - Instead, VEP species name is provided with `--vep_species`
 - Greedy mode is now enabled as default. Use `--greedy false` to switch to the low-memory algorithm
@@ -11,17 +15,6 @@ All new changes are documented here.
 ### Fixed
 - The workflow does not emit derived allele frequency if the ancestral allele cannot be matched to REF, ALT or their reverse strands (e.g. REF/ALT/AA = A/T/G)
     - Also sets the ancestral state for these sites to `-`
-- Output not generated from `consequence_table` processes
-
-## [v1.1.1]
-### Added
-- Generation of the matrix of SDM changes in CSV format
-
-### Changed
-- The workflow now filters out all sites where the ancestral allele does not match either REF or ALT in the VCF
-- Heavy code maintainance, with much better code linting
-
-### Fixed
 - Few cases where the workflow would mix up the DAF
 
 ## [v1.1.0]
