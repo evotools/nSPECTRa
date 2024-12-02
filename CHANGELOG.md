@@ -1,6 +1,10 @@
 # Changelog
 All new changes are documented here.
 
+## [v1.1.2]
+### Changed
+- The filtering of sites where ancestral allele does not match either REF or ALT in the VCF is now optional, with `--strict_allele_matching`
+
 ## [v1.1.1]
 ### Added
 - Generation of the matrix of SDM changes in CSV format

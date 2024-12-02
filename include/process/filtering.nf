@@ -213,11 +213,13 @@ process daf_filter {
         tuple val(chrom), path("variants_DAF_${chrom}.vcf.gz"), path("variants_DAF_${chrom}.vcf.gz.tbi")
 
     script:
+    // Filter alleles strictly, if required
+    def filter_discordant = params.strict_allele_matching ? "-e 'REF!=AA && ALT!=AA'" : "" 
     if (params.max_derivate_allele_freq)
     """
     # Keep sites with AA, then with DAF<= max value
     bcftools filter --threads ${task.cpus} -O u -i 'AA != "-"' variants.vcf.gz | \
-        bcftools filter --threads ${task.cpus} -O u -e 'REF!=AA && ALT!=AA' variants.vcf.gz | \
+        bcftools filter --threads ${task.cpus} -O u ${filter_discordant} variants.vcf.gz | \
         bcftools filter --threads ${task.cpus} -O z -i 'INFO/DAF <= ${params.max_derivate_allele_freq}' > variants_DAF_${chrom}.vcf.gz && \
         bcftools index --threads ${task.cpus} -t variants_DAF_${chrom}.vcf.gz
     """
@@ -225,7 +227,7 @@ process daf_filter {
     """
     # Keep sites with AA, then with DAF<= max value
     bcftools filter --threads ${task.cpus} -O u -i 'AA != "-"' variants.vcf.gz | \
-        bcftools filter --threads ${task.cpus} -O z -e 'REF!=AA && ALT!=AA' > variants_DAF_${chrom}.vcf.gz && \
+        bcftools filter --threads ${task.cpus} -O z ${filter_discordant} > variants_DAF_${chrom}.vcf.gz && \
         bcftools index --threads ${task.cpus} -t variants_DAF_${chrom}.vcf.gz
     """
 
