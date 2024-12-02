@@ -113,6 +113,7 @@ workflow {
   if (!params.hal) { exit 1, 'Hal file not specified and ancestral not specified!' }
   if (!params.hal && !params.reference_fna && !params.ancestral_fna) { exit 1, 'Ancestral and reference genomes not specified!' }
   if (params.constrained && !params.exon_bed) { exit 1, 'Requested hal4d algorithm, but no bed with exons specified!' }
+  if (!params.species){ throw new Exception("Parameter --species is required for file naming.") }
 
   // Generate the ancestral fasta
   ANCESTRAL()
