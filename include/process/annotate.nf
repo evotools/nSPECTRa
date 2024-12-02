@@ -29,8 +29,8 @@ process makeAnnotation {
 
     stub:
     """
-    touch Ancestral_annotation_${params.species}.txt.gz
-    touch Ancestral_annotation_${params.species}.txt.gz.tbi
+    touch Ancestral_annotation_${chrom}.txt.gz
+    touch Ancestral_annotation_${chrom}.txt.gz.tbi
     """
 }
 
