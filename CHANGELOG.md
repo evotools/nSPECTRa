@@ -4,6 +4,9 @@ All new changes are documented here.
 ## [v1.1.2]
 ### Changed
 - The filtering of sites where ancestral allele does not match either REF or ALT in the VCF is now optional, with `--strict_allele_matching`
+- `--species` now provides the species name to use in output files
+- Instead, VEP species name is provided with `--vep_species`
+- Greedy mode is now enabled as default. Use `--greedy false` to switch to the low-memory algorithm.
 
 ## [v1.1.1]
 ### Added

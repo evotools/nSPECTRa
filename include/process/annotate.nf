@@ -29,8 +29,8 @@ process makeAnnotation {
 
     stub:
     """
-    touch Ancestral_annotation_${params.reference}.txt.gz
-    touch Ancestral_annotation_${params.reference}.txt.gz.tbi
+    touch Ancestral_annotation_${params.species}.txt.gz
+    touch Ancestral_annotation_${params.species}.txt.gz.tbi
     """
 }
 
@@ -55,8 +55,8 @@ process annotateVcf {
 
     script:
     """
-    echo '##INFO=<ID=AA,Number=1,Type=String,Description="Ancestral Allele">' > header_${params.reference}.txt
-    bcftools annotate -a Ancestral_annotation.txt.gz -O u -h header_${params.reference}.txt -O z -c CHROM,POS,AA input.vcf.gz | \
+    echo '##INFO=<ID=AA,Number=1,Type=String,Description="Ancestral Allele">' > header_${params.species}.txt
+    bcftools annotate -a Ancestral_annotation.txt.gz -O u -h header_${params.species}.txt -O z -c CHROM,POS,AA input.vcf.gz | \
         bcftools +fill-tags -- -t AF,AC,AN |\
         bcftools view -T ^${masks_ch} -O z > tmp.vcf.gz && \
         tabix -p vcf tmp.vcf.gz
@@ -115,7 +115,7 @@ process vep {
         -o stdout \
         --vcf \
         --fork ${task.cpus} \
-        --species ${params.species} \
+        --species ${params.vep_species} \
         --fasta ${reffasta} \
         --variant_class ${sift} \
         --nearest symbol \

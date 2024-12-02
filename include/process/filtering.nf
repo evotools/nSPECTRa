@@ -34,21 +34,21 @@ process filtering {
     path variants_idx 
 
     output:
-    path "missingness_het_${params.reference}.txt"
+    path "missingness_het_${params.species}.txt"
 
     script:
     """
     if [[ ${variants} == *.bcf ]]; then
-        plink --cow --bcf ${variants} --allow-extra-chr --mind 0.1 --double-id --het --out missingness_het_${params.reference} --threads ${task.cpus}
+        plink --cow --bcf ${variants} --allow-extra-chr --mind 0.1 --double-id --het --out missingness_het_${params.species} --threads ${task.cpus}
     else
-        plink --cow --vcf ${variants} --allow-extra-chr --mind 0.1 --double-id --het --out missingness_het_${params.reference} --threads ${task.cpus}
+        plink --cow --vcf ${variants} --allow-extra-chr --mind 0.1 --double-id --het --out missingness_het_${params.species} --threads ${task.cpus}
     fi
-    awk 'NR>1 && \$3/\$5>0.05 && \$3/\$5<0.95 {print \$1}' missingness_het_${params.reference}.het > missingness_het_${params.reference}.txt
+    awk 'NR>1 && \$3/\$5>0.05 && \$3/\$5<0.95 {print \$1}' missingness_het_${params.species}.het > missingness_het_${params.species}.txt
     """
     
     stub:
     """
-    touch missingness_het_${params.reference}.txt
+    touch missingness_het_${params.species}.txt
     """
 }
 

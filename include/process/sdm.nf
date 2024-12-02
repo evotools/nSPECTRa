@@ -181,7 +181,7 @@ process sdm_matrix {
     path inputs
 
     output:
-    path "sdm_${params.reference}_K3.csv"
+    path "sdm_${params.species}_K3.csv"
 
     script:
     """
@@ -214,11 +214,11 @@ process sdm_matrix {
     pivot_wider(values_from = Count, names_from = Change)
     counts[is.na(counts)] = 0
     counts<-counts %>% separate(IID, c("Breed", "sample"), extra = "merge", sep = '-') %>% select(-Breed)
-    write.table(counts, file = "sdm_${params.reference}_K3.csv", sep = ";", row.names = F, col.names = T, quote=F)
+    write.table(counts, file = "sdm_${params.species}_K3.csv", sep = ";", row.names = F, col.names = T, quote=F)
     """
 
     stub:
     """
-    touch sdm_${params.reference}_K3.csv
+    touch sdm_${params.species}_K3.csv
     """
 }
