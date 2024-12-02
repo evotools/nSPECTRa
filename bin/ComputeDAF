@@ -9,6 +9,8 @@ revert = {
     "C": "G",
 }
 
+AT = ['A', 'T']
+GC = ['G', 'C']
 
 def parse_args():
     import argparse
@@ -58,9 +60,13 @@ def main():
             daf = 1 - af
         elif aa == revert.get(ref):
             daf = af
-        else:
+        elif aa == revert.get(alt):
             daf = 1 - af
-        site.info.update({"DAF": daf})
+        else:
+            site.info.update({"AA": "-"})
+            daf = None
+        if daf:
+            site.info.update({"DAF": daf})
         sys.stdout.write(str(site))
 
     # Process bed

@@ -6,9 +6,11 @@ All new changes are documented here.
 - The filtering of sites where ancestral allele does not match either REF or ALT in the VCF is now optional, with `--strict_allele_matching`
 - `--species` now provides the species name to use in output files
 - Instead, VEP species name is provided with `--vep_species`
-- Greedy mode is now enabled as default. Use `--greedy false` to switch to the low-memory algorithm.
+- Greedy mode is now enabled as default. Use `--greedy false` to switch to the low-memory algorithm
 
 ### Fixed
+- The workflow does not emit derived allele frequency if the ancestral allele cannot be matched to REF, ALT or their reverse strands (e.g. REF/ALT/AA = A/T/G)
+    - Also sets the ancestral state for these sites to `-`
 - Output not generated from `consequence_table` processes
 
 ## [v1.1.1]
