@@ -17,8 +17,8 @@ process mutyper_variant {
     output:
     tuple val(k), 
         val(chrom), val(start), val(end), 
-        path("mutationSpectra_${params.species}_${chrom}_${start}-${end}_${k}.vcf.gz"), 
-        path("mutationSpectra_${params.species}_${chrom}_${start}-${end}_${k}.vcf.gz.tbi")
+        path("mutationSpectra_${params.species.capitalize()}_${chrom}_${start}-${end}_${k}.vcf.gz"), 
+        path("mutationSpectra_${params.species.capitalize()}_${chrom}_${start}-${end}_${k}.vcf.gz.tbi")
 
 
     script:
@@ -36,8 +36,8 @@ process mutyper_variant {
         sed 's/_pilon//g' | \
         vcffixup - ${vcftools_filter} |\
         mutyper variants --k ${k} --strand_file ${params.annotation} ${ancfasta} - | \
-        bgzip -c > mutationSpectra_${params.species}_${chrom}_${start}-${end}_${k}.vcf.gz &&
-        tabix -p vcf mutationSpectra_${params.species}_${chrom}_${start}-${end}_${k}.vcf.gz
+        bgzip -c > mutationSpectra_${params.species.capitalize()}_${chrom}_${start}-${end}_${k}.vcf.gz &&
+        tabix -p vcf mutationSpectra_${params.species.capitalize()}_${chrom}_${start}-${end}_${k}.vcf.gz
     """
     else
     """
@@ -47,14 +47,14 @@ process mutyper_variant {
         sed 's/_pilon//g' | \
         vcffixup - ${vcftools_filter} |\
         mutyper variants --k ${k} ${ancfasta} - | \
-        bgzip -c > mutationSpectra_${params.species}_${chrom}_${start}-${end}_${k}.vcf.gz &&
-        tabix -p vcf mutationSpectra_${params.species}_${chrom}_${start}-${end}_${k}.vcf.gz
+        bgzip -c > mutationSpectra_${params.species.capitalize()}_${chrom}_${start}-${end}_${k}.vcf.gz &&
+        tabix -p vcf mutationSpectra_${params.species.capitalize()}_${chrom}_${start}-${end}_${k}.vcf.gz
     """
     
     stub:
     """
-    touch mutationSpectra_${params.species}_${chrom}_${start}-${end}_${k}.vcf.gz
-    touch mutationSpectra_${params.species}_${chrom}_${start}-${end}_${k}.vcf.gz.tbi
+    touch mutationSpectra_${params.species.capitalize()}_${chrom}_${start}-${end}_${k}.vcf.gz
+    touch mutationSpectra_${params.species.capitalize()}_${chrom}_${start}-${end}_${k}.vcf.gz.tbi
     """
 }
 
@@ -73,17 +73,17 @@ process mutyper_spectra {
     output:
     tuple val(k),
         val(chrom), val(start), val(end),
-        path("mutationSpectra_${params.species}_${chrom}_${start}-${end}_${k}.txt")
+        path("mutationSpectra_${params.species.capitalize()}_${chrom}_${start}-${end}_${k}.txt")
 
     script:
     """
     echo "Run mutyper (variants)"
-    mutyper spectra ${vcf} > mutationSpectra_${params.species}_${chrom}_${start}-${end}_${k}.txt
+    mutyper spectra ${vcf} > mutationSpectra_${params.species.capitalize()}_${chrom}_${start}-${end}_${k}.txt
     """
     
     stub:
     """
-    touch mutationSpectra_${params.species}_${chrom}_${start}-${end}_${k}.txt
+    touch mutationSpectra_${params.species.capitalize()}_${chrom}_${start}-${end}_${k}.txt
     """
 }
 
@@ -101,20 +101,20 @@ process mutyper_concat {
 
     output:
     tuple val(k),
-        path("mutyper_${params.species}_${k}.vcf.gz"),
-        path("mutyper_${params.species}_${k}.vcf.gz.tbi")
+        path("mutyper_${params.species.capitalize()}_${k}.vcf.gz"),
+        path("mutyper_${params.species.capitalize()}_${k}.vcf.gz.tbi")
 
     script:
     """
     echo "Run mutyper (variants)"
     bcftools concat -O u vcfs/*.vcf.gz | \
-        bcftools sort -O z > mutyper_${params.species}_${k}.vcf.gz
-    bcftools index -t mutyper_${params.species}_${k}.vcf.gz
+        bcftools sort -O z > mutyper_${params.species.capitalize()}_${k}.vcf.gz
+    bcftools index -t mutyper_${params.species.capitalize()}_${k}.vcf.gz
     """
     
     stub:
     """
-    touch mutationSpectra_${params.species}_${k}.txt
+    touch mutationSpectra_${params.species.capitalize()}_${k}.txt
     """
 }
 
@@ -128,21 +128,21 @@ process consequence_table {
     tuple val(k), path(vcf), path(tbi)
 
     output:
-    tuple val(k), path("mutyper_${params.species}_${k}.singled_csqs.counts.tsv.gz")
+    tuple val(k), path("mutyper_${params.species.capitalize()}_${k}.singled_csqs.counts.tsv.gz")
 
 
     script:
     """
     bcftools +split-vep \
-            -f "%CHROM\t%POS\t%mutation_type\t%Consequence\t%Codons\n" \
-            RESULTS/pig_result_102024_r4/mutyper/vcf/mutyper_Sus_scrofa_3.vcf.gz | \
-        python single_consequences.py /dev/stdin | \
-        bgzip -c > mutyper_${params.species}_${k}.singled_csqs.counts.tsv.gz
+            -f "%CHROM\\t%POS\\t%mutation_type\\t%Consequence\\t%Codons\\n" \
+            ${vcf} | \
+        CSQ_UNIFORM /dev/stdin | \
+        bgzip -c > mutyper_${params.species.capitalize()}_${k}.singled_csqs.counts.tsv.gz
     """
     
     stub:
     """
-    touch mutyper_${params.species}_${k}.singled_csqs.counts.tsv.gz
+    touch mutyper_${params.species.capitalize()}_${k}.singled_csqs.counts.tsv.gz
     """
 }
 
@@ -155,16 +155,16 @@ process count_mutations {
     tuple val(k), val(chrom), val(start), val(end), path(vcf), path(tbi), path(levels)
 
     output:
-    tuple val(k), path("mutationSpectra_${params.species}_${k}_*.tsv")
+    tuple val(k), path("mutationSpectra_${params.species.capitalize()}_${k}_*.tsv")
 
     script:
     """
-    compute_spectra -i ${vcf} -k ${levels} -o mutationSpectra_${params.species}_${k}_${chrom}_${start}-${end}.tsv
+    compute_spectra -i ${vcf} -k ${levels} -o mutationSpectra_${params.species.capitalize()}_${k}_${chrom}_${start}-${end}.tsv
     """
     
     stub:
     """
-    touch mutationSpectra_${params.species}_${k}_${chrom}_${start}-${end}.tsv
+    touch mutationSpectra_${params.species.capitalize()}_${k}_${chrom}_${start}-${end}.tsv
     """
 }
 
@@ -179,16 +179,16 @@ process combine_counts {
     tuple val(k), path("tsvs/*")
 
     output:
-    tuple val(k), path("mutationSpectra_${params.species}_${k}.tsv")
+    tuple val(k), path("mutationSpectra_${params.species.capitalize()}_${k}.tsv")
 
     script:
     """
-    combine_matrix -i ./tsvs/ -o mutationSpectra_${params.species}_${k}.tsv
+    combine_matrix -i ./tsvs/ -o mutationSpectra_${params.species.capitalize()}_${k}.tsv
     """
     
     stub:
     """
-    touch mutationSpectra_${params.species}_${k}.tsv
+    touch mutationSpectra_${params.species.capitalize()}_${k}.tsv
     """
 }
 
@@ -200,16 +200,16 @@ process count_mutations_csq {
     tuple val(k), val(chrom), val(start), val(end), path(vcf), path(tbi), path(levels), path(priority)
 
     output:
-    tuple val(k), path("mutationSpectra_${params.species}_${k}_*.csq.tsv")
+    tuple val(k), path("mutationSpectra_${params.species.capitalize()}_${k}_*.csq.tsv")
 
     script:
     """
-    compute_spectra_class -i ${vcf} -k ${levels} -c ${priority} -o mutationSpectra_${params.species}_${k}_${chrom}_${start}-${end}.csq.tsv
+    compute_spectra_class -i ${vcf} -k ${levels} -c ${priority} -o mutationSpectra_${params.species.capitalize()}_${k}_${chrom}_${start}-${end}.csq.tsv
     """
     
     stub:
     """
-    touch mutationSpectra_${params.species}_${k}_${chrom}_${start}-${end}.csq.tsv
+    touch mutationSpectra_${params.species.capitalize()}_${k}_${chrom}_${start}-${end}.csq.tsv
     """
 }
 
@@ -224,16 +224,16 @@ process combine_csqs {
     tuple val(k), path("tsvs/*")
 
     output:
-    tuple val(k), path("mutationSpectra_${params.species}_${k}.csq.tsv")
+    tuple val(k), path("mutationSpectra_${params.species.capitalize()}_${k}.csq.tsv")
 
     script:
     """
-    combine_matrix -i ./tsvs/ -o mutationSpectra_${params.species}_${k}.csq.tsv
+    combine_matrix -i ./tsvs/ -o mutationSpectra_${params.species.capitalize()}_${k}.csq.tsv
     """
     
     stub:
     """
-    touch mutationSpectra_${params.species}_${k}.csq.tsv
+    touch mutationSpectra_${params.species.capitalize()}_${k}.csq.tsv
     """
 }
 
@@ -250,7 +250,7 @@ process group_results_old {
     tuple val(k), val(region), path(data)
 
     output:
-    tuple val(k), path("mutyper_mutationSpectra_${params.species}_${k}.csv")
+    tuple val(k), path("mutyper_mutationSpectra_${params.species.capitalize()}_${k}.csv")
 
     script:
     """
@@ -274,12 +274,12 @@ process group_results_old {
         summarise(sum=sum(value)) %>% 
         pivot_wider(names_from = Change, values_from = sum)
 
-    write.csv2(mutSpectra, "mutyper_mutationSpectra_${params.species}_${k}.csv")
+    write.csv2(mutSpectra, "mutyper_mutationSpectra_${params.species.capitalize()}_${k}.csv")
     """
     
     stub:
     """
-    touch mutyper_mutationSpectra_${params.species}_${k}.csv
+    touch mutyper_mutationSpectra_${params.species.capitalize()}_${k}.csv
     """
 }
 
@@ -293,16 +293,16 @@ process group_results {
     tuple val(k), val(chrom), val(start), val(end), path(data)
 
     output:
-    tuple val(k), path("mutyper_mutationSpectra_${params.species}_${k}.csv")
+    tuple val(k), path("mutyper_mutationSpectra_${params.species.capitalize()}_${k}.csv")
 
     script:
     """
-    CombineMutyper ${k} > mutyper_mutationSpectra_${params.species}_${k}.csv
+    CombineMutyper ${k} > mutyper_mutationSpectra_${params.species.capitalize()}_${k}.csv
     """
     
     stub:
     """
-    touch mutyper_mutationSpectra_${params.species}_${k}.csv
+    touch mutyper_mutationSpectra_${params.species.capitalize()}_${k}.csv
     """
 }
 
@@ -316,7 +316,7 @@ process plot_results {
     path "meta.tsv"
 
     output:
-    tuple val(k), path("plot_mutyper_mutSpectra_${params.species}_${k}.pdf")
+    tuple val(k), path("plot_mutyper_mutSpectra_${params.species.capitalize()}_${k}.pdf")
 
     script:
     """
@@ -334,14 +334,14 @@ process plot_results {
 
     mutSpectra[,-c(1, 2)]<-mutSpectra[,-c(1, 2)]/rowSums(mutSpectra[,-c(1, 2)], na.rm=T)
     pca_res <- prcomp(mutSpectra[,-c(1,2)], scale. = TRUE)
-    pdf("plot_mutyper_mutSpectra_${params.species}_${k}.pdf", height = 16, width = 16)
+    pdf("plot_mutyper_mutSpectra_${params.species.capitalize()}_${k}.pdf", height = 16, width = 16)
     autoplot(pca_res, data=mutSpectra, colour = 'pop') + geom_mark_ellipse()
     dev.off()
     """
     
     stub:
     """
-    touch plot_mutyper_mutSpectra_${params.species}_${k}.pdf
+    touch plot_mutyper_mutSpectra_${params.species.capitalize()}_${k}.pdf
     """
 }
 
@@ -382,17 +382,17 @@ process kmercount {
     val k
 
     output:
-    tuple val(k), path("K${k}_counts.txt")
+    tuple val(k), path("${params.species.capitalize()}.K${k}.txt")
 
     script:
     """
     jellyfish count -t 4 -m ${k} -s 3G ${ancfa} -o K${k}.jf
-    jellyfish dump -o K${k}_counts.txt -c K${k}.jf && rm K${k}.jf
+    jellyfish dump -o ${params.species.capitalize()}.K${k}.txt -c K${k}.jf && rm K${k}.jf
     """
 
     stub:
     """
-    touch K${k}_counts.txt
+    touch ${params.species.capitalize()}.K${k}.txt
     """
 }
 

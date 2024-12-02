@@ -8,6 +8,9 @@ All new changes are documented here.
 - Instead, VEP species name is provided with `--vep_species`
 - Greedy mode is now enabled as default. Use `--greedy false` to switch to the low-memory algorithm.
 
+### Fixed
+- Output not generated from `consequence_table` processes
+
 ## [v1.1.1]
 ### Added
 - Generation of the matrix of SDM changes in CSV format

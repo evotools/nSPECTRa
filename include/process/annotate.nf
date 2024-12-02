@@ -115,7 +115,7 @@ process vep {
         -o stdout \
         --vcf \
         --fork ${task.cpus} \
-        --species ${params.vep_species} \
+        --species ${params.species} \
         --fasta ${reffasta} \
         --variant_class ${sift} \
         --nearest symbol \

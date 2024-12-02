@@ -52,7 +52,6 @@ workflow {
   sdm             : $params.sdm
   relate          : $params.relate
   species         : $params.species
-  VEP species     : $params.vep_species
   k               : $params.k
   Ne subset       : $params.ne_subset
   Intergen. time  : $params.intergen_time
