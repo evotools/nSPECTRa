@@ -95,7 +95,7 @@ process mutyper_concat {
 
     input:
     tuple val(k),
-        val(chrom), val(start), val(end), 
+        val(chrom), 
         path("vcfs/*"),
         path("vcfs/*")
 
@@ -290,7 +290,7 @@ process group_results {
     publishDir "${params.outdir}/mutyper/results", mode: "${params.publish_dir_mode}", overwrite: true
 
     input:
-    tuple val(k), val(chrom), val(start), val(end), path(data)
+    tuple val(k), val(chrom), path(data)
 
     output:
     tuple val(k), path("mutyper_mutationSpectra_${params.species.capitalize()}_${k}.csv")

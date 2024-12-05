@@ -61,8 +61,8 @@ workflow MUTYPER {
         mutyper_variant.out
         | filter{ it[0].toInteger() < 8 }
         | map{
-            k, chrom, start, end, vcf_fn, tbi_fn ->
-            [k, chrom, start, end, vcf_fn, tbi_fn, file("${baseDir}/assets/K${k}_mutations.txt")]
+            k, chrom, vcf_fn, tbi_fn ->
+            [k, chrom, vcf_fn, tbi_fn, file("${baseDir}/assets/K${k}_mutations.txt")]
         }
         | count_mutations
         | groupTuple(by: 0)
@@ -73,8 +73,8 @@ workflow MUTYPER {
             mutyper_variant.out
             | filter{ it[0].toInteger() < 8 }
             | map{
-                k, chrom, start, end, vcf_fn, tbi_fn ->
-                [k, chrom, start, end, vcf_fn, tbi_fn, file("${baseDir}/assets/K${k}_mutations.txt"), file("${baseDir}/assets/VEPpriority")]
+                k, chrom, vcf_fn, tbi_fn ->
+                [k, chrom, vcf_fn, tbi_fn, file("${baseDir}/assets/K${k}_mutations.txt"), file("${baseDir}/assets/VEPpriority")]
             }
             | count_mutations_csq
             | groupTuple(by: 0)
