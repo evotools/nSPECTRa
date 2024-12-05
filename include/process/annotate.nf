@@ -19,18 +19,18 @@ process makeAnnotation {
         path("Ancestral_annotation_${chrom}.txt.gz"),
         path("Ancestral_annotation_${chrom}.txt.gz.tbi")
 
-    stub:
-    """
-    touch Ancestral_annotation_${params.reference}.txt.gz
-    touch Ancestral_annotation_${params.reference}.txt.gz.tbi
-    """
-
     script:
     """
     bedtools getfasta -fi ${ancestral} -bed ${vcf} -bedOut | \
         awk 'BEGIN{OFS="\t"};{print \$1,\$2,\$NF}' | \
         bgzip -c > Ancestral_annotation_${chrom}.txt.gz && \
         tabix -b 2 -e 2 -s 1 Ancestral_annotation_${chrom}.txt.gz
+    """
+
+    stub:
+    """
+    touch Ancestral_annotation_${chrom}.txt.gz
+    touch Ancestral_annotation_${chrom}.txt.gz.tbi
     """
 }
 
@@ -53,16 +53,10 @@ process annotateVcf {
         path("genotypes.with_ancestral_allele_${chrom}.vcf.gz.tbi")
 
 
-    stub:
-    """
-    touch genotypes.with_ancestral_allele_${chrom}.vcf.gz
-    touch genotypes.with_ancestral_allele_${chrom}.vcf.gz.tbi
-    """
-
     script:
     """
-    echo '##INFO=<ID=AA,Number=1,Type=String,Description="Ancestral Allele">' > header_${params.reference}.txt
-    bcftools annotate -a Ancestral_annotation.txt.gz -O u -h header_${params.reference}.txt -O z -c CHROM,POS,AA input.vcf.gz | \
+    echo '##INFO=<ID=AA,Number=1,Type=String,Description="Ancestral Allele">' > header_${params.species}.txt
+    bcftools annotate -a Ancestral_annotation.txt.gz -O u -h header_${params.species}.txt -O z -c CHROM,POS,AA input.vcf.gz | \
         bcftools +fill-tags -- -t AF,AC,AN |\
         bcftools view -T ^${masks_ch} -O z > tmp.vcf.gz && \
         tabix -p vcf tmp.vcf.gz
@@ -70,6 +64,12 @@ process annotateVcf {
     ComputeDAF -v tmp.vcf.gz |\
         bcftools view -O z - > genotypes.with_ancestral_allele_${chrom}.vcf.gz && \
         tabix -p vcf genotypes.with_ancestral_allele_${chrom}.vcf.gz
+    """
+
+    stub:
+    """
+    touch genotypes.with_ancestral_allele_${chrom}.vcf.gz
+    touch genotypes.with_ancestral_allele_${chrom}.vcf.gz.tbi
     """
 }
 
@@ -87,12 +87,6 @@ process vep {
 
     output:
     tuple val(chrom), path("genotypes.${chrom}.vep.vcf.gz"), path("genotypes.${chrom}.vep.vcf.gz.tbi")
-    
-    stub:
-    """
-    touch genotypes.${chrom}.vep.vcf.gz
-    touch genotypes.${chrom}.vep.vcf.gz.tbi
-    """
 
     script:
     def cachev = params.vep_cache_version ? "--cache_version ${params.vep_cache_version}" : ""
@@ -130,5 +124,11 @@ process vep {
         --dir_cache ${input_annot} \
         ${cachev} ${vep_args} | bgzip -c > genotypes.${chrom}.vep.vcf.gz
     tabix -p vcf genotypes.${chrom}.vep.vcf.gz
+    """
+    
+    stub:
+    """
+    touch genotypes.${chrom}.vep.vcf.gz
+    touch genotypes.${chrom}.vep.vcf.gz.tbi
     """
 }

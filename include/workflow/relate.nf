@@ -1,4 +1,3 @@
-include { chromosomeList } from "../process/prerun"
 include { relate_format; relate; relate_mut; relate_mut_chr } from '../process/relate'
 include { relate_mut_finalise; relate_mut_chr_finalise; relate_avg_mut } from '../process/relate'
 include { relate_mut_chr_pop; relate_chr_pop_mut_finalise } from '../process/relate'
@@ -14,8 +13,6 @@ workflow RELATE {
         tbi
         anc_fa
         anc_fai
-        ref_fa
-        ref_fai
         chromosomeList
         bedmask
 
@@ -30,11 +27,9 @@ workflow RELATE {
             popfile_ch = makepopfile.out
         }
 
-
-        chromosomeList
+        chromosomes_ch = chromosomeList
             .splitCsv(header: ['N','chrom'])
             .map{ row-> tuple(row.N, row.chrom) }
-            .set{ chromosomes_ch }
 
         // Grep list of samples, and drop smallest groups
         breeds_ch = Channel
@@ -90,10 +85,10 @@ workflow RELATE {
         // Plot the relate results
         // relate_plot_pop( relate_chr_pop_mut_finalise.out.collect(), popfile_ch, mutcats )
         
-    emit:
+    // emit:
         //relate_ne.out[2] 
-        ne_out[2] 
-        relate_avg_mut.out
+        // relate_ne = ne_out[2]
+        // relate_mut = relate_avg_mut.out
 
 
 }

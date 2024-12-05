@@ -7,6 +7,12 @@ process get_hal {
     output:
     path "cactus/"
 
+    script:
+    """
+    wget -O - ${params.cactus_url} > cactus.tar.gz
+    tar xvfz cactus.tar.gz && mv cactus-*/ cactus/ && rm cactus.tar.gz
+    """
+
     stub:
     """
     mkdir cactus
@@ -15,12 +21,6 @@ process get_hal {
     touch cactus/bin/hal2fasta
     touch cactus/bin/halPhyloPTrain.py
     touch cactus/bin/halPhyloPMP.py
-    """
-
-    script:
-    """
-    wget -O - ${params.cactus_url} > cactus.tar.gz
-    tar xvfz cactus.tar.gz && mv cactus-*/ cactus/ && rm cactus.tar.gz
     """
 }
 
@@ -31,14 +31,14 @@ process get_beagle {
     output:
     path "beagle*jar"
 
-    stub:
-    """
-    touch beagle.21Apr21.304.jar
-    """
-
     script:
     """
     wget --no-check-certificate ${params.beagle_url}
+    """
+
+    stub:
+    """
+    touch beagle.21Apr21.304.jar
     """
 
 }
@@ -50,14 +50,14 @@ process get_ref_ibd {
     output:
     path "refined-ibd.17Jan20.102.jar"
 
-    stub:
-    """
-    touch refined-ibd.17Jan20.102.jar
-    """
-
     script:
     """
     wget https://faculty.washington.edu/browning/refined-ibd/refined-ibd.17Jan20.102.jar
+    """
+
+    stub:
+    """
+    touch refined-ibd.17Jan20.102.jar
     """
 
 }
@@ -68,14 +68,14 @@ process get_merge_ibd {
     output:
     path "merge-ibd-segments.17Jan20.102.jar"
 
-    stub:
-    """
-    touch merge-ibd-segments.17Jan20.102.jar
-    """
-
     script:
     """
     wget https://faculty.washington.edu/browning/refined-ibd/merge-ibd-segments.17Jan20.102.jar
+    """
+
+    stub:
+    """
+    touch merge-ibd-segments.17Jan20.102.jar
     """
 
 }
@@ -88,16 +88,16 @@ process get_merge_ibd {
 
     output: 
     path "GONE"
-  
-    stub:
-    """
-    mkdir GONE
-    """
 
     script:
     """
     # Get GONE
     git clone https://github.com/esrud/GONE.git
+    """
+  
+    stub:
+    """
+    mkdir GONE
     """
 }
 
@@ -106,11 +106,6 @@ process get_vep_cache {
 
     output: 
     path "vep_cache"
-
-    stub:
-    """
-    mkdir vep_cache
-    """
 
     script:
     """
@@ -122,5 +117,9 @@ process get_vep_cache {
     mkdir vep_cache
     perl INSTALL.pl -a c -n --NO_BIOPERL -l -c ./vep_cache -s ${params.species}
     """
-    
+
+    stub:
+    """
+    mkdir vep_cache
+    """    
 }

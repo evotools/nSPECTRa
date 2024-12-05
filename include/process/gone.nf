@@ -16,12 +16,6 @@ process gone_inputs {
 
     output: 
         tuple val(pop), path("${pop}.ped"), path("${pop}.map")
-  
-    stub:
-    """
-    touch ${pop}.ped
-    touch ${pop}.map    
-    """
 
     script:
     """
@@ -29,6 +23,12 @@ process gone_inputs {
     plink --allow-extra-chr --chr-set 90 --vcf ${vcf} --keep keep.txt --const-fid ${pop} --recode --out ${pop} --maf 0.05 --geno 0.05 --threads ${task.cpus}
     mv ${pop}.map ${pop}.bck
     FixMap ${pop}.bck ${pop}
+    """
+  
+    stub:
+    """
+    touch ${pop}.ped
+    touch ${pop}.map    
     """
 }
 
@@ -43,11 +43,6 @@ process gone_run {
 
     output: 
         path "${pop}.ne"
-  
-    stub:
-    """
-    touch ${pop}.ne
-    """
 
     script:
     """
@@ -74,6 +69,11 @@ process gone_run {
     # Prepare output
     awk -v pop=${pop} 'BEGIN {OFS="\\t"}; NR>2 { print pop, \$1, \$2}' Output_Ne_${pop} > ${pop}.ne
     """
+
+    stub:
+    """
+    touch ${pop}.ne
+    """
 }
 
 process collectNe {
@@ -86,14 +86,14 @@ process collectNe {
     output:
     path "GONE_NEVALS.ne"
 
-    stub:
-    """
-    touch GONE_NEVALS.ne
-    """
-
     script:
     """
     cat *.ne > GONE_NEVALS.ne
+    """
+
+    stub:
+    """
+    touch GONE_NEVALS.ne
     """
 }
 

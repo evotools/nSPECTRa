@@ -17,13 +17,24 @@ workflow ANCESTRAL {
         if (params.ancestral_fna){
             // Import ancestral fasta
             anc_fa = Channel.fromPath(params.ancestral_fna)
-            makefai(anc_fa)
-            anc_fai = makefai.out
+            anc_fa | view{"Using ancestral genome: ${it}"}
+            if (file("${params.ancestral_fna}.fai").exists()){
+                anc_fai = Channel.fromPath("${params.ancestral_fna}.fai")
+                anc_fai | view{"Using ancestral genome index: ${it}"}
+            } else {
+                anc_fai = makefai(anc_fa)
+            }
             
             // Extract the different genomes and split it into chunks to speed up the process
             if (params.reference_fna){
                 ch_ref = Channel.fromPath(params.reference_fna)
-                ch_ref_fai = makefai_ref(ch_ref)
+                ch_ref | view{"Using reference genome: ${it}"}
+                if (file("${params.reference_fna}.fai").exists()){
+                    ch_ref_fai = Channel.fromPath("${params.reference_fna}.fai")
+                    ch_ref_fai | view{"Using reference genome index: ${it}"}
+                } else {
+                    ch_ref_fai = makefai_ref(ch_ref)
+                }
                 if (params.ref_min_size){
                     filter_by_size(ch_ref, ch_ref_fai)
                     ch_ref = filter_by_size.out[0]
@@ -89,8 +100,8 @@ workflow ANCESTRAL {
         }
         
     emit:
-        anc_fa.collect()
-        anc_fai.collect()
-        ch_ref.collect()
-        ch_ref_fai.collect()
+        anc_fna = anc_fa.collect()
+        anc_fai = anc_fai.collect()
+        ref_fna = ch_ref.collect()
+        ref_fai = ch_ref_fai.collect()
 }

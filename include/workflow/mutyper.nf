@@ -2,7 +2,7 @@
 include { chromosomeList } from '../process/prerun'
 include { group_results; plot_results; ksfs } from '../process/mutyper'
 include { mutyper_variant; mutyper_spectra; mutyper_concat } from '../process/mutyper'
-include { count_mutations; count_mutations_csq } from '../process/mutyper'
+include { count_mutations; count_mutations_csq; consequence_table } from '../process/mutyper'
 include { kmercount; normalize_results } from '../process/mutyper'
 include { combine_counts; combine_csqs } from '../process/mutyper'
 
@@ -55,14 +55,14 @@ workflow MUTYPER {
         // Then extract the spectrum
         | mutyper_spectra
         // In the meanwhile, group the mutyper VCFs and concatenate them
-        mutyper_variant.out | groupTuple(by: 0) | mutyper_concat
+        mutyper_variant.out | groupTuple(by: 0) | mutyper_concat | consequence_table
 
         /* Generate the counts manually */
         mutyper_variant.out
         | filter{ it[0].toInteger() < 8 }
         | map{
-            k, chrom, start, end, vcf, tbi ->
-            [k, chrom, start, end, vcf, tbi, file("${baseDir}/assets/K${k}_mutations.txt")]
+            k, chrom, start, end, vcf_fn, tbi_fn ->
+            [k, chrom, start, end, vcf_fn, tbi_fn, file("${baseDir}/assets/K${k}_mutations.txt")]
         }
         | count_mutations
         | groupTuple(by: 0)
@@ -73,8 +73,8 @@ workflow MUTYPER {
             mutyper_variant.out
             | filter{ it[0].toInteger() < 8 }
             | map{
-                k, chrom, start, end, vcf, tbi ->
-                [k, chrom, start, end, vcf, tbi, file("${baseDir}/assets/K${k}_mutations.txt"), file("${baseDir}/assets/VEPpriority")]
+                k, chrom, start, end, vcf_fn, tbi_fn ->
+                [k, chrom, start, end, vcf_fn, tbi_fn, file("${baseDir}/assets/K${k}_mutations.txt"), file("${baseDir}/assets/VEPpriority")]
             }
             | count_mutations_csq
             | groupTuple(by: 0)

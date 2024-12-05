@@ -13,12 +13,6 @@ process relate_format_legacy {
     output:
     tuple val(samplename), val(contig), path("${contig}.${samplename}.RELATE.haps.gz"), path("${contig}.${samplename}.RELATE.sample.gz"), path("${contig}.map")
     
-    stub:
-    """
-    touch ${contig}.${samplename}.RELATE.haps.gz
-    touch ${contig}.${samplename}.RELATE.sample.gz
-    touch ${contig}.map
-    """
 
     script:
     """
@@ -51,6 +45,13 @@ process relate_format_legacy {
     rm ${contig}.${samplename}.INPUT.sample
     rm ${contig}.${samplename}.RELATE_*
     """
+
+    stub:
+    """
+    touch ${contig}.${samplename}.RELATE.haps.gz
+    touch ${contig}.${samplename}.RELATE.sample.gz
+    touch ${contig}.map
+    """
 }
 
 
@@ -66,20 +67,13 @@ process relate_format {
     path maskfa
     path maskfai
     path poplabels
+    path samplelist
+    val samplename
     tuple val(idx), val(contig)
 
 
     output:
     tuple val(contig), path("${contig}.RELATE.haps.gz"), path("${contig}.RELATE.sample.gz"), path("${contig}.RELATE.dist.gz"), path("${contig}.RELATE.annot")
-    
-    stub:
-    """
-    touch ${contig}.RELATE.haps.gz
-    touch ${contig}.RELATE.sample.gz
-    touch ${contig}.RELATE.annot
-    touch ${contig}.RELATE.dist.gz
-    touch ${contig}.map
-    """
 
     script:
     """
@@ -107,6 +101,15 @@ process relate_format {
     # Make genetic maps
     makeRelateMaps ${contig}
     """
+    
+    stub:
+    """
+    touch ${contig}.RELATE.haps.gz
+    touch ${contig}.RELATE.sample.gz
+    touch ${contig}.RELATE.annot
+    touch ${contig}.RELATE.dist.gz
+    touch ${contig}.map
+    """
 }
 
 
@@ -127,15 +130,6 @@ process relate_format_breed {
 
     output:
     tuple val(samplename), val(contig), path("${contig}.${samplename}.RELATE.haps.gz"), path("${contig}.${samplename}.RELATE.sample.gz"), path("${contig}.map"), path("${contig}.${samplename}.RELATE.dist.gz"), path("${contig}.${samplename}.RELATE.annot")
-    
-    stub:
-    """
-    touch ${contig}.${samplename}.RELATE.haps.gz
-    touch ${contig}.${samplename}.RELATE.sample.gz
-    touch ${contig}.${samplename}.RELATE.annot
-    touch ${contig}.${samplename}.RELATE.dist.gz
-    touch ${contig}.map
-    """
 
     script:
     """
@@ -166,6 +160,15 @@ process relate_format_breed {
     rm anc.${contig}.fa
     rm mask.${contig}.fa
     """
+    
+    stub:
+    """
+    touch ${contig}.${samplename}.RELATE.haps.gz
+    touch ${contig}.${samplename}.RELATE.sample.gz
+    touch ${contig}.${samplename}.RELATE.annot
+    touch ${contig}.${samplename}.RELATE.dist.gz
+    touch ${contig}.map
+    """
 }
 
 
@@ -179,12 +182,6 @@ process relate_br {
 
     output:
     tuple val(samplename), val(contig), path("relate_${samplename}_chr${contig}.anc"), path("relate_${samplename}_chr${contig}.mut")
-
-    stub:
-    """
-    touch relate_${samplename}_chr${contig}.anc
-    touch relate_${samplename}_chr${contig}.mut
-    """
 
     script:
     if (task.cpus == 1)
@@ -216,6 +213,12 @@ process relate_br {
         --memory ${task.cpus * task.memory} \
         -o relate_${samplename}_chr${contig} 
     """
+
+    stub:
+    """
+    touch relate_${samplename}_chr${contig}.anc
+    touch relate_${samplename}_chr${contig}.mut
+    """
 }
 
 
@@ -231,13 +234,6 @@ process relate_avg_mut_br {
     output:
     path "relate_mut_${samplename}_gen_avg.rate"
 
-
-    stub:
-    """
-    touch relate_mut_${samplename}_gen_avg.rate
-    touch avg.gen.${samplename}.err
-    """
-
     script:
     """
     # Get chromosome list
@@ -250,6 +246,12 @@ process relate_avg_mut_br {
                 --years_per_gen ${params.intergen_time} \
                 -i relate_${samplename} \
                 -o relate_mut_${samplename}_gen > avg.time.${samplename}.out 2> avg.time.${samplename}.err
+    """
+
+    stub:
+    """
+    touch relate_mut_${samplename}_gen_avg.rate
+    touch avg.gen.${samplename}.err
     """
 }
 
@@ -267,12 +269,6 @@ process relate_mut_br {
 
     output:
     tuple val(samplename), val(contig), path(anc), path(mut), path("./relate_mut_${samplename}_chr${contig}_mut.bin"), path("./relate_mut_${samplename}_chr${contig}_opp.bin")
-
-    stub:
-    """
-    touch relate_mut_${samplename}_chr${contig}_mut.bin
-    touch relate_mut_${samplename}_chr${contig}_opp.bin
-    """
 
     script:
     """
@@ -292,6 +288,12 @@ process relate_mut_br {
     # Remove extra fasta files
     rm anc.${contig}.fa
     rm mask.${contig}.fa
+    """
+
+    stub:
+    """
+    touch relate_mut_${samplename}_chr${contig}_mut.bin
+    touch relate_mut_${samplename}_chr${contig}_opp.bin
     """
 }
 
