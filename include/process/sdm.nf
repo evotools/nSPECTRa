@@ -16,8 +16,6 @@ process sdm {
 
     script:
     """
-    bcftools view -r ${chrom} -O z ${vcf} > interval.vcf.gz &&
-        tabix -p vcf interval.vcf.gz
     sdm ${vcf} ${samplelist} ${chrom} ${reffasta} sdm.${samplename}.${chrom}
     gzip sdm.${samplename}.${chrom}.txt
     """
