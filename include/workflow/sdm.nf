@@ -19,9 +19,6 @@ workflow SDM {
             .map{ row-> tuple(row.N, row.chrom) }
             .set{ chromosomes_ch }
 
-        // Get individuals' ids
-        // get_individuals( annotateVcf.out[0], annotateVcf.out[1] )
-
         // Import breeds' lists 
         breeds_ch = Channel
             .fromPath("${params.pops_folder}/*.txt")

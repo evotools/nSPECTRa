@@ -16,7 +16,7 @@ workflow MUTYPER {
         anc_fai
         chromosomeList
         masks_ch
-        vcf_chunks_ch
+        vcf_by_chr
         // ne_time_ch
 
     main:
@@ -45,7 +45,7 @@ workflow MUTYPER {
         k_list = params.k?.tokenize(',').flatten()
 
         // Define sequence ids
-        combined_ch = vcf_chunks_ch.combine(k_list)
+        combined_ch = vcf_by_chr.combine(k_list)
 
         // Run meryl counter
         kmercount( anc_fa, anc_fai, Channel.from(k_list) ) 
