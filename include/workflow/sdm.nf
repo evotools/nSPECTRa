@@ -6,7 +6,7 @@ include { sdm_matrix } from '../process/sdm.nf'
 
 workflow SDM {
     take:
-        vcf_chunks_ch
+        vcf_by_chr
         reffasta
         reffai
         masks_ch
@@ -27,13 +27,10 @@ workflow SDM {
             .fromPath("${params.pops_folder}/*.txt")
             .map { file -> tuple(file.simpleName, file) }
         
-        // // Combine chromosomes and breeds
-        // combined_ch = breeds_ch.combine(chromosomes_ch)
-
         // Prepare chunks
         combined_ch = breeds_ch
         | combine(
-            vcf_chunks_ch
+            vcf_by_chr
         )
 
         // Run dinuc pipeline

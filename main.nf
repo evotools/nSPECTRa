@@ -175,7 +175,7 @@ workflow {
         MUTYPER( ch_var_new, ch_var_idx_new, ancestral_fna, ancestral_fai, ch_chr_lists, ch_masks, vcf_chunks_ch )
     } 
     if (params.sdm){
-        SDM( vcf_chunks_ch, reference_fna, reference_fai, ch_masks, ch_chr_lists )
+        SDM( vcf_by_chr, reference_fna, reference_fai, ch_masks, ch_chr_lists )
     }
   }
 }

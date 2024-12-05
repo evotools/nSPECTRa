@@ -7,24 +7,24 @@ process sdm {
     
 
     input:
-    tuple val(samplename), path(samplelist), val(chrom), val(start), val(end), path(vcf), path(tbi)
+    tuple val(samplename), path(samplelist), val(chrom), path(vcf), path(tbi)
     path reffasta
     path reffai
 
     output:
-    tuple val(samplename), path("sdm.${samplename}.${chrom}.${start}-${end}.txt.gz")
+    tuple val(samplename), path("sdm.${samplename}.${chrom}.txt.gz")
 
     script:
     """
-    bcftools view -t ${chrom}:${start}-${end} -O z ${vcf} > interval.vcf.gz &&
+    bcftools view -r ${chrom} -O z ${vcf} > interval.vcf.gz &&
         tabix -p vcf interval.vcf.gz
-    sdm ${vcf} ${samplelist} ${chrom} ${reffasta} sdm.${samplename}.${chrom}.${start}-${end}
-    gzip sdm.${samplename}.${chrom}.${start}-${end}.txt
+    sdm ${vcf} ${samplelist} ${chrom} ${reffasta} sdm.${samplename}.${chrom}
+    gzip sdm.${samplename}.${chrom}.txt
     """
 
     stub:
     """
-    touch sdm.${samplename}.${chrom}.${start}-${end}.txt.gz
+    touch sdm.${samplename}.${chrom}.txt.gz
     """
 }
 
@@ -188,32 +188,35 @@ process sdm_matrix {
     #!/usr/bin/env Rscript
     library(tidyverse)
 
+    ## Import SDMs
     allfiles <- list.files('./', pattern='*.txt', recursive = T, full.names = T)
     singlecounts <- allfiles[grepl('doubleCounts\\\\.', allfiles)]
 
     ## Load and collate all data
     myfiles<-list()
     for(f in singlecounts) {
-        fname = str_match(f, "doubleCounts\\\\.*(.*?)\\\\.txt")[,2]
-        myfiles[[fname]] <-
-            read_tsv(f, col_names = TRUE) %>%
-            filter(nchar(Codon1) == 3 & nchar(Codon2) ==3 & nchar(Codon3) == 3) %>%
-            filter(!grepl("N", Codon1))
+        fname = str_match(f, "doubleCounts\\.*(.*?)\\.txt")[,2]
+        print(fname)
+        myfiles[[fname]]<-read_tsv(f, col_names = TRUE) %>% mutate(Species = '${params.species.capitalize()}')
     }
 
     ## Combine files
-    dat<-bind_rows(myfiles, .id="Breed")
+    dat<-bind_rows(myfiles, .id='Breed')
+    dat <- dat[nchar(dat\$Codon1) == 3 & nchar(dat\$Codon2) == 3 & nchar(dat\$Codon3) == 3, ]
+    dat <- dat[!grepl('N', dat\$Codon1) & !grepl('N', dat\$Codon2) & !grepl('N', dat\$Codon3), ]
 
-    ## Make counts
+    ## Generate counts
     counts = dat %>%
-    select(Breed, Ind, Codon1, Codon2, Codon3, Count) %>%
-    unite('IID', c('Breed', 'Ind'), sep = '-') %>%
-    unite('Change', c('Codon1', 'Codon2', 'Codon3'), sep = '>') %>%
-    group_by(IID, Change) %>%
-    summarise(Count = sum(Count)) %>%
-    pivot_wider(values_from = Count, names_from = Change)
+        select(Species, Breed, Ind, Codon1, Codon2, Codon3, Count) %>%
+        unite('IID', c('Species', 'Breed', 'Ind'), sep = '-') %>%
+        unite('Change', c('Codon1', 'Codon2', 'Codon3'), sep = '>') %>%
+        group_by(IID, Change) %>%
+        summarise(Count = sum(Count)) %>%
+        pivot_wider(values_from = Count, names_from = Change)
     counts[is.na(counts)] = 0
-    counts<-counts %>% separate(IID, c("Breed", "sample"), extra = "merge", sep = '-') %>% select(-Breed)
+    counts<-counts %>%
+        separate(IID, c('Species', "Breed", "sample"), extra = "merge", sep = '-') %>%
+        select(-c("Species", "Breed"))
     write.table(counts, file = "sdm_${params.species.capitalize()}_K3.csv", sep = ";", row.names = F, col.names = T, quote=F)
     """
 
