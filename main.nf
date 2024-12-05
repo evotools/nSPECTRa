@@ -172,7 +172,7 @@ workflow {
         RELATE( ch_var_new, ch_var_idx_new, ancestral_fna, ancestral_fai, ch_chr_lists, ch_masks )
     }
     if (params.mutyper){
-        MUTYPER( vcf_by_chr, ch_var_idx_new, ancestral_fna, ancestral_fai, ch_chr_lists, ch_masks, vcf_chunks_ch )
+        MUTYPER( ch_var_new, ch_var_idx_new, ancestral_fna, ancestral_fai, ch_chr_lists, ch_masks, vcf_by_chr )
     } 
     if (params.sdm){
         SDM( vcf_by_chr, reference_fna, reference_fai, ch_masks, ch_chr_lists )

@@ -45,6 +45,7 @@ workflow MUTYPER {
         k_list = params.k?.tokenize(',').flatten()
 
         // Define sequence ids
+        vcf_by_chr | view
         combined_ch = vcf_by_chr.combine(k_list)
 
         // Run meryl counter
