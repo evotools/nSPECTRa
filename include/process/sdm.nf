@@ -193,7 +193,7 @@ process sdm_matrix {
     ## Load and collate all data
     myfiles<-list()
     for(f in singlecounts) {
-        fname = str_match(f, "doubleCounts\\.*(.*?)\\.txt")[,2]
+        fname = str_match(f, "doubleCounts\\\\.*(.*?)\\\\.txt")[,2]
         print(fname)
         myfiles[[fname]]<-read_tsv(f, col_names = TRUE) %>% mutate(Species = '${params.species.capitalize()}')
     }
