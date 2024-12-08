@@ -7,8 +7,8 @@ include { sdm_matrix } from '../process/sdm.nf'
 workflow SDM {
     take:
         vcf_by_chr
-        reffasta
-        reffai
+        ancfasta
+        ancfai
         masks_ch
         chromosomeList
 
@@ -33,7 +33,7 @@ workflow SDM {
         // Run dinuc pipeline
         raw_sdm = breeds_ch
         | combine(
-            sdm( combined_ch, reffasta, reffai )
+            sdm( combined_ch, ancfasta, ancfai )
             | groupTuple(by: 0),
             by: 0
         )

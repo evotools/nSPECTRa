@@ -8,15 +8,15 @@ process sdm {
 
     input:
     tuple val(samplename), path(samplelist), val(chrom), path(vcf), path(tbi)
-    path reffasta
-    path reffai
+    path ancfasta
+    path ancfai
 
     output:
     tuple val(samplename), path("sdm.${samplename}.${chrom}.txt.gz")
 
     script:
     """
-    sdm ${vcf} ${samplelist} ${chrom} ${reffasta} sdm.${samplename}.${chrom}
+    sdm ${vcf} ${samplelist} ${chrom} ${ancfasta} sdm.${samplename}.${chrom}
     gzip sdm.${samplename}.${chrom}.txt
     """
 

@@ -25,32 +25,6 @@ process get_sequences {
     """
 }
 
-process filtering {
-    tag "filter"
-    label "medium"
-
-    input:
-    path variants
-    path variants_idx 
-
-    output:
-    path "missingness_het_${params.species.capitalize()}.txt"
-
-    script:
-    """
-    if [[ ${variants} == *.bcf ]]; then
-        plink --cow --bcf ${variants} --allow-extra-chr --mind 0.1 --double-id --het --out missingness_het_${params.species.capitalize()} --threads ${task.cpus}
-    else
-        plink --cow --vcf ${variants} --allow-extra-chr --mind 0.1 --double-id --het --out missingness_het_${params.species.capitalize()} --threads ${task.cpus}
-    fi
-    awk 'NR>1 && \$3/\$5>0.05 && \$3/\$5<0.95 {print \$1}' missingness_het_${params.species.capitalize()}.het > missingness_het_${params.species.capitalize()}.txt
-    """
-    
-    stub:
-    """
-    touch missingness_het_${params.species.capitalize()}.txt
-    """
-}
 
 process keep_biallelic_snps {
     tag "bisnp"
@@ -152,31 +126,6 @@ process extract_exclude {
     """
     touch prefilter.vcf.gz
     touch prefilter.vcf.gz.tbi
-    """
-}
-
-
-process apply_filter {
-    tag "filter"
-    label "medium_smallmem_parallel"
-
-    input:
-    tuple val(chrom), path(variants), path(variants_idx)
-    path id_to_keep 
-
-    output:
-    tuple val(chrom), path("filtered.vcf.gz"), path("filtered.vcf.gz.tbi")
-    
-    script:
-    """
-    bcftools view --threads ${task.cpus} -S ${id_to_keep} -m 2 -M 2 -q 0.05:minor -O z ${variants} > filtered.${chrom}.vcf.gz 
-    tabix -p vcf filtered.${chrom}.vcf.gz
-    """
-    
-    stub:
-    """
-    touch filtered.${chrom}.vcf.gz
-    touch filtered.${chrom}.vcf.gz.tbi
     """
 }
 
