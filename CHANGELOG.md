@@ -15,6 +15,7 @@ All new changes are documented here.
 - Workflow miscalculating derived allele frequency when the ancestral allele does not match neither REF or ALT, or their reverse strands (e.g. REF/ALT/AA = A/T/G)
     - The workflow will sets the ancestral state for these sites to `-`
 - Few mix up cases affecting the DAF in v1.1.0
+- Workflow crashing when only one K-mer is selected with `--k`
 
 ## [v1.1.0]
 

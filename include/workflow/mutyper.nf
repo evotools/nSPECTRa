@@ -42,13 +42,18 @@ workflow MUTYPER {
             .set{ chromosomes_ch }
 
         // Create list of k
-        k_list = params.k?.tokenize(',').flatten()
+        String ks = params.k as String
+        if (ks.contains(',')){
+                k_list = Channel.of(ks.tokenize(',')).flatten()
+        } else {
+                k_list = Channel.of(ks)
+        }
 
         // Define sequence ids
         combined_ch = vcf_by_chr.combine(k_list)
 
         // Run meryl counter
-        kmercount( anc_fa, anc_fai, Channel.from(k_list) ) 
+        kmercount( anc_fa, anc_fai, k_list ) 
 
         // Run mutyper variant on each chromosome
         mutyper_variant(combined_ch, anc_fa.collect(), anc_fai.collect(), masks_ch.collect())
