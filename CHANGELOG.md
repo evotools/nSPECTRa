@@ -1,7 +1,7 @@
 # Changelog
 All new changes are documented here.
 
-## [v1.1.2]
+## [v1.1.1]
 ### Added
 - Generation of the matrix of SDM changes in CSV format
 - Optional filtering of all sites where ancestral allele does not match either REF or ALT with `--strict_allele_matching`
