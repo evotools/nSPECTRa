@@ -150,40 +150,17 @@ process consequence_table {
 process count_mutations {
     tag "medium"
     label "medium"
-
-    input:
-    tuple val(k), val(chrom), path(vcf), path(tbi), path(levels)
-
-    output:
-    tuple val(k), path("mutationSpectra_${params.species.capitalize()}_${k}_*.tsv")
-
-    script:
-    """
-    compute_spectra -i ${vcf} -k ${levels} -o mutationSpectra_${params.species.capitalize()}_${k}_${chrom}.tsv
-    """
-    
-    stub:
-    """
-    touch mutationSpectra_${params.species.capitalize()}_${k}_${chrom}.tsv
-    """
-}
-
-
-process combine_counts {
-    tag "count_mutations"
-    label "medium"
-    cpus 1
     publishDir "${params.outdir}/mutyper/full_counts", mode: "${params.publish_dir_mode}", overwrite: true
 
     input:
-    tuple val(k), path("tsvs/*")
+    tuple val(k), path(vcf), path(tbi), path(levels)
 
     output:
     tuple val(k), path("mutationSpectra_${params.species.capitalize()}_${k}.tsv")
 
     script:
     """
-    combine_matrix -i ./tsvs/ -o mutationSpectra_${params.species.capitalize()}_${k}.tsv
+    compute_spectra -i ${vcf} -k ${levels} -o mutationSpectra_${params.species.capitalize()}_${k}.tsv
     """
     
     stub:
@@ -192,43 +169,21 @@ process combine_counts {
     """
 }
 
+
 process count_mutations_csq {
     tag "count_mutations"
     label "medium_largemem"
-
-    input:
-    tuple val(k), val(chrom), path(vcf), path(tbi), path(levels), path(priority)
-
-    output:
-    tuple val(k), path("mutationSpectra_${params.species.capitalize()}_${k}_*.csq.tsv")
-
-    script:
-    """
-    compute_spectra_class -i ${vcf} -k ${levels} -c ${priority} -o mutationSpectra_${params.species.capitalize()}_${k}_${chrom}.csq.tsv
-    """
-    
-    stub:
-    """
-    touch mutationSpectra_${params.species.capitalize()}_${k}_${chrom}.csq.tsv
-    """
-}
-
-
-process combine_csqs {
-    tag "count_mutations"
-    label "medium_largemem"
-    cpus 1
     publishDir "${params.outdir}/mutyper/full_counts_csq", mode: "${params.publish_dir_mode}", overwrite: true
 
     input:
-    tuple val(k), path("tsvs/*")
+    tuple val(k), path(vcf), path(tbi), path(levels), path(priority)
 
     output:
     tuple val(k), path("mutationSpectra_${params.species.capitalize()}_${k}.csq.tsv")
 
     script:
     """
-    combine_matrix -i ./tsvs/ -o mutationSpectra_${params.species.capitalize()}_${k}.csq.tsv
+    compute_spectra_class -i ${vcf} -k ${levels} -c ${priority} -o mutationSpectra_${params.species.capitalize()}_${k}.csq.tsv
     """
     
     stub:
