@@ -316,7 +316,9 @@ process ksfs {
     script:
     """
     echo "Run mutyper (ksfs)"
-    bcftools view --threads ${task.cpus} -S ${samplelist} ${vcf} | \
+    bcftools query -l ${vcf} > all_samples.txt
+    grep -f all_samples.txt ${samplelist} > keep.txt
+    bcftools view --threads ${task.cpus} -S keep.txt ${vcf} | \
         mutyper ksfs - > ksfs_${samplename}_${k}.tsv
     """
     
