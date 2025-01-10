@@ -341,13 +341,12 @@ process kmercount {
 
     script:
     """
-    jellyfish count -t 4 -m ${k} -s 3G ${ancfa} -o K${k}.jf
-    jellyfish dump -o ${params.species.capitalize()}.K${k}.txt -c K${k}.jf && rm K${k}.jf
+    kmer_count ${ancfa} ${k} > 
     """
 
     stub:
     """
-    touch ${params.species.capitalize()}.K${k}.txt
+    touch ${params.species.capitalize()}.K${k}.txt > ${params.species.capitalize()}.K${k}.txt
     """
 }
 
