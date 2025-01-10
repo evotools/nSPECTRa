@@ -10,6 +10,7 @@ All new changes are documented here.
 - Heavy code maintainance, with much better code linting
 - `--species` will now be used as the name of the output, and is therefore now required
 - Greedy mode is now enabled as default. Use `--greedy false` to switch to the low-memory algorithm
+- Replaced jellyfish with custom python script
 
 ### Fixed
 - Workflow miscalculating derived allele frequency when the ancestral allele does not match neither REF or ALT, or their reverse strands (e.g. REF/ALT/AA = A/T/G)
