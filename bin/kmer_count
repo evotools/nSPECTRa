@@ -7,7 +7,7 @@ from pysam import FastaFile
 def count_kmers(fasta, k):
     kmer_counts = defaultdict(int)
     for ref in fasta.references:
-        sequence = fasta[ref]
+        sequence = fasta[ref].upper()
         for i in range(len(sequence) - k + 1):
             kmer = sequence[i:i+k]
             if 'N' not in kmer:
