@@ -26,7 +26,9 @@ def main():
     kmer_counts = count_kmers(sequences, k)
 
     for kmer, count in kmer_counts.items():
-        print(f"{kmer} {count}")
+        valid_nts = sum([1 for i in kmer if i in ['A', 'C', 'T', 'G']])
+        if valid_nts == k:
+            print(f"{kmer} {count}")
 
 if __name__ == "__main__":
     main()
