@@ -1,6 +1,23 @@
 # Changelog
 All new changes are documented here.
 
+## [v1.1.1]
+### Added
+- Generation of the matrix of SDM changes in CSV format
+- Optional filtering of all sites where ancestral allele does not match either REF or ALT with `--strict_allele_matching`
+
+### Changed
+- Heavy code maintainance, with much better code linting
+- `--species` will now be used as the name of the output, and is therefore now required
+- Greedy mode is now enabled as default. Use `--greedy false` to switch to the low-memory algorithm
+- Replaced jellyfish with custom python script
+
+### Fixed
+- Workflow miscalculating derived allele frequency when the ancestral allele does not match neither REF or ALT, or their reverse strands (e.g. REF/ALT/AA = A/T/G)
+    - The workflow will sets the ancestral state for these sites to `-`
+- Few mix up cases affecting the DAF in v1.1.0
+- Workflow crashing when only one K-mer is selected with `--k`
+
 ## [v1.1.0]
 
 ### Added

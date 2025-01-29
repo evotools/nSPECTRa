@@ -76,7 +76,9 @@ def main():
         header = "\t".join(["CHANGE", "CSQ"] + samples)
         dataset = import_mutcat(all_muts, all_consequences, len(samples))
         for site in vcf:
-            mutype = site.info["mutation_type"][0]
+            mutype = site.info["mutation_type"]
+            if isinstance(mutype, tuple):
+                mutype = mutype[0]
             vals = np.array(
                 [1 if 1 in s["GT"] else 0 for s in site.samples.values()],
                 dtype="int64",

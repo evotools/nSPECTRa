@@ -2,7 +2,6 @@
 include { extract; exclude } from '../process/filtering'
 include { extract_exclude; select_noncoding; select_coding } from '../process/filtering'
 include { keep_biallelic_snps; daf_filter; get_sequences } from '../process/filtering'
-// include { filtering; apply_filter } from '../process/filtering'
 include { vep; makeAnnotation; annotateVcf } from '../process/annotate'
 include { shapeit5; shapeit4; beagle} from '../process/prerun' 
 include { chromosomeList; combineVcf } from '../process/prerun'
@@ -90,19 +89,19 @@ workflow PREPROCESS {
         }
 
         // Add ancestral allele information
-        makeAnnotation(processed_ch, ch_anc.collect(), ch_anc_fai.collect())
-        processed_ch = annotateVcf(makeAnnotation.out, masks_ch.collect())
+        ancestral_ch = annotateVcf(
+            makeAnnotation(processed_ch, ch_anc.collect(), ch_anc_fai.collect()),
+            masks_ch.collect()
+        )
 
         // Generate derived allele frequency plots prior DAF filtering.
-        processed_ch | daf | collect | smile
+        ancestral_ch | daf | collect | smile
 
         // Filter by derived allele freq.
-        if (params.max_derivate_allele_freq){
-            processed_ch = processed_ch | daf_filter
-        }
+        filtered_ch = ancestral_ch | daf_filter
 
         // Combine results
-        processed_ch | map{ chrom, vcf, tbi -> [vcf, tbi]} | flatten | collect | combineVcf
+        filtered_ch | map{ _chrom, vcf, tbi -> [vcf, tbi]} | flatten | collect | combineVcf
         vcf_ch = combineVcf.out[0]
         tbi_ch = combineVcf.out[1]
 
@@ -126,19 +125,19 @@ workflow PREPROCESS {
         }
 
         // Prepare chunks
-        vcfs_ch = processed_ch | multiMap{
+        vcfs_ch = filtered_ch | multiMap{
             chrom, vcf, tbi ->
             vcfs: vcf
             tbis: tbi
         }
         chunks_ch = chunking(vcfs_ch.vcfs, vcfs_ch.tbis)
         | splitCsv(header: false, sep: '\t')
-        | combine(processed_ch, by: 0)
+        | combine(filtered_ch, by: 0)
 
     emit:
         vcf = vcf_ch
         tbi = tbi_ch
         chroms = chr_list
-        vcf_by_chr = processed_ch
+        vcf_by_chr = filtered_ch
         chunks_ch = chunks_ch
 }

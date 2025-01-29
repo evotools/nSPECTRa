@@ -9,6 +9,10 @@ process makepopfile {
     output:
     path "popfile.poplabels"
 
+    script:
+    """
+    makePopfile ${pop_folder} > popfile.poplabels
+    """
     
     stub:
     """
@@ -16,11 +20,6 @@ process makepopfile {
     echo "sample1 population2 group2 NA" >> popfile.poplabels
     echo "sample2 population1 group2 NA" >> popfile.poplabels
     echo "sample3 population1 group1 NA" >> popfile.poplabels
-    """
-
-    script:
-    """
-    makePopfile ${pop_folder} > popfile.poplabels
     """
 }
 
@@ -36,14 +35,6 @@ process chromosomeList {
     output:
     path "sequences.csv"
 
-    
-    stub:
-    """
-    echo "1,seq1" > sequences.csv
-    echo "2,seq2" >> sequences.csv
-    echo "3,seq3" >> sequences.csv
-    """
-
     script:
     """
     bcftools view --threads ${task.cpus} ${ch_vcf} |\
@@ -51,6 +42,13 @@ process chromosomeList {
         sort -T . |\
         uniq |\
         awk 'BEGIN{OFS=","};{print NR, \$0}' > sequences.csv 
+    """
+    
+    stub:
+    """
+    echo "1,seq1" > sequences.csv
+    echo "2,seq2" >> sequences.csv
+    echo "3,seq3" >> sequences.csv
     """
 }
 
@@ -74,15 +72,6 @@ process relate_format {
 
     output:
     tuple val(contig), path("${contig}.RELATE.haps.gz"), path("${contig}.RELATE.sample.gz"), path("${contig}.RELATE.dist.gz"), path("${contig}.RELATE.annot")
-    
-    stub:
-    """
-    touch ${contig}.RELATE.haps.gz
-    touch ${contig}.RELATE.sample.gz
-    touch ${contig}.RELATE.annot
-    touch ${contig}.RELATE.dist.gz
-    touch ${contig}.map
-    """
 
     script:
     """
@@ -104,6 +93,15 @@ process relate_format {
                     --poplabels ${poplabels} \
                     -o ${contig}.RELATE 
     """
+    
+    stub:
+    """
+    touch ${contig}.RELATE.haps.gz
+    touch ${contig}.RELATE.sample.gz
+    touch ${contig}.RELATE.annot
+    touch ${contig}.RELATE.dist.gz
+    touch ${contig}.map
+    """
 }
 
 process make_relate_map {
@@ -115,16 +113,16 @@ process make_relate_map {
 
     output:
     tuple val(contig), path(haps), path(sample), path("${contig}.map"), path(dist), path(annot)
-    
-    stub:
-    """
-    touch ${contig}.map
-    """
 
     script:
     """
     # Make genetic maps
     makeRelateMaps ${contig}
+    """
+    
+    stub:
+    """
+    touch ${contig}.map
     """
 }
 
@@ -142,22 +140,16 @@ process relate {
     path "relate_chr${contig}.mut"
     val contig
 
-    stub:
-    """
-    touch relate_chr${contig}.anc
-    touch relate_chr${contig}.mut
-    """
-
     script:
     // Define effective population size.
     def ne = params.neval ? "-N ${params.neval}" : "-N 30000"
     // Define executable
-    def relate = task.cpus == 1 ? file("${params.relate_path}/bin/Relate") : file("${params.relate_path}/scripts/RelateParallel/RelateParallel.sh")
+    def relate_ch = task.cpus == 1 ? "${relate}/bin/Relate" : "${relate}/scripts/RelateParallel/RelateParallel.sh"
     // Define resources on core count.
     def cores = task.cpus == 1 ? "" : "--threads ${task.cpus}"
     def memory = params.relate_memory ? "--memory ${params.relate_memory}" : "--memory 5"
     """
-    ${relate} --mode All \
+    ${relate_ch} --mode All \
         -m ${params.mutation_rate} \
         --haps ${haps} \
         --sample ${sample} \
@@ -166,6 +158,12 @@ process relate {
         --dist ${dist} \
         ${ne} ${cores} ${memory} \
         -o relate_chr${contig} 
+    """
+
+    stub:
+    """
+    touch relate_chr${contig}.anc
+    touch relate_chr${contig}.mut
     """
 }
 
@@ -183,14 +181,6 @@ process relate_avg_mut {
     output:
     path "relate_mut_gen_avg.rate"
 
-
-    stub:
-    """
-    touch relate_mut_gen_avg.rate
-    touch avg.gen.err
-    touch avg.gen.out
-    """
-
     script:
     """
     # Get chromosome list
@@ -207,6 +197,13 @@ process relate_avg_mut {
     
     python -c "import sys; vals = [float(line.strip().split()[1]) for line in open(sys.argv[1]) if 'nan' not in line]; print(sum(vals)/ len(vals))" relate_mut_gen_avg.rate > mut_rate.txt
     """
+
+    stub:
+    """
+    touch relate_mut_gen_avg.rate
+    touch avg.gen.err
+    touch avg.gen.out
+    """
 }
 
 process make_mask {
@@ -219,16 +216,16 @@ process make_mask {
     output:
     path "mask.fasta"
 
-    stub:
-    """
-    touch mask.fasta
-    """
-
     script:
     """
     bedtools maskfasta -fi ${genome} -bed ${bedfile} -fo tmp.fasta
     python -c 'import sys; [sys.stdout.write(line) if ">" in line else sys.stdout.write(line.upper().replace("A","P").replace("C","P").replace("G","P").replace("T","P").replace("-","N") ) for line in open(sys.argv[1])]' tmp.fasta > mask.fasta 
     rm tmp.fasta
+    """
+
+    stub:
+    """
+    touch mask.fasta
     """
 }
 
@@ -248,14 +245,6 @@ process relate_mut {
 
     output:
     path "ANCMUT/relate_mut_ne*"
-    
-    stub:
-    """
-    mkdir ANCMUT
-    cp relate_mut_ne_chr${contig}* ANCMUT/
-    touch ANCMUT/relate_mut_ne_mut.bin
-    touch ANCMUT/relate_mut_ne_opp.bin
-    """
 
     script:
     """
@@ -278,6 +267,14 @@ process relate_mut {
                 -o ANCMUT/relate_mut_ne 2> ctx.err
 
     """
+    
+    stub:
+    """
+    mkdir ANCMUT
+    cp relate_mut_ne* ANCMUT/
+    touch ANCMUT/relate_mut_ne_mut.bin
+    touch ANCMUT/relate_mut_ne_opp.bin
+    """
 }
 
 process relate_mut_chr {
@@ -295,15 +292,6 @@ process relate_mut_chr {
 
     output:
     tuple val(contig), path("ANCMUT/relate_mut_ne_chr${contig}.anc*"), path("ANCMUT/relate_mut_ne_chr${contig}.mut*"), path("ANCMUT/relate_mut_ne_chr${contig}_mut.bin"), path("ANCMUT/relate_mut_ne_chr${contig}_opp.bin")
-
-    stub:
-    """
-    mkdir ANCMUT
-    touch ANCMUT/relate_mut_ne_chr${contig}.anc.gz
-    touch ANCMUT/relate_mut_ne_chr${contig}.mut.gz
-    touch ANCMUT/relate_mut_ne_chr${contig}_mut.bin
-    touch ANCMUT/relate_mut_ne_chr${contig}_opp.bin
-    """
 
     script:
     """
@@ -329,6 +317,15 @@ process relate_mut_chr {
     rm anc.${contig}.fa
     rm mask.${contig}.fa
     """
+
+    stub:
+    """
+    mkdir ANCMUT
+    touch ANCMUT/relate_mut_ne_chr${contig}.anc.gz
+    touch ANCMUT/relate_mut_ne_chr${contig}.mut.gz
+    touch ANCMUT/relate_mut_ne_chr${contig}_mut.bin
+    touch ANCMUT/relate_mut_ne_chr${contig}_opp.bin
+    """
 }
 
 process relate_mut_chr_finalise {
@@ -344,16 +341,6 @@ process relate_mut_chr_finalise {
     output:
     tuple path("FIN/relate_mut_ne_chr${contig}.anc*"), path("FIN/relate_mut_ne_chr${contig}.mut*"), path("FIN/relate_mut_ne_chr${contig}_mut.bin"), path("FIN/relate_mut_ne_chr${contig}_opp.bin"), path("FIN/relate_mut_ne_chr${contig}.rate")
 
-    stub:
-    """
-    mkdir FIN
-    touch FIN/relate_mut_ne_chr${contig}.anc.gz
-    touch FIN/relate_mut_ne_chr${contig}.mut.gz
-    touch FIN/relate_mut_ne_chr${contig}_mut.bin
-    touch FIN/relate_mut_ne_chr${contig}_opp.bin
-    touch FIN/relate_mut_ne_chr${contig}.rate
-    """
-
     script:
     """
     awk 'BEGIN{FS=","};{print \$NF}' ${contig_csv} | sort -nk1,1 > chroms.txt 
@@ -366,6 +353,16 @@ process relate_mut_chr_finalise {
                 --years_per_gen ${params.intergen_time} \
                 -i FIN/relate_mut_ne_chr${contig} \
                 -o FIN/relate_mut_ne_chr${contig}
+    """
+
+    stub:
+    """
+    mkdir FIN
+    touch FIN/relate_mut_ne_chr${contig}.anc.gz
+    touch FIN/relate_mut_ne_chr${contig}.mut.gz
+    touch FIN/relate_mut_ne_chr${contig}_mut.bin
+    touch FIN/relate_mut_ne_chr${contig}_opp.bin
+    touch FIN/relate_mut_ne_chr${contig}.rate
     """
 }
 
@@ -385,13 +382,6 @@ process relate_mut_finalise {
     path "relate_mut_ne_mut.bin"
     path "relate_mut_ne_opp.bin"
 
-    stub:
-    """
-    touch relate_mut_ne.rate
-    touch relate_mut_ne_mut.bin
-    touch relate_mut_ne_opp.bin
-    """
-
     script:
     """
     awk 'BEGIN{FS=","};{print \$NF}' ${contig_csv} | sort -nk1,1 > chroms.txt 
@@ -403,6 +393,13 @@ process relate_mut_finalise {
                 --years_per_gen ${params.intergen_time} \
                 -i relate_mut_ne \
                 -o relate_mut_ne
+    """
+
+    stub:
+    """
+    touch relate_mut_ne.rate
+    touch relate_mut_ne_mut.bin
+    touch relate_mut_ne_opp.bin
     """
 }
 
@@ -425,39 +422,39 @@ process relate_ne {
     path "relate_mut_ne.pdf"
     path "relate_mut_ne_avg.rate"
 
-    stub:
-        """
-        touch relate_mut_ne.coal
-        touch relate_mut_ne.pairwise.coal
-        touch relate_mut_ne.pairwise.bin
-        touch relate_mut_ne_avg.rate
-        touch relate_mut_ne.pdf
-        touch relate_mut_ne.pairwise.ne
-        for i in \$( awk 'BEGIN{FS=","};{print \$NF}' ${contig_csv} ); do 
-            touch relate_mut_ne_chr\${i}.anc.gz
-            touch relate_mut_ne_chr\${i}.mut.gz
-            touch relate_mut_ne_chr\${i}.dist
-        done
-        """
-
     script:
-        """
-        # Get chromosome list
-        awk 'BEGIN{FS=","};{print \$NF}' ${contig_csv} > chroms.txt 
+    """
+    # Get chromosome list
+    awk 'BEGIN{FS=","};{print \$NF}' ${contig_csv} > chroms.txt 
 
-        # Run relate mutation spectra    
-        ${relate}/scripts/EstimatePopulationSize/EstimatePopulationSize.sh \
-                -i relate \
-                --chr chroms.txt \
-                --poplabels ${poplabels} \
-                -m 1.25e-8 \
-                --years_per_gen ${params.intergen_time} \
-                --threads ${task.cpus} \
-                -o relate_mut_ne 2> ne.err
+    # Run relate mutation spectra    
+    ${relate}/scripts/EstimatePopulationSize/EstimatePopulationSize.sh \
+            -i relate \
+            --chr chroms.txt \
+            --poplabels ${poplabels} \
+            -m 1.25e-8 \
+            --years_per_gen ${params.intergen_time} \
+            --threads ${task.cpus} \
+            -o relate_mut_ne 2> ne.err
 
-        # Generate single-pop Ne values
-        coal2ne relate_mut_ne.pairwise.coal > relate_mut_ne.pairwise.ne
-        """
+    # Generate single-pop Ne values
+    coal2ne relate_mut_ne.pairwise.coal > relate_mut_ne.pairwise.ne
+    """
+
+    stub:
+    """
+    touch relate_mut_ne.coal
+    touch relate_mut_ne.pairwise.coal
+    touch relate_mut_ne.pairwise.bin
+    touch relate_mut_ne_avg.rate
+    touch relate_mut_ne.pdf
+    touch relate_mut_ne.pairwise.ne
+    for i in \$( awk 'BEGIN{FS=","};{print \$NF}' ${contig_csv} ); do 
+        touch relate_mut_ne_chr\${i}.anc.gz
+        touch relate_mut_ne_chr\${i}.mut.gz
+        touch relate_mut_ne_chr\${i}.dist
+    done
+    """
 }
 
 
@@ -479,12 +476,6 @@ process relate_mut_chr_pop {
     output:
     tuple val(pop), path("relate_mut_ne_${pop}_chr${contig}_mut.bin"), path("relate_mut_ne_${pop}_chr${contig}_opp.bin")
 
-    stub:
-    """
-    touch relate_mut_ne_${pop}_chr${contig}_mut.bin
-    touch relate_mut_ne_${pop}_chr${contig}_opp.bin
-    """
-
     script:
     """
     # Extract single-chr fastas
@@ -503,6 +494,12 @@ process relate_mut_chr_pop {
         -i relate_mut_ne_chr${contig} \
         -o relate_mut_ne_${pop}_chr${contig} 2> ctx.${pop}.${contig}.err
     """
+
+    stub:
+    """
+    touch relate_mut_ne_${pop}_chr${contig}_mut.bin
+    touch relate_mut_ne_${pop}_chr${contig}_opp.bin
+    """
 }
 
 process relate_chr_pop_mut_finalise {
@@ -518,19 +515,19 @@ process relate_chr_pop_mut_finalise {
     path "relate_mut_ne_${pop}*"
     //tuple path("relate_mut_ne_chr${contig}.anc*"), path("relate_mut_ne_chr${contig}.mut*"), path("relate_mut_ne_chr${contig}_mut.bin"), path("relate_mut_ne_chr${contig}_opp.bin"), path("relate_mut_ne_chr${contig}.rate")
 
-    stub:
-    """
-    touch relate_mut_ne_${pop}_mut.bin
-    touch relate_mut_ne_${pop}_opp.bin
-    touch relate_mut_ne_${pop}.rate
-    """
-
     script:
     """
     awk 'BEGIN{FS=","};{print \$NF}' ${contig_csv} | sort -nk1,1 > chroms.txt 
 
     ${relate}/bin/RelateMutationRate --mode SummarizeForGenomeForCategory --chr chroms.txt -o relate_mut_ne_${pop}
     ${relate}/bin/RelateMutationRate --mode FinalizeForCategory -i relate_mut_ne_${pop} -o relate_mut_ne_${pop}
+    """
+
+    stub:
+    """
+    touch relate_mut_ne_${pop}_mut.bin
+    touch relate_mut_ne_${pop}_opp.bin
+    touch relate_mut_ne_${pop}.rate
     """
 }
 
@@ -548,14 +545,14 @@ process relate_plot_pop {
     output:
     path "plot_mutrate.pdf"
 
-    stub:
-    """
-    touch plot_mutrate.pdf
-    """
-
     script:
     """
     relate_plot_pop ${mutcats} ${params.intergen_time} ${poplabels}
+    """
+
+    stub:
+    """
+    touch plot_mutrate.pdf
     """
 }
 
@@ -574,12 +571,6 @@ process ne_removetreeswithfewmutations {
 
     output:
     tuple val(contig), path("relate_mut_ne_subset_chr${contig}.anc.gz"), path("relate_mut_ne_subset_chr${contig}.mut.gz")
-    
-    stub:
-    """
-    touch relate_mut_ne_subset_chr${contig}.anc.gz
-    touch relate_mut_ne_subset_chr${contig}.mut.gz
-    """
 
     script:
     def relate = file(params.relate_path)
@@ -594,6 +585,12 @@ process ne_removetreeswithfewmutations {
     gzip relate_mut_ne_subset_chr${contig}.anc
     gzip relate_mut_ne_subset_chr${contig}.mut
     """
+    
+    stub:
+    """
+    touch relate_mut_ne_subset_chr${contig}.anc.gz
+    touch relate_mut_ne_subset_chr${contig}.mut.gz
+    """
 }
 
 process ne_ConstRate {
@@ -604,20 +601,14 @@ process ne_ConstRate {
     input:
     path ancs
     path muts
+    path relate
+    path contig_csv
 
     output:
     path "relate_mut_ne.coal"
     path "relate_mut_ne.pdf"
 
-
-    stub:
-    """
-    touch relate_mut_ne.coal
-    touch relate_mut_ne.pdf
-    """
-
     script:
-    def relate = file(params.relate_path)
     """
     # Get chromosome list
     awk 'BEGIN{FS=","};{print \$NF}' ${contig_csv} > chroms.txt 
@@ -629,6 +620,12 @@ process ne_ConstRate {
         -i 30000 \
         -o relate_mut_ne
     coal2ne relate_mut_ne.coal
+    """
+
+    stub:
+    """
+    touch relate_mut_ne.coal
+    touch relate_mut_ne.pdf
     """
 }
 
@@ -644,13 +641,6 @@ process ne_Iterate {
     output:
     path "./OUT/*.anc"
     path "./OUT/*.mut"
-
-
-    stub:
-    """
-    touch relate_mut_ne.coal
-    touch relate_mut_ne.pdf
-    """
 
     script:
     def relate = file(params.relate_path)
@@ -668,5 +658,11 @@ process ne_Iterate {
             -profile ${workflow.profile}
         runN=\$((runN + 1))
     done
+    """
+
+    stub:
+    """
+    touch relate_mut_ne.coal
+    touch relate_mut_ne.pdf
     """
 }

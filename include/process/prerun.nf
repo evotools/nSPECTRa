@@ -11,14 +11,14 @@ process chunking {
     output:
     path "chunks.bed"
 
-    stub:
-    """
-    touch chunks.bed
-    """
-
     script:
     """
     CHUNKING -v ${vcf} -o chunks.bed --chunks_size ${params.chunk_size}
+    """
+
+    stub:
+    """
+    touch chunks.bed
     """
 }
 
@@ -34,17 +34,16 @@ process chromosomeList {
     output:
     path "sequences.csv"
 
-    
+    script:
+    """
+    tabix -l ${ch_vcf} | awk 'BEGIN{OFS=","};{print NR, \$0}' > sequences.csv 
+    """
+
     stub:
     """
     echo "1,seq1" > sequences.csv
     echo "2,seq2" >> sequences.csv
     echo "3,seq3" >> sequences.csv
-    """
-
-    script:
-    """
-    tabix -l ${ch_vcf} | awk 'BEGIN{OFS=","};{print NR, \$0}' > sequences.csv 
     """
 }
 
@@ -59,17 +58,16 @@ process get_masks{
     output:
     path "masks.bed"
 
-    stub:
-    """
-    touch masks.bed
-    """
-
     script:
     """
     faToTwoBit ${genome} ${genome.simpleName}.2bit
     twoBitInfo -maskBed ${genome.simpleName}.2bit masks.bed
     """
 
+    stub:
+    """
+    touch masks.bed
+    """
 }
 
 
@@ -85,17 +83,16 @@ process splitvcf {
     output:
     tuple val(chrom), path("subset_${chrom}.vcf.gz")
 
+    script:
+    """
+    bcftools view --threads ${task.cpus} -r ${chrom} -O z -o subset_${chrom}.vcf.gz ${ch_vcf} && \
+        tabix -p vcf subset_${chrom}.vcf.gz
+    """
     
     stub:
     """
     touch subset_${chrom}.vcf.gz
     touch subset_${chrom}.vcf.gz.tbi
-    """
-
-    script:
-    """
-    bcftools view --threads ${task.cpus} -r ${chrom} -O z -o subset_${chrom}.vcf.gz ${ch_vcf} && \
-        tabix -p vcf subset_${chrom}.vcf.gz
     """
 }
 
@@ -109,19 +106,18 @@ process get_individuals {
 
     output:
     path "individuals.txt"
-    
-    
+
+    script:
+    """
+    vcfsamplenames ${ch_vcf} > individuals.txt
+    """
+
     stub:
     """
     echo "FID1_IID1" > individuals.txt
     echo "FID1_IID2" >> individuals.txt
     echo "FID2_IID1" >> individuals.txt
     echo "FID2_IID2" >> individuals.txt
-    """
-
-    script:
-    """
-    vcfsamplenames ${ch_vcf} > individuals.txt
     """
 }
 
@@ -136,14 +132,13 @@ process get_breeds {
 
     output:
     path "breeds.csv"
-    
-    
-    stub:
+
+    script:
     """
     awk 'BEGIN{OFS=","; FS="_"}; {print \$1}' ${indvs} | sort | uniq | awk '{print \$NR, \$0}; END{print \$NR+1, "ALL"}' > breeds.csv 
     """
 
-    script:
+    stub:
     """
     awk 'BEGIN{OFS=","; FS="_"}; {print \$1}' ${indvs} | sort | uniq | awk '{print \$NR, \$0}; END{print \$NR+1, "ALL"}' > breeds.csv 
     """
@@ -152,8 +147,8 @@ process get_breeds {
 // Run shapeit2/beagle for each chromosome
 process beagle {
     tag "${chrom}"
-    errorStrategy = {task.exitStatus in [137,140] ? 'retry' : 'finish'}
-    maxRetries = 2
+    errorStrategy {task.exitStatus in [137,140] ? 'retry' : 'finish'}
+    maxRetries 2
  
     input:
     tuple val(chrom), path(vcf), path(tbi)
@@ -161,13 +156,6 @@ process beagle {
 
     output:
     tuple val(chrom), path("prephase_${chrom}.vcf.gz"), path("prephase_${chrom}.vcf.gz.tbi")
-
-    
-    stub:
-    """
-    touch prephase_${chrom}.vcf.gz
-    touch prephase_${chrom}.vcf.gz.tbi
-    """
 
     script:
     // Set java memory to the highest between `memoryGB - (1GB * #Cores)` or 6GB 
@@ -190,6 +178,12 @@ process beagle {
                 tabix -p vcf prephase_${chrom}.vcf.gz
             fi
     """
+    
+    stub:
+    """
+    touch prephase_${chrom}.vcf.gz
+    touch prephase_${chrom}.vcf.gz.tbi
+    """
 }
 
 process shapeit4 {
@@ -202,13 +196,6 @@ process shapeit4 {
     output:
     tuple val(chrom), path("prephase_${chrom}.vcf.gz"), path("prephase_${chrom}.vcf.gz.tbi")
 
-    
-    stub:
-    """
-    touch prephase_${chrom}.vcf.gz
-    touch prephase_${chrom}.vcf.gz.tbi
-    """
-
     script:
     def psfield = params.whatshap ? "--use-PS 0.0001" : null
     def shapeit = params.shapeit ? "${params.shapeit}" : "shapeit"
@@ -219,14 +206,12 @@ process shapeit4 {
         tabix -p vcf prephase_${chrom}.vcf.gz
     fi
     """
-    // if (params.shapeit)
-    // """
-    // ${params.shapeit} --input ${vcf} -T ${task.cpus} --region ${chrom} --effective-size ${params.neval} --output prephase_${chrom}.vcf.gz --sequencing ${psfield}
-    // """
-    // else
-    // """
-    // shapeit4 --input ${vcf} -T ${task.cpus} --region ${chrom} --effective-size ${params.neval} --output prephase_${chrom}.vcf.gz --sequencing ${psfield}
-    // """
+    
+    stub:
+    """
+    touch prephase_${chrom}.vcf.gz
+    touch prephase_${chrom}.vcf.gz.tbi
+    """
 }
 
 process shapeit5 {
@@ -239,18 +224,17 @@ process shapeit5 {
     output:
     tuple val(chrom), path("prephase_${chrom}.vcf.gz"), path("prephase_${chrom}.vcf.gz.tbi")
 
-    
-    stub:
-    """
-    touch prephase_${chrom}.vcf.gz
-    touch prephase_${chrom}.vcf.gz.tbi
-    """
-
     script:
     def shapeit = params.shapeit ? "${params.shapeit}" : "phase_common"
     def ne = params.neval ? "--hmm-ne ${params.neval}" : ""
     """
     ${shapeit} --input ${vcf} --region ${chrom} --filter-maf 0.001 --output prephase_${chrom}.vcf.gz --thread ${task.cpus}
+    """
+    
+    stub:
+    """
+    touch prephase_${chrom}.vcf.gz
+    touch prephase_${chrom}.vcf.gz.tbi
     """
 }
 
@@ -267,15 +251,14 @@ process split_vcf {
     output:
     tuple val(chrom), path("prephase_${chrom}.vcf.gz")
 
+    script:
+    """
+    bcftools view --threads ${task.cpus} -O z -r ${chrom} ${vcf} > prephase_${chrom}.vcf.gz
+    """
     
     stub:
     """
     touch prephase_${chrom}.vcf.gz
-    """
-
-    script:
-    """
-    bcftools view --threads ${task.cpus} -O z -r ${chrom} ${vcf} > prephase_${chrom}.vcf.gz
     """
 }
 
@@ -291,18 +274,17 @@ process combineVcf {
     output:
         path "processed.vcf.gz" 
         path "processed.vcf.gz.tbi"
-  
-    
-    stub:
-    """
-    touch processed.vcf.gz
-    touch processed.vcf.gz.tbi
-    """
 
     script:
     """
     bcftools concat -O u vcfs/*.vcf.gz | bcftools sort -T ./ -O z -m 5G > processed.vcf.gz && \
         tabix -p vcf processed.vcf.gz
+    """
+    
+    stub:
+    """
+    touch processed.vcf.gz
+    touch processed.vcf.gz.tbi
     """
 }
 
@@ -326,13 +308,6 @@ process ibd {
     output: 
         tuple val(chrom), path("IBD.${chrom}.ibd.gz")
         tuple val(chrom), path("IBD.${chrom}.hbd.gz")
-  
-    
-    stub:
-    """
-    touch IBD.${chrom}.ibd.gz
-    touch IBD.${chrom}.hbd.gz
-    """
 
     script:
     """
@@ -344,25 +319,30 @@ process ibd {
             nthreads=${task.cpus} \
             ${params.ibd_params}
     """
+    
+    stub:
+    """
+    touch IBD.${chrom}.ibd.gz
+    touch IBD.${chrom}.hbd.gz
+    """
 }
 
 process collect_vcf {
 
     input:
-    path path(subset)
+    path subset
 
     output:
     path "ready.vcf.gz"
 
+    script:
+    """
+    vcf-concat ${subset} | vcf-sort | bgzip -c > ready.vcf.gz 
+    """
     
     stub:
     """
     touch ready.vcf.gz
-    """
-
-    script:
-    """
-    vcf-concat ${vep_out} | vcf-sort | bgzip -c > ready.vcf.gz 
     """
 
 }
@@ -377,15 +357,14 @@ process make_shapeit{
     output:
     tuple val(chrom), path("${chrom}.SHAPEIT.*")
 
+    script:
+    """
+    vcftools --gzvcf ${vcf} --IMPUTE --out ${chrom}.SHAPEIT
+    """
     
     stub:
     """
     touch ${chrom}.SHAPEIT.T
-    """
-
-    script:
-    """
-    vcftools --gzvcf ${vcf} --IMPUTE --out ${chrom}.SHAPEIT
     """
 }
 
@@ -403,12 +382,6 @@ process daf {
     output:
     path "daf.${chrom}.csv.gz"
 
-    
-    stub:
-    """
-    echo "" | bgzip -c > daf.${chrom}.csv.gz
-    """
-
     script:
     """
     # Keep sites with AA info, otherwise no DAF is available
@@ -416,6 +389,12 @@ process daf {
         bcftools query -H -f "%CHROM,%POS,%DAF\\n" - | \
         bgzip -c > daf.${chrom}.csv.gz
     """
+    
+    stub:
+    """
+    echo "" | bgzip -c > daf.${chrom}.csv.gz
+    """
+
 }
 
 // Smile plot for the derived allele frequencies
@@ -429,12 +408,6 @@ process smile {
     output:
     path "smile.pdf"
     path "smile.png"
-
-    stub:
-    """
-    touch smile.pdf
-    touch smile.png
-    """
 
     script:
     """
@@ -456,4 +429,11 @@ process smile {
     ggsave('smile.pdf', device = 'pdf', height=9, width=16)
     ggsave('smile.png', device = 'png', height=9, width=16)
     """
+
+    stub:
+    """
+    touch smile.pdf
+    touch smile.png
+    """
+
 }

@@ -15,11 +15,6 @@ process hal2maf {
     output:
     path "${params.reference}_${params.target}.maf"  
     
-    
-    stub:
-    """
-    touch ${params.reference}_${params.target}.maf
-    """
 
     script:
     """
@@ -27,6 +22,11 @@ process hal2maf {
         --refGenome ${params.reference} \
         --targetGenomes ${params.target} \
         --hdf5InMemory ${HAL} ${params.reference}_${params.target}.maf
+    """
+    
+    stub:
+    """
+    touch ${params.reference}_${params.target}.maf
     """
 }
 
@@ -46,12 +46,6 @@ process hal2chain {
     output:
     path "${params.target}_${params.reference}.chain"  
     
-    
-    stub:
-    """
-    touch ${params.target}_${params.reference}.chain
-    """
-
     script:
     """
     hal2maf \
@@ -59,6 +53,11 @@ process hal2chain {
         --targetGenomes ${params.reference} \
         --hdf5InMemory ${HAL} stdout | \
             maf-convert chain - > ${params.target}_${params.reference}.chain
+    """
+    
+    stub:
+    """
+    touch ${params.target}_${params.reference}.chain
     """
 }
 
@@ -75,17 +74,16 @@ process halSnps {
 
     output:
     path "SNPs_${params.reference}_${params.target}.tsv"  
-    
-    
-    stub:
-    """
-    touch SNPs_${params.reference}_${params.target}.tsv 
-    """
 
     script:
     """
     halSnps ${HAL} ${params.reference} ${params.target} \
         --tsv SNPs_${params.reference}_${params.target}.tsv --hdf5InMemory && \
         rm ./\${halname}.hal
+    """
+    
+    stub:
+    """
+    touch SNPs_${params.reference}_${params.target}.tsv 
     """
 }

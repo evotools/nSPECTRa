@@ -9,6 +9,8 @@ revert = {
     "C": "G",
 }
 
+AT = ['A', 'T']
+GC = ['G', 'C']
 
 def parse_args():
     import argparse
@@ -36,7 +38,7 @@ def main():
 
     # Create new header
     in_vcf.header.add_line(
-        '##INFO=<ID=DAF,Number=A,Type=Float,Description="Estimated derived allele frequency in the range (0,1]">'
+        '##INFO=<ID=DAF,Number=A,Type=Float,Description="Estimated derived allele frequency in the range [0,1]">'
     )
     sys.stdout.write(str(in_vcf.header))
 
@@ -52,8 +54,19 @@ def main():
         if not aa:
             sys.stdout.write(str(site))
             continue
-        daf = af if aa == ref or aa == revert.get(ref) else 1 - af
-        site.info.update({"DAF": daf})
+        daf = None
+        if aa == ref:
+            daf = af
+        elif aa == alt:
+            daf = 1 - af
+        elif aa == revert.get(ref):
+            daf = af
+        elif aa == revert.get(alt):
+            daf = 1 - af
+        else:
+            site.info.update({"AA": "-"})
+        if daf is not None:
+            site.info.update({"DAF": daf})
         sys.stdout.write(str(site))
 
     # Process bed

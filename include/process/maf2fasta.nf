@@ -45,24 +45,23 @@ process maf2bed {
     output:
     path "${params.reference}_${params.target}.bed"
     
-    
-    stub:
-    """
-    touch ${params.reference}_${params.target}.bed
-    """
-
     script:
     """
     MAFSPLIT -m ${maf} -o stdout > tmp.split.maf
     mafSTRANDER --maf tmp.split.maf --strand + > ${params.reference}_${params.target}.split.plus.maf && rm tmp.split.maf
     MAF2ANCFA -m ${params.reference}_${params.target}.split.plus.maf -d ${params.reference} -t ${task.cpus} -O bed -o ${params.reference}_${params.target}
     """
+    
+    stub:
+    """
+    touch ${params.reference}_${params.target}.bed
+    """
 }
 
 process bed2vbed{
-    cpus = 4
-    memory = { params.greedy ? 96.GB * task.attempt : 32.GB * task.attempt }
-    time = { 23.h * task.attempt }
+    cpus 4
+    memory { params.greedy ? 96.GB * task.attempt : 32.GB * task.attempt }
+    time { 23.h * task.attempt }
 
     input:
     path bed
@@ -72,13 +71,6 @@ process bed2vbed{
 
     output:
     tuple path("./${contig}_ancestral_states.bed.gz"), path("${contig}.fasta"), optional: true
-    
-    
-    stub:
-    """
-    touch ./${contig}_ancestral_states.bed.gz
-    touch ${contig}.fasta
-    """
 
     script:
     def greedy = params.greedy ? "--greedy" : ""
@@ -87,6 +79,12 @@ process bed2vbed{
     VERTICALIZE -b ${bed} -t ${task.cpus} --region ${contig} -f ${contig}.fasta -o /dev/stdout |\
         CONSENSE -b /dev/stdin -t ${task.cpus} --region ${contig} -f ${contig}.fasta -o ${contig}_ancestral_states.bed ${greedy}
     bgzip ${contig}_ancestral_states.bed
+    """
+    
+    stub:
+    """
+    touch ./${contig}_ancestral_states.bed.gz
+    touch ${contig}.fasta
     """
 }
 
@@ -107,6 +105,13 @@ process makeRefTgtFasta {
     path "${params.reference}.fasta.fai", emit: reffai
     path "${params.target}.fasta.fai", emit: tgtfai
 
+    script:
+    """
+    hal2fasta --hdf5InMemory ${HAL} ${params.target} > ${params.target}.fasta
+    hal2fasta --hdf5InMemory ${HAL} ${params.reference} > ${params.reference}.fasta
+    samtools faidx ${params.target}.fasta
+    samtools faidx ${params.reference}.fasta
+    """
     
     stub:
     """
@@ -126,14 +131,6 @@ process makeRefTgtFasta {
     echo 'TTCCTTGT' >> ${params.target}.fasta
     samtools faidx ${params.target}.fasta
     """
-
-    script:
-    """
-    hal2fasta --hdf5InMemory ${HAL} ${params.target} > ${params.target}.fasta
-    hal2fasta --hdf5InMemory ${HAL} ${params.reference} > ${params.reference}.fasta
-    samtools faidx ${params.target}.fasta
-    samtools faidx ${params.reference}.fasta
-    """
 }
 
 process filter_by_size {
@@ -147,18 +144,17 @@ process filter_by_size {
     output:
     path "${params.reference}.large.fasta", emit: reffasta
     path "${params.reference}.large.fasta.fai", emit: reffai
-    
-    
-    stub:
-    """
-    touch ${params.reference}.large.fasta
-    touch ${params.reference}.large.fasta.fai
-    """
 
     script:
     """
     samtools faidx ${REF} \$( awk -v size=${params.ref_min_size} '\$2>=size {print \$1}' ${FAI} ) > ${params.reference}.large.fasta && 
         samtools faidx ${params.reference}.large.fasta
+    """
+    
+    stub:
+    """
+    touch ${params.reference}.large.fasta
+    touch ${params.reference}.large.fasta.fai
     """
 }
 
@@ -172,19 +168,18 @@ process splitfasta {
     output:
     path "*.sub.fa"
 
+    script:
+    """
+    for i in `awk '{print \$1}' ${fai}`; do
+        samtools faidx ${fasta} \$i > ./\$i.sub.fa
+    done
+    """
     
     stub:
     """
     touch seq1.sub.fa
     touch seq2.sub.fa
     touch seq3.sub.fa
-    """
-
-    script:
-    """
-    for i in `awk '{print \$1}' ${fai}`; do
-        samtools faidx ${fasta} \$i > ./\$i.sub.fa
-    done
     """
 }
 
@@ -198,15 +193,14 @@ process bed2ancfa {
     output:
     path "${reffa.baseName}.anc.fa"
 
+    script:
+    """
+    BED2ANCFASTA -b ${bedfile} -f ${reffa} -o ${reffa.baseName}.anc.fa
+    """
     
     stub:
     """
     touch ${reffa.baseName}.anc.fa
-    """
-
-    script:
-    """
-    BED2ANCFASTA -b ${bedfile} -f ${reffa} -o ${reffa.baseName}.anc.fa
     """
 }
 
@@ -223,17 +217,16 @@ process collectAncfa {
     path "ancestral.fasta"
     path "ancestral.fasta.fai"
 
+    script:
+    """
+    cat ${ancfas} > ancestral.fasta
+    samtools faidx ancestral.fasta
+    """
     
     stub:
     """
     touch ancestral.fasta
     touch ancestral.fasta.fai
-    """
-
-    script:
-    """
-    cat ${ancfas} > ancestral.fasta
-    samtools faidx ancestral.fasta
     """
 }
 
@@ -247,15 +240,14 @@ process makefai {
     output:
     path "*.fai"
 
+    script:
+    """
+    samtools faidx ${ancfa}
+    """
     
     stub:
     """
     touch ${ancfa.simpleName}.fai
-    """
-
-    script:
-    """
-    samtools faidx ${ancfa}
     """
 }
 
@@ -272,16 +264,15 @@ process rename_fasta {
     path "${fasta.simpleName}.renamed.fasta"
     path "${fasta.simpleName}.renamed.fasta.fai"
 
+    script:
+    """
+    FASTA_REHEADER ${fasta} ${conversion_table} > ${fasta.simpleName}.renamed.fasta
+    samtools faidx ${fasta.simpleName}.renamed.fasta
+    """
     
     stub:
     """
     touch ${fasta.simpleName}.renamed.fasta
     touch ${fasta.simpleName}.renamed.fasta.fai
-    """
-
-    script:
-    """
-    FASTA_REHEADER ${fasta} ${conversion_table} > ${fasta.simpleName}.renamed.fasta
-    samtools faidx ${fasta.simpleName}.renamed.fasta
     """
 }

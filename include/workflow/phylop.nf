@@ -77,6 +77,6 @@ workflow CONSTRAINED {
         vcf_drop_conserved(vcf, tbi, conserved_ch)
 
     emit:
-        vcf_drop_conserved.out.vcf
-        vcf_drop_conserved.out.tbi
+        vcf = vcf_drop_conserved.out.vcf
+        tbi = vcf_drop_conserved.out.tbi
 }
