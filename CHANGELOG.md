@@ -1,6 +1,10 @@
 # Changelog
 All new changes are documented here.
 
+## [v1.1.2]
+### Fixed
+- Startup from repository
+
 ## [v1.1.1]
 ### Added
 - Generation of the matrix of SDM changes in CSV format
