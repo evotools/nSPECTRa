@@ -99,17 +99,23 @@ workflow {
     """  
   }
 
-  // Check parameters
-  Channel.from([params.variants, params.idx])
-  | map{
-    if (!file(it).exists()) {
-      throw new Exception("Missing parameter ${it}")
+  /* Check mandatory params */
+  if (params.variants && !params.ancestral_only) { 
+    if (!file(params.variants).exists()) { exit 1, 'Vcf file not found!' }
+    ch_var = Channel.fromPath(params.variants) 
+  } else { 
+    exit 1, 'Vcf file not specified!' 
+  }
+  if (params.idx && !params.ancestral_only) { 
+    if (!file(params.idx).exists()) { exit 1, 'Vcf file index not found!' }
+    ch_var_idx = Channel.fromPath(params.idx) 
+  } else {
+    if (file("${params.vcf}.tbi").exists()) { 
+      ch_var_idx = Channel.fromPath("${params.vcf}.tbi")
+    } else {
+       exit 1, 'TBI file not specified!' 
     }
   }
-
-  /* Check mandatory params */
-  if (params.variants && !params.ancestral_only) { ch_var = Channel.fromPath(params.variants) } else { exit 1, 'Vcf file not specified!' }
-  if (params.idx && !params.ancestral_only) { ch_var_idx = Channel.fromPath(params.idx) } else { exit 1, 'TBI file not specified!' }
   if (!params.hal) { exit 1, 'Hal file not specified and ancestral not specified!' }
   if (!params.hal && !params.reference_fna && !params.ancestral_fna) { exit 1, 'Ancestral and reference genomes not specified!' }
   if (params.constrained && !params.exon_bed) { exit 1, 'Requested hal4d algorithm, but no bed with exons specified!' }
