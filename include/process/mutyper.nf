@@ -108,7 +108,7 @@ process mutyper_concat {
     """
     echo "Run mutyper (variants)"
     bcftools concat -O u vcfs/*.vcf.gz | \
-        bcftools sort -O z > mutyper_${params.species.capitalize()}_${k}.vcf.gz
+        bcftools sort -T ./ -O z > mutyper_${params.species.capitalize()}_${k}.vcf.gz
     bcftools index -t mutyper_${params.species.capitalize()}_${k}.vcf.gz
     """
     

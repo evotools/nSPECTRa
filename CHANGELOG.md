@@ -1,6 +1,10 @@
 # Changelog
 All new changes are documented here.
 
+## [v1.1.3]
+### Fixed
+- `bcftools sort` failing in some single jobs in distributed systems
+
 ## [v1.1.2]
 ### Fixed
 - Startup from repository
