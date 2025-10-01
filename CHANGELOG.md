@@ -1,6 +1,10 @@
 # Changelog
 All new changes are documented here.
 
+## [v1.1.4]
+### Added
+- Add process to compute the binned allele frequencies for the derived alleles in each group
+
 ## [v1.1.3]
 ### Fixed
 - `bcftools sort` failing in some single jobs in distributed systems

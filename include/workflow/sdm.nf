@@ -2,13 +2,17 @@ include { get_individuals; get_breeds; } from "../process/prerun"
 include { sdm; filter_sdm; count_sdm } from "../process/sdm"
 include { make_ksfs; sdm_plot } from "../process/sdm"
 include { repeat_mask_split_sdm} from "../process/sdm"
+include { fetch_sites } from '../process/sdm.nf'
 include { sdm_matrix } from '../process/sdm.nf'
+include { count_mutations } from '../process/mutyper.nf'
 
 workflow SDM {
     take:
         vcf_by_chr
         reffasta
         reffai
+        ancfasta
+        ancfai
         masks_ch
         chromosomeList
 
@@ -45,16 +49,30 @@ workflow SDM {
         repeat_mask_split_sdm(filtered_ch.bed.combine(masks_ch))
 
         // Generate outputs
-        count_sdm( filtered_ch.rdata )
+        sdmcounts_ch = count_sdm( filtered_ch.rdata )
 
         // Create matrix of SDMs
-        count_sdm.out[0] | collect | sdm_matrix
+        sdmcounts_ch.counts | collect | sdm_matrix
+
+        // We collect first and second changes in a full list
+        first_change = sdmcounts_ch.first_change
+            | collectFile("${params.outdir}/sdm_first_change.txt")
+        second_change = sdmcounts_ch.second_change
+            | collectFile("${params.outdir}/sdm_second_change.txt")
+        // Extract the changes
+        fetch_sites( vcf_by_chr | collect(), ancfasta, ancfai, first_change | mix(second_change) )
+        | map {
+            vcf, tbi ->
+            tuple( "3", vcf, tbi, file("${baseDir}/assets/K3_mutations.txt"), "sdm/${vcf.simpleName}" )
+        }
+        // Count individual mutations spectrums
+        | count_mutations
 
         // Prepare Ksfs files
         raw_sdm | make_ksfs
 
         // Make plots for sdm results
-        all_counts = count_sdm.out[0]
+        all_counts = sdmcounts_ch.counts
         //sdm_plot( breeds_ch, all_counts.collect() ) 
-        sdm_plot( all_counts.collect() ) 
+        sdm_plot( all_counts.collect() )
 }

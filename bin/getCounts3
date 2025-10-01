@@ -19,6 +19,17 @@ load(inRdata)
 dat<-dat[which(dat$SameCodon == 1), ]
 uniqued<-dat[!duplicated(dat[c("Id1","Id2","Cons1","Cons2")]),]
 
+# Save uniqued positions for both pos1 and pos2
+pos1 <- uniqued %>%
+  select(Chr, Pos1) %>%
+  unique()
+write_delim(pos1, paste("uniquePos1.", popu, ".tsv", sep=""), delim="\t", col_names=FALSE)
+pos2 <- uniqued %>%
+  select(Chr, Pos2) %>%
+  unique()
+write_delim(pos2, paste("uniquePos2.", popu, ".tsv", sep=""), delim="\t", col_names=FALSE)
+
+# Continue with the analyses
 indCounts<-vector()
 indCounts_uniqued<-vector()
 doubleCounts<-vector()

@@ -56,7 +56,7 @@ workflow MUTYPER {
         | filter{ it[0].toInteger() < 8 }
         | map{
             k, vcf_fn, tbi_fn ->
-            [k, vcf_fn, tbi_fn, file("${baseDir}/assets/K${k}_mutations.txt")]
+            [k, vcf_fn, tbi_fn, file("${baseDir}/assets/K${k}_mutations.txt"), "mutyper/full_counts"]
         }
         | count_mutations
 
