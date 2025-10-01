@@ -1,6 +1,10 @@
 # Changelog
 All new changes are documented here.
 
+## [v1.1.5]
+### Added
+- Add mutation profile of individual elements of the SDMs
+
 ## [v1.1.4]
 ### Added
 - Add process to compute the binned allele frequencies for the derived alleles in each group
