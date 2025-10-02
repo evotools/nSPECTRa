@@ -3,7 +3,8 @@ All new changes are documented here.
 
 ## [v1.1.5]
 ### Added
-- Add mutation profile of individual elements of the SDMs
+- Mutation profile of the individual variants composing the SDMs (first and second changes)
+- Allele frequencies in the different populations considered
 
 ## [v1.1.4]
 ### Added
