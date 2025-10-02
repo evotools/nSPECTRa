@@ -391,9 +391,10 @@ process allele_frequencies {
     path "frequencies_${params.species.capitalize()}.K${k}.tsv.gz", emit: afs
 
     script:
+    def fields = af_fields.join("\t")
     """
     bcftools +fill-tags ${vcf} -- -S ${groups} -t AF | \
-        bcftools query -H -f "%CHROM\t%POS\t%REF\t%ALT\t%FILTER\t%mutation_type\t%${af_fields}\n" | \
+        bcftools query -H -f "%CHROM\t%POS\t%REF\t%ALT\t%FILTER\t%mutation_type\t${fields}\n" | \
         tee >( FreqBinner /dev/stdin > frequency_bins_${params.species.capitalize()}.K${k}.tsv ) | \
         gzip -c > frequencies_${params.species.capitalize()}.K${k}.tsv.gz
     """
