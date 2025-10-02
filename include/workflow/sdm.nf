@@ -37,7 +37,7 @@ workflow SDM {
         // Run dinuc pipeline
         raw_sdm = breeds_ch
         | combine(
-            sdm( combined_ch, reffasta, reffai )
+            sdm( combined_ch, ancfasta, ancfai )
             | groupTuple(by: 0),
             by: 0
         )
@@ -56,17 +56,18 @@ workflow SDM {
 
         // We collect first and second changes in a full list
         first_change = sdmcounts_ch.first_change
-            | collectFile("${params.outdir}/sdm_first_change.txt")
+            | splitCsv(sep: "\t")
+            | collectFile(name: "sdm_first_change.txt", storeDir: "${params.outdir}/sdm/single_changes/", newLine: true)
         second_change = sdmcounts_ch.second_change
-            | collectFile("${params.outdir}/sdm_second_change.txt")
+            | splitCsv(sep: "\t")
+            | collectFile(name: "sdm_second_change.txt", storeDir: "${params.outdir}/sdm/single_changes/", newLine: true)
+        
         // Extract the changes
-        fetch_sites( vcf_by_chr | collect(), ancfasta, ancfai, first_change | mix(second_change) )
+        fetch_sites( vcf_by_chr | collect, ancfasta, ancfai, first_change | mix(second_change) )
         | map {
             vcf, tbi ->
             tuple( "3", vcf, tbi, file("${baseDir}/assets/K3_mutations.txt"), "sdm/${vcf.simpleName}" )
-        }
-        // Count individual mutations spectrums
-        | count_mutations
+        } | count_mutations // Count individual mutations spectrums
 
         // Prepare Ksfs files
         raw_sdm | make_ksfs
