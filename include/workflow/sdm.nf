@@ -37,7 +37,7 @@ workflow SDM {
         // Run dinuc pipeline
         raw_sdm = breeds_ch
         | combine(
-            sdm( combined_ch, ancfasta, ancfai )
+            sdm( combined_ch, reffasta, reffai )
             | groupTuple(by: 0),
             by: 0
         )
