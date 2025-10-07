@@ -236,7 +236,8 @@ process fetch_sites {
 
 
     input:
-    tuple val(chroms), path("vcfs/*"), path("vcfs/*")
+    path(vcfs, stageAs: "vcfs/*")
+    path(tbis, stageAs: "vcfs/*")
     path ancfasta
     path ancfai
     path positions
@@ -247,10 +248,11 @@ process fetch_sites {
     script:
     """
     bcftools concat vcfs/*.vcf.gz -a -O u | \
-        bcftools sort -O u -T ./ -m 2G | \
-        bcftools view -R ${positions} -Ov | \
-        mutyper variants --k 3 ${ancfasta} | \
-        bcftools view -Oz --write-index=tbi -o ${positions.baseName}.vcf.gz
+        bcftools sort -O u -T ./ -m 2G - | \
+        bcftools view -T <( sort -k1,1 -k2,2n ${positions} ) -Ov - | \
+        mutyper variants --k 3 ${ancfasta} - | \
+        bcftools view -Oz - > ${positions.baseName}.vcf.gz && \
+        tabix -p vcf ${positions.baseName}.vcf.gz
     """
 
     stub:

@@ -57,13 +57,23 @@ workflow SDM {
         // We collect first and second changes in a full list
         first_change = sdmcounts_ch.first_change
             | splitCsv(sep: "\t")
-            | collectFile(name: "sdm_first_change.txt", storeDir: "${params.outdir}/sdm/single_changes/", newLine: true)
+            | collectFile(storeDir: "${params.outdir}/sdm/single_changes/", sort: true){
+                chrom, pos ->
+                [ "sdm_first_change.txt", "${chrom}\t${pos}\n" ]
+            }
         second_change = sdmcounts_ch.second_change
             | splitCsv(sep: "\t")
-            | collectFile(name: "sdm_second_change.txt", storeDir: "${params.outdir}/sdm/single_changes/", newLine: true)
+            | collectFile(storeDir: "${params.outdir}/sdm/single_changes/", sort: true){
+                chrom, pos ->
+                [ "sdm_second_change.txt", "${chrom}\t${pos}\n" ]
+            }
         
         // Extract the changes
-        fetch_sites( vcf_by_chr | collect, ancfasta, ancfai, first_change | mix(second_change) )
+        fetch_sites(
+            vcf_by_chr | map{_chrom, vcf, _tbi -> [vcf]},
+            vcf_by_chr | map{_chrom, _vcf, tbi -> [tbi]},
+            ancfasta, ancfai,
+            first_change | mix(second_change) )
         | map {
             vcf, tbi ->
             tuple( "3", vcf, tbi, file("${baseDir}/assets/K3_mutations.txt"), "sdm/${vcf.simpleName}" )
