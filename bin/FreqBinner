@@ -1,0 +1,50 @@
+import sys, gzip
+import numpy as np
+
+itv1 = np.round(
+    np.concatenate(( 
+        np.arange(0.0, 0.001, 0.0001), 
+        np.arange(0.001, 0.01, 0.001), 
+        np.arange(0.01, 0.1, 0.01), 
+        np.arange(0.1, 1, 0.1) )), 
+    decimals=5
+)
+itv2 = np.concatenate((itv1[1:], np.array([1.])))
+
+if sys.argv[1] == '/dev/stdin':
+    opn = sys.stdin
+elif '.gz' in sys.argv[1]:
+    opn = gzip.open(sys.argv[1])
+else:
+    opn = open(sys.argv[1])
+
+for n,line in enumerate(opn):
+    try:
+        line = line.decode()
+    except: 
+        pass
+    if n == 0:
+        line = line.strip().split('\t')
+        #vals = { i: [np.zeros(len(itv1), dtype = 'uint64'), np.zeros(len(itv1), dtype = 'uint64')] for i in line[5:] }
+        vals = { i: {'all' : np.zeros(len(itv1), dtype = 'uint64') } for i in line[6:] }
+        cols = line[6:]
+        continue
+    line = line.strip().split('\t')
+    values = map(float, line[6:])
+    for (col, val) in zip(cols, values):
+        if val > 0:
+            binning = np.where(np.logical_and(val <= itv2, val > itv1))[0][0]
+            vals[col]['all'][ binning ] += 1
+            if line[5] in vals[col].keys():
+                vals[col][line[5]][binning] += 1
+            else:
+                vals[col][line[5]] = np.zeros(len(itv1), dtype = 'uint64')
+                vals[col][line[5]][binning] += 1
+
+print('COL\tbinI\tbinE\tChange\ttotChanges\tnChange')
+for col in vals:
+    allvals = vals[col]['all']
+    changes = [k for k in vals[col].keys() if k!='all']
+    for change in changes:
+        for n in range(0, len(itv1)):
+            print( '{}\t{}\t{}\t{}\t{}\t{}'.format(col, itv1[n], itv2[n], change, allvals[n], vals[col][change][n]) )

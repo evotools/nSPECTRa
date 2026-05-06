@@ -1,6 +1,15 @@
 # Changelog
 All new changes are documented here.
 
+## [v1.1.5]
+### Added
+- Mutation profile of the individual variants composing the SDMs (first and second changes)
+- Allele frequencies in the different populations considered
+
+## [v1.1.4]
+### Added
+- Add process to compute the binned allele frequencies for the derived alleles in each group
+
 ## [v1.1.3]
 ### Fixed
 - `bcftools sort` failing in some single jobs in distributed systems

@@ -150,10 +150,10 @@ process consequence_table {
 process count_mutations {
     tag "medium"
     label "medium"
-    publishDir "${params.outdir}/mutyper/full_counts", mode: "${params.publish_dir_mode}", overwrite: true
+    publishDir "${params.outdir}/${outpath}", mode: "${params.publish_dir_mode}", overwrite: true
 
     input:
-    tuple val(k), path(vcf), path(tbi), path(levels)
+    tuple val(k), path(vcf), path(tbi), path(levels), val(outpath)
 
     output:
     tuple val(k), path("mutationSpectra_${params.species.capitalize()}_${k}.tsv")
@@ -373,5 +373,35 @@ process normalize_results {
     """
     touch ${counts.baseName}.Knorm.csv
     touch ${counts.baseName}.KCnorm.csv
+    """
+}
+
+process allele_frequencies {
+    tag 'kcnt'
+    label 'medium'
+    publishDir "${params.outdir}/mutyper/af_bins", mode: "${params.publish_dir_mode}", overwrite: true
+
+    input:
+    tuple val(k), path(vcf), path(tbi)
+    path groups
+    val af_fields
+
+    output:
+    path "frequency_bins_${params.species.capitalize()}.K${k}.tsv", emit: bins
+    path "frequencies_${params.species.capitalize()}.K${k}.tsv.gz", emit: afs
+
+    script:
+    def fields = af_fields.join("\t")
+    """
+    bcftools +fill-tags ${vcf} -- -S ${groups} -t AF | \
+        bcftools query -H -f "%CHROM\t%POS\t%REF\t%ALT\t%FILTER\t%mutation_type\t${fields}\n" | \
+        tee >( FreqBinner /dev/stdin > frequency_bins_${params.species.capitalize()}.K${k}.tsv ) | \
+        gzip -c > frequencies_${params.species.capitalize()}.K${k}.tsv.gz
+    """
+
+    stub:
+    """
+    touch frequencies_${params.species.capitalize()}.K${k}.tsv.gz
+    touch frequency_bins_${params.species.capitalize()}.K${k}.tsv
     """
 }

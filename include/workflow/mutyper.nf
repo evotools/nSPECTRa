@@ -3,7 +3,7 @@ include { chromosomeList } from '../process/prerun'
 include { group_results; plot_results; ksfs } from '../process/mutyper'
 include { mutyper_variant; mutyper_spectra; mutyper_concat } from '../process/mutyper'
 include { count_mutations; count_mutations_csq; consequence_table } from '../process/mutyper'
-include { kmercount; normalize_results } from '../process/mutyper'
+include { kmercount; normalize_results; allele_frequencies } from '../process/mutyper'
 
 
 // Workflow
@@ -16,7 +16,8 @@ workflow MUTYPER {
 
     main:
         // check if there is a popfile, otherwise create one
-        breeds_file = Channel.fromPath("${params.pops_folder}/*.txt")
+        popfiles_ch = Channel.fromPath("${params.pops_folder}/*.txt")
+        breeds_file = popfiles_ch
             | map {
                 fname ->
                 [fname.baseName, fname]
@@ -51,12 +52,34 @@ workflow MUTYPER {
         // In the meanwhile, group the mutyper VCFs and concatenate them
         mutyper_vcf_ch = mutyper_variant.out | groupTuple(by: 0) | mutyper_concat
 
+        // Compute allele frequencies
+        bcftools_pops_ch = popfiles_ch
+            | map {
+                fname ->
+                [fname.baseName, fname]
+            }
+            | splitCsv
+            | map {
+                pop, iid -> [pop] + iid
+            }
+            | collectFile {
+                pop, sample ->
+                [ "bcftools_meta.txt", "${sample}\t${pop}\n" ]
+            }
+        colnames_ch = popfiles_ch
+            | map {
+                fname ->
+                ["%AF_${fname.baseName}"]
+            }
+            | collect
+        allele_frequencies(mutyper_vcf_ch, bcftools_pops_ch, colnames_ch)
+
         /* Generate the counts manually */
         mutyper_vcf_ch
         | filter{ it[0].toInteger() < 8 }
         | map{
             k, vcf_fn, tbi_fn ->
-            [k, vcf_fn, tbi_fn, file("${baseDir}/assets/K${k}_mutations.txt")]
+            [k, vcf_fn, tbi_fn, file("${baseDir}/assets/K${k}_mutations.txt"), "mutyper/full_counts"]
         }
         | count_mutations
 

@@ -90,8 +90,10 @@ process count_sdm {
 
 
     output:
-    path "*.txt"
-    path "indChanges.${samplename}.RData"
+    path "*.txt", emit: 'counts'
+    path "indChanges.${samplename}.RData", emit: 'rdata'
+    path "uniquePos1.${samplename}.tsv", emit: 'first_change'
+    path "uniquePos2.${samplename}.tsv", emit: 'second_change'
 
     script:
     """
@@ -109,6 +111,8 @@ process count_sdm {
     touch changeCounts_uniqued.${samplename}.txt
     touch doubleCounts.${samplename}.txt
     touch doubleCounts_uniqued.${samplename}.txt
+    touch uniquePos1.${samplename}.tsv
+    touch uniquePos2.${samplename}.tsv
     """
 }
 
@@ -221,5 +225,39 @@ process sdm_matrix {
     stub:
     """
     touch sdm_${params.species.capitalize()}_K3.csv
+    """
+}
+
+
+process fetch_sites {
+    tag "sdm"
+    publishDir "${params.outdir}/sdm/single_changes/", mode: "${params.publish_dir_mode}", overwrite: true
+    conda {params.enable_conda ? "${baseDir}/envs/sdm-environment.yml" : null}
+
+
+    input:
+    path(vcfs, stageAs: "vcfs/*")
+    path(tbis, stageAs: "vcfs/*")
+    path ancfasta
+    path ancfai
+    path positions
+
+    output:
+    tuple path("${positions.baseName}.vcf.gz"), path("${positions.baseName}.vcf.gz.tbi")
+
+    script:
+    """
+    bcftools concat vcfs/*.vcf.gz -a -O u | \
+        bcftools sort -O u -T ./ -m 2G - | \
+        bcftools view -T <( sort -k1,1 -k2,2n ${positions} ) -Ov - | \
+        mutyper variants --k 3 ${ancfasta} - | \
+        bcftools view -Oz - > ${positions.baseName}.vcf.gz && \
+        tabix -p vcf ${positions.baseName}.vcf.gz
+    """
+
+    stub:
+    """
+    touch ${positions.baseName}.vcf.gz
+    touch ${positions.baseName}.vcf.gz.tbi
     """
 }
