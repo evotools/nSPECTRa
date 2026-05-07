@@ -1,6 +1,11 @@
 # Changelog
 All new changes are documented here.
 
+## [unreleased]
+### Changed
+- `Dockerfile` and `singularity.def` are now standalone
+
+
 ## [v1.1.5]
 ### Added
 - Mutation profile of the individual variants composing the SDMs (first and second changes)
