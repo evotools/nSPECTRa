@@ -103,12 +103,16 @@ workflow {
   if (params.variants && !params.ancestral_only) { 
     if (!file(params.variants).exists()) { exit 1, 'Vcf file not found!' }
     ch_var = Channel.fromPath(params.variants) 
-  } else { 
+  } else if (!params.variants && params.ancestral_only) {
+    ch_var = Channel.empty()
+  } else if (!params.variants && !params.ancestral_only) {
     exit 1, 'Vcf file not specified!' 
   }
   if (params.idx && !params.ancestral_only) { 
     if (!file(params.idx).exists()) { exit 1, 'Vcf file index not found!' }
     ch_var_idx = Channel.fromPath(params.idx) 
+  } else if (!params.idx && params.ancestral_only) {
+    ch_var_idx = Channel.empty()
   } else {
     if (file("${params.vcf}.tbi").exists()) { 
       ch_var_idx = Channel.fromPath("${params.vcf}.tbi")
