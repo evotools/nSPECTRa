@@ -5,7 +5,6 @@ All new changes are documented here.
 ### Fixed
 - Broken configuration file
 
-
 ## [v1.1.6]
 ### Added
 - Updated `README.md` to refer to the paper presenting the tool
