@@ -62,3 +62,8 @@ Some steps of the workflow are very computationally intensive, and can benefit f
 
 ## Input pre-filtering
 We recommend to pre-filter the vcf file to obtain samples with a reasonable coverage (>8-10 mean DP) and with variants with low call rate removed from the dataset (CCR > 90%) and minor allele count MAC >= 2.
+
+# How to cite
+To cite nSPECTRa refer to:
+
+> Talenti, A., Wilkinson, T., Morrison, L.J. et al. The evolution and convergence of mutation spectra across mammals. Commun Biol 8, 763 (2025). https://doi.org/10.1038/s42003-025-08181-x

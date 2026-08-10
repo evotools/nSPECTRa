@@ -1,6 +1,14 @@
 # Changelog
 All new changes are documented here.
 
+## [v1.1.6]
+### Added
+- Updated `README.md` to refer to the paper presenting the tool
+
+### Changed
+- `Dockerfile` and `singularity.def` are now standalone
+- Moved parameters from a dedicated configuration file to `nextflow.config`
+
 ## [v1.1.5]
 ### Added
 - Mutation profile of the individual variants composing the SDMs (first and second changes)

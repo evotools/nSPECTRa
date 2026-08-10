@@ -1,16 +1,36 @@
-FROM condaforge/miniforge3:24.3.0-0 AS build
+FROM condaforge/miniforge3:26.1.1-3 AS build
 
 LABEL authors="andrea.talenti@ed.ac.uk" \
-      description="Docker image containing base requirements for n-spectr pipelines"
-
-# Install the package as normal:
-COPY envs/all_environment.yml ./environment.yml
+      description="Docker image containing base requirements for n-spectra pipelines"
 
 # Install compiler
 RUN apt update -qq && apt install -y -qq build-essential
 
 # Create the environment
-RUN mamba env create -f environment.yml
+RUN mamba create -n nspectra -c conda-forge -c bioconda -y python=3.10 \
+    pip matplotlib numpy>=1.22.4 pandas polars==1.9.0 \
+    pyarrow pysam scipy bioconda::java-jdk
+RUN mamba install -n nspectra -y \
+    bioconda::samtools bioconda::bcftools bioconda::vcftools \
+    bioconda::bedtools bioconda::plink=1.90
+RUN mamba install -n nspectra -y bioconda::ucsc-twobitinfo bioconda::ucsc-fatotwobit \
+    bioconda::ucsc-wigtobigwig bioconda::ucsc-bigwigtobedgraph
+RUN mamba install -n nspectra -y bioconda::vcflib==1.0.3
+RUN mamba install -n nspectra -y bioconda::shapeit4
+RUN mamba install -n nspectra -y bioconda::shapeit5
+RUN mamba install -n nspectra -y \
+    bioconda::perl-bioperl \
+    bioconda::phast=1.5 bioconda::mutyper bioconda::perl-bio-db-hts \
+    bioconda::tabix bioconda::tabixpp=1.1.0
+RUN mamba install -n nspectra -y \
+    conda-forge::r-base>=4.1.0 \
+    conda-forge::r-cowplot \
+    conda-forge::r-tidyverse \
+    conda-forge::r-reshape2 \
+    conda-forge::r-ggfortify \
+    conda-forge::r-ggforce \
+    conda-forge::r-lazyeval \
+    conda-forge::r-plyr
 
 # Install conda-pack:
 RUN mamba install -c conda-forge conda-pack
