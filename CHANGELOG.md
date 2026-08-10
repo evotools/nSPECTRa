@@ -1,6 +1,10 @@
 # Changelog
 All new changes are documented here.
 
+## [v1.1.6a]
+### Fixed
+- Broken configuration file
+
 ## [v1.1.6]
 ### Added
 - Updated `README.md` to refer to the paper presenting the tool
