@@ -178,5 +178,5 @@ workflow BGC {
         vcf_out_ch = vcf_drop_intervals(vcf_by_chr_ch, tracts_bed_ch, 'no-bgc')
 
     emit:
-        vcf = vcf_out_ch.vcf
+        vcf = vcf_out_ch
 }
