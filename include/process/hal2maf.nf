@@ -17,6 +17,26 @@ process hal2maf {
     
 
     script:
+    if (params.cactus_hal2maf)
+    """
+    export HOME=\$PWD
+    mkdir toil-work
+    mkdir toil-coord
+    toil config test.yaml
+    cactus-hal2maf \
+        ./js \
+        ${HAL} \
+        ${params.reference}_${params.target}.maf \
+        --config test.yaml \
+        --refGenome ${params.reference} \
+        --targetGenomes ${params.target} \
+        --batchCores 1 \
+        --defaultCores 1 \
+        --workDir ./toil-work \
+        --coordinationDir ./toil-coord \
+        --cleanWorkDir onSuccess
+    """
+    else
     """
     hal2maf \
         --refGenome ${params.reference} \

@@ -12,7 +12,7 @@ include { RELATE } from './include/workflow/relate'
 include { SDM } from './include/workflow/sdm'
 include { GONE } from './include/workflow/gone'
 include { IBD } from './include/workflow/ibd'
-include { CONSTRAINED } from './include/workflow/phylop'
+include { BGC; CONSTRAINED; NEUTRAL_MODEL } from './include/workflow/phylop'
 include { get_masks } from './include/process/prerun'
 include { chromosomeList } from './include/process/prerun'
 
@@ -42,31 +42,31 @@ workflow {
   log.info """\
   Nextflow Mutation Spectra v${workflow.manifest.version}
   =================================================================================
-  variants        : $params.variants
-  idx             : $params.idx
-  output folder   : $params.outdir
-  hal             : $params.hal
-  reference       : $params.reference
-  target          : $params.target
-  mutyper         : $params.mutyper
-  sdm             : $params.sdm
-  relate          : $params.relate
-  species         : $params.species
-  k               : $params.k
-  Ne subset       : $params.ne_subset
-  Intergen. time  : $params.intergen_time
-  Mut. rate       : $params.mutation_rate
-  Min. pop. size  : $params.min_pop_size
-  imputation sfw  : $params.imputation
-  coding          : $params.coding
-  noncoding       : $params.noncoding
-  annotation      : $params.annotation
-  pops_folder     : $params.pops_folder
-  pop labels file : $params.poplabels
-  chromosome list : $params.chr_list
-  cactus url      : $params.cactus_url 
-  exons           : $params.exon_bed 
-  constrained     : $params.constrained 
+  variants               : $params.variants
+  idx                    : $params.idx
+  output folder          : $params.outdir
+  hal                    : $params.hal
+  reference              : $params.reference
+  target                 : $params.target
+  mutyper                : $params.mutyper
+  sdm                    : $params.sdm
+  relate                 : $params.relate
+  species                : $params.species
+  k                      : $params.k
+  Ne subset              : $params.ne_subset
+  Intergen. time         : $params.intergen_time
+  Mut. rate              : $params.mutation_rate
+  Min. pop. size         : $params.min_pop_size
+  imputation sfw         : $params.imputation
+  coding                 : $params.coding
+  noncoding              : $params.noncoding
+  annotation             : $params.annotation
+  pops_folder            : $params.pops_folder
+  pop labels file        : $params.poplabels
+  chromosome list        : $params.chr_list
+  cactus url             : $params.cactus_url 
+  exons                  : $params.exon_bed 
+  remove_constrained     : $params.remove_constrained 
   relate dir      : $params.relate""" 
   if (params.neval){
     log.info """Ne value        : $params.neval"""  
@@ -122,7 +122,8 @@ workflow {
   }
   if (!params.hal) { exit 1, 'Hal file not specified and ancestral not specified!' }
   if (!params.hal && !params.reference_fna && !params.ancestral_fna) { exit 1, 'Ancestral and reference genomes not specified!' }
-  if (params.constrained && !params.exon_bed) { exit 1, 'Requested hal4d algorithm, but no bed with exons specified!' }
+  if (params.remove_constrained && !params.exon_bed) { exit 1, 'Requested constrained elements removal sub-workflow, but no bed with exons specified!' }
+  if (params.bgc && !params.exon_bed) { exit 1, 'Requested BGC sub-workflow, but no bed with exons specified!' }
   if (!params.species){ throw new Exception("Parameter --species is required for file naming.") }
 
   // Generate the ancestral fasta
@@ -150,12 +151,25 @@ workflow {
       vcf_by_chr = PREPROCESS.out.vcf_by_chr
       vcf_chunks_ch = PREPROCESS.out.chunks_ch
 
+      // Define neutral model once for both constrained and gBGC workflows
+      if ( params.remove_constrained || params.bgc ){
+        neutral_model = NEUTRAL_MODEL()
+        model_ch = neutral_model.model
+        intervals_ch = neutral_model.intervals
+        ref_sizes_ch = neutral_model.sizes
+      }
+
       // Get constrined elements and remove variants in them
-      if ( params.constrained ){
-        CONSTRAINED(ch_var_new, ch_var_idx_new, ch_chr_lists)
-        ch_var_new = CONSTRAINED.out[0]
-        ch_var_idx_new = CONSTRAINED.out[1]
-      } 
+      if ( params.remove_constrained ){
+        phastcons_ch = CONSTRAINED(vcf_by_chr, model_ch, intervals_ch, ref_sizes_ch)
+        vcf_by_chr = phastcons_ch.vcf
+      }
+
+      // Get variants not in BGC candidate regions
+      if ( params.bgc ){
+        bgc_ch = BGC(vcf_by_chr, model_ch, intervals_ch, ref_sizes_ch)
+        vcf_by_chr = bgc_ch.vcf
+      }
 
       // Generate IBDs if requested
       if (params.compute_ibd){
