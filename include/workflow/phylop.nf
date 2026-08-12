@@ -117,7 +117,7 @@ workflow CONSTRAINED {
         vcf_out_ch = vcf_drop_intervals(vcf_by_chr_ch, conserved_ch, "non-conserved")
 
     emit:
-        vcf = vcf_out_ch.vcf
+        vcf = vcf_out_ch
 }
 
 

@@ -369,8 +369,7 @@ process vcf_drop_intervals {
     val tag
 
     output:
-    path "${vcf.simpleName}.${tag}.vcf.gz", emit: vcf
-    path "${vcf.simpleName}.${tag}.vcf.gz.tbi", emit: tbi
+    tuple val(chrom), path("${vcf.simpleName}.${tag}.vcf.gz"), path("${vcf.simpleName}.${tag}.vcf.gz.tbi")
 
     script:
     """
