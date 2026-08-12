@@ -20,7 +20,7 @@ RUN mamba install -n nspectra -y bioconda::shapeit4
 RUN mamba install -n nspectra -y bioconda::shapeit5
 RUN mamba install -n nspectra -y \
     bioconda::perl-bioperl \
-    bioconda::phast=1.5 bioconda::mutyper bioconda::perl-bio-db-hts \
+    bioconda::phast=1.9.9 bioconda::mutyper bioconda::perl-bio-db-hts \
     bioconda::tabix bioconda::tabixpp=1.1.0
 RUN mamba install -n nspectra -y \
     conda-forge::r-base>=4.1.0 \

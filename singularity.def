@@ -23,7 +23,7 @@ mamba install -n nspectra -y bioconda::shapeit4
 mamba install -n nspectra -y bioconda::shapeit5
 mamba install -n nspectra -y \
     bioconda::perl-bioperl \
-    bioconda::phast=1.5 bioconda::mutyper bioconda::perl-bio-db-hts \
+    bioconda::phast=1.9.9 bioconda::mutyper bioconda::perl-bio-db-hts \
     bioconda::tabix bioconda::tabixpp=1.1.0
 mamba install -n nspectra -y \
     conda-forge::r-base>=4.1.0 \
@@ -68,12 +68,6 @@ apt-get update && apt install -y file jellyfish procps g++ curl git wget paralle
 curl -o /usr/local/bin/datasets https://ftp.ncbi.nlm.nih.gov/pub/datasets/command-line/LATEST/linux-amd64/datasets && \
     chmod a+x /usr/local/bin/datasets
 
-# Copy /venv from the previous stage:
-
-# When image is run, run the code with the environment
-# activated:
-PATH=/venv/bin/:$PATH
-SHELL ["/bin/bash", "-c"]
 %environment
 export PATH=/venv/bin/:$PATH
 %runscript
