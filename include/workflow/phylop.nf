@@ -103,8 +103,9 @@ workflow CONSTRAINED {
         // Run PhyloP
         phylop_ch = phyloP(
             hal_ch | combine(intervals_ch),
-            model_ch
+            model_ch | collect
         )
+        | combine(ref_sizes_ch)
         | wig2bedgraph
         // combine selected
         | collect
@@ -145,7 +146,7 @@ workflow BGC {
         } else {
             exit 1, "Exon BED file ${params.exon_bed} not found"
         }
-        maf_ch = create_maf(hal_ch | combine(intervals_ch))
+        maf_ch = create_maf(hal_ch | combine(intervals_ch | flatten))
 
         // Run pastBias
         phastbias_ch = phastBias(maf_ch, model_ch | collect)

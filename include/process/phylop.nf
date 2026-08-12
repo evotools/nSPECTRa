@@ -220,18 +220,16 @@ process phyloP {
     path model
 
     output:
-    tuple path("phylop_${chr}.wig"), path("${params.reference}.sizes")
+    path "${BED.simpleName}.wig"
 
     script:
     """
-    halPhyloPMP.py \
+    halPhyloP \
         ${hal} \
         ${params.reference} \
         ${model} \
         ${BED.simpleName}.wig \
-        --refBed ${BED} \
-        --chromSizes ${params.reference}.sizes \
-        --numProc ${task.cpus} 
+        --refBed ${BED}
     """
     
     stub:
