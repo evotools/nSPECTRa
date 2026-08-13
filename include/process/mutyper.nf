@@ -31,20 +31,16 @@ process mutyper_variant {
     if (params.annotation)
     """
     echo "Run mutyper (variants)"
-    bcftools view --threads ${task.cpus} -v snps -r ${chrom} -m2 -M2 ${vcf} | \
-        bedtools intersect -header -v -a - -b ${masks_ch} | \
-        sed 's/_pilon//g' | \
-        vcffixup - ${vcftools_filter} |\
-        mutyper variants --k ${k} --strand_file ${params.annotation} ${ancfasta} - | \
-        bgzip -c > mutationSpectra_${params.species.capitalize()}_${chrom}_${k}.vcf.gz &&
+    bcftools view --threads ${task.cpus} -v snps -r ${chrom} -T ^${masks_ch} -m2 -M2 ${vcf} | \\
+        vcffixup - ${vcftools_filter} |\\
+        mutyper variants --k ${k} --strand_file ${params.annotation} ${ancfasta} - | \\
+        bgzip -c > mutationSpectra_${params.species.capitalize()}_${chrom}_${k}.vcf.gz && \\
         tabix -p vcf mutationSpectra_${params.species.capitalize()}_${chrom}_${k}.vcf.gz
     """
     else
     """
     echo "Run mutyper (variants)"
-    bcftools view --threads ${task.cpus} -v snps -r ${chrom} -m2 -M2 ${vcf} | \
-        bedtools intersect -header -v -a - -b ${masks_ch} | \
-        sed 's/_pilon//g' | \
+    bcftools view --threads ${task.cpus} -v snps -r ${chrom} -T ^${masks_ch} -m2 -M2 ${vcf} | \
         vcffixup - ${vcftools_filter} |\
         mutyper variants --k ${k} ${ancfasta} - | \
         bgzip -c > mutationSpectra_${params.species.capitalize()}_${chrom}_${k}.vcf.gz &&
