@@ -173,7 +173,7 @@ workflow {
 
       // Generate IBDs if requested
       if (params.compute_ibd){
-        IBD(ch_var_new, ch_var_idx_new, ch_chr_lists)
+        IBD(vcf_by_chr)
       }
     } else {
       ch_var_new = ch_var
