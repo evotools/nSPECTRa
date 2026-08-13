@@ -65,11 +65,11 @@ We recommend to pre-filter the vcf file to obtain samples with a reasonable cove
 
 ## Remove constrained regions
 > NOTE: this is an experimental feature, and needs further testing
-It is possible to exclude conserved elements identified from the whole genome alignments directly. To do so, run the workflow with `--remove_constrained`.
+It is possible to exclude conserved elements identified from the whole genome alignments directly. To do so, run the workflow with `--remove_constrained`. To run this feature, you need to provide a BED file with the exon with `--exon_bed`.
 
 ## Biased Gene Conversion (gBGC) removal
 > NOTE: this is an experimental feature, and needs further testing
-It is possible to exclude gBGC regions identified from the whole genome alignments using [phastBias](http://compgen.cshl.edu/phast/help-pages/phastBias.txt). To do so, run the workflow with `--bgc`.
+It is possible to exclude gBGC regions identified from the whole genome alignments using [phastBias](http://compgen.cshl.edu/phast/help-pages/phastBias.txt). To do so, run the workflow with `--bgc`. To run this feature, you need to provide a BED file with the exon with `--exon_bed`.
 
 # How to cite
 To cite nSPECTRa refer to:

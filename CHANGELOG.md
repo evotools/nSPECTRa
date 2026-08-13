@@ -10,6 +10,7 @@ All new changes are documented here.
 - Optional `cactus-hal2maf` by using `--cactus_hal2maf` (default use legacy hal2maf)
 - Updated phast to v1.9.9
 - `mutyper_variant` process is now more streamlined
+- `CONSTRAINED`, `BGC`, `NEUTRAL_MODEL` and `IBD` workflow can now run when `--vcf_is_filtered` is passed
 
 ### Fixed
 - IBD workflow now runs to completion with demo data
