@@ -360,13 +360,14 @@ process extract_conserved {
 
 process vcf_drop_intervals {
     tag "filt"
-    publishDir "${params.outdir}/PHYLOP/VCF", mode: "${params.publish_dir_mode}", overwrite: true
+    publishDir { "${params.outdir}/${OUTDIR}/VCF" }, mode: "${params.publish_dir_mode}", overwrite: true
     label "medium"
 
     input:
     tuple val(chrom), path(vcf), path(tbi)
     path bed
     val tag
+    val OUTDIR
 
     output:
     tuple val(chrom), path("${vcf.simpleName}.${tag}.vcf.gz"), path("${vcf.simpleName}.${tag}.vcf.gz.tbi")
@@ -376,6 +377,7 @@ process vcf_drop_intervals {
     bedtools intersect -header -v -a ${vcf} -b ${bed} | \
         bgzip -@ ${task.cpus > 1 ? task.cpus - 1 : 1} -c > ${vcf.simpleName}.${tag}.vcf.gz
     tabix -p vcf ${vcf.simpleName}.${tag}.vcf.gz
+    bcftools stats ${vcf.simpleName}.${tag}.vcf.gz > ${vcf.simpleName}.${tag}.bcftools_stats
     """
     
     stub:

@@ -114,7 +114,7 @@ workflow CONSTRAINED {
         conserved_ch = combine_bed(phylop_ch, "phylop", "PHYLOP") | extract_conserved
 
         // Perform actual filtering
-        vcf_out_ch = vcf_drop_intervals(vcf_by_chr_ch, conserved_ch, "non-conserved")
+        vcf_out_ch = vcf_drop_intervals(vcf_by_chr_ch, conserved_ch, "non-conserved", "PHYLOP/")
 
     emit:
         vcf = vcf_out_ch
@@ -175,7 +175,7 @@ workflow BGC {
         bgc_ch = combine_bed(large_bed_ch, "bgc", "PHASTBIAS")
 
         // Perform actual filtering
-        vcf_out_ch = vcf_drop_intervals(vcf_by_chr_ch, tracts_bed_ch, 'no-bgc')
+        vcf_out_ch = vcf_drop_intervals(vcf_by_chr_ch, tracts_bed_ch, 'no-bgc', "PHASTBIAS/")
 
     emit:
         vcf = vcf_out_ch
