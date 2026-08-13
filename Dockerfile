@@ -15,13 +15,12 @@ RUN mamba install -n nspectra -y \
     bioconda::bedtools bioconda::plink=1.90
 RUN mamba install -n nspectra -y bioconda::ucsc-twobitinfo bioconda::ucsc-fatotwobit \
     bioconda::ucsc-wigtobigwig bioconda::ucsc-bigwigtobedgraph
-RUN mamba install -n nspectra -y bioconda::vcflib==1.0.3
 RUN mamba install -n nspectra -y bioconda::shapeit4
 RUN mamba install -n nspectra -y bioconda::shapeit5
 RUN mamba install -n nspectra -y \
     bioconda::perl-bioperl \
     bioconda::phast=1.9.9 bioconda::mutyper bioconda::perl-bio-db-hts \
-    bioconda::tabix bioconda::tabixpp=1.1.0
+    bioconda::tabix bioconda::vcflib
 RUN mamba install -n nspectra -y \
     conda-forge::r-base>=4.1.0 \
     conda-forge::r-cowplot \
