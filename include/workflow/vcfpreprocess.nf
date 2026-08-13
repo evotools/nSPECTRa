@@ -95,8 +95,11 @@ workflow PREPROCESS {
         )
 
         // Generate derived allele frequency plots prior DAF filtering.
-        ancestral_ch | daf | collect | smile
-
+        smile(
+            daf(ancestral_ch, "DAF/filtered") | collect,
+            "DAF/filtered"
+         )
+        
         // Filter by derived allele freq.
         filtered_ch = ancestral_ch | daf_filter
 

@@ -373,11 +373,12 @@ process make_shapeit{
 process daf {
     tag "mutyper"
     label "medium"
-    publishDir "${params.outdir}/mutyper/daf", mode: "${params.publish_dir_mode}", overwrite: true
+    publishDir "${params.outdir}/${OUTDIR}/daf", mode: "${params.publish_dir_mode}", overwrite: true
 
 
     input:
     tuple val(chrom), path(vcf), path(tbi)
+    val OUTDIR
 
     output:
     path "daf.${chrom}.csv.gz"
@@ -400,10 +401,11 @@ process daf {
 // Smile plot for the derived allele frequencies
 process smile {
     label "renv"
-    publishDir "${params.outdir}/mutyper/smile", mode: "${params.publish_dir_mode}", overwrite: true
+    publishDir "${params.outdir}/${OUTDIR}/smile", mode: "${params.publish_dir_mode}", overwrite: true
 
     input:
     path "dafs/*"
+    val OUTDIR
 
     output:
     path "smile.pdf"

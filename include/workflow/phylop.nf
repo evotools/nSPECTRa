@@ -21,6 +21,12 @@ include {
     vcf_drop_intervals;
     wig2bedgraph;
 } from '../process/phylop'
+include {
+    daf as daf_noConstrained;
+    daf as daf_noBGC;
+    smile as smile_noConstrained;
+    smile as smile_noBGC;
+} from '../process/prerun'
 
 
 workflow NEUTRAL_MODEL {
@@ -116,6 +122,12 @@ workflow CONSTRAINED {
         // Perform actual filtering
         vcf_out_ch = vcf_drop_intervals(vcf_by_chr_ch, conserved_ch, "non-conserved", "PHYLOP/")
 
+        // Regenerate smile plots for the filtered VCF
+        smile_noConstrained(
+            daf_noConstrained(vcf_out_ch, "DAF/no-constrained") | collect,
+            "DAF/no-constrained"
+        )
+
     emit:
         vcf = vcf_out_ch
 }
@@ -176,6 +188,12 @@ workflow BGC {
 
         // Perform actual filtering
         vcf_out_ch = vcf_drop_intervals(vcf_by_chr_ch, tracts_bed_ch, 'no-bgc', "PHASTBIAS/")
+
+        // Regenerate smile plots for the filtered VCF
+        smile_noBGC(
+            daf_noBGC(vcf_out_ch, "DAF/no-BGC") | collect,
+            "DAF/no-BGC"
+        )
 
     emit:
         vcf = vcf_out_ch
