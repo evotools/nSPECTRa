@@ -149,41 +149,40 @@ workflow {
       ch_var_idx_new = PREPROCESS.out.tbi
       ch_chr_lists = PREPROCESS.out.chroms
       vcf_by_chr = PREPROCESS.out.vcf_by_chr
-      vcf_chunks_ch = PREPROCESS.out.chunks_ch
-
-      // Define neutral model once for both constrained and gBGC workflows
-      if ( params.remove_constrained || params.bgc ){
-        neutral_model = NEUTRAL_MODEL()
-        model_ch = neutral_model.model
-        intervals_ch = neutral_model.intervals
-        ref_sizes_ch = neutral_model.sizes
-      }
-
-      // Get constrined elements and remove variants in them
-      if ( params.remove_constrained ){
-        phastcons_ch = CONSTRAINED(vcf_by_chr, model_ch, intervals_ch, ref_sizes_ch)
-        vcf_by_chr = phastcons_ch.vcf
-      }
-
-      // Get variants not in BGC candidate regions
-      if ( params.bgc ){
-        bgc_ch = BGC(vcf_by_chr, model_ch, intervals_ch, ref_sizes_ch)
-        vcf_by_chr = bgc_ch.vcf
-      }
-
-      // Generate IBDs if requested
-      if (params.compute_ibd){
-        IBD(vcf_by_chr)
-      }
     } else {
       ch_var_new = ch_var
-      ch_var_idx_new = ch_var_idx
-      chromosomeList( ch_var, ch_var_idx )
-      ch_chr_lists = chromosomeList.out
+      ch_var_idx_new = ch_var_idx      
+      ch_chr_lists = chromosomeList( ch_var, ch_var_idx )
+      vcf_by_chr = ch_chr_lists
       | combine(
         ch_var_new
         | combine( ch_var_idx )
       )
+    }
+
+    // Define neutral model once for both constrained and gBGC workflows
+    if ( params.remove_constrained || params.bgc ){
+      neutral_model = NEUTRAL_MODEL()
+      model_ch = neutral_model.model
+      intervals_ch = neutral_model.intervals
+      ref_sizes_ch = neutral_model.sizes
+    }
+
+    // Get constrined elements and remove variants in them
+    if ( params.remove_constrained ){
+      phastcons_ch = CONSTRAINED(vcf_by_chr, model_ch, intervals_ch, ref_sizes_ch)
+      vcf_by_chr = phastcons_ch.vcf
+    }
+
+    // Get variants not in BGC candidate regions
+    if ( params.bgc ){
+      bgc_ch = BGC(vcf_by_chr, model_ch, intervals_ch, ref_sizes_ch)
+      vcf_by_chr = bgc_ch.vcf
+    }
+
+    // Generate IBDs if requested
+    if (params.compute_ibd){
+      IBD(vcf_by_chr)
     }
 
     // Run GONE to calculate Ne, if requested
