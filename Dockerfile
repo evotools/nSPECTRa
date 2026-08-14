@@ -15,13 +15,12 @@ RUN mamba install -n nspectra -y \
     bioconda::bedtools bioconda::plink=1.90
 RUN mamba install -n nspectra -y bioconda::ucsc-twobitinfo bioconda::ucsc-fatotwobit \
     bioconda::ucsc-wigtobigwig bioconda::ucsc-bigwigtobedgraph
-RUN mamba install -n nspectra -y bioconda::vcflib==1.0.3
 RUN mamba install -n nspectra -y bioconda::shapeit4
 RUN mamba install -n nspectra -y bioconda::shapeit5
 RUN mamba install -n nspectra -y \
     bioconda::perl-bioperl \
-    bioconda::phast=1.5 bioconda::mutyper bioconda::perl-bio-db-hts \
-    bioconda::tabix bioconda::tabixpp=1.1.0
+    bioconda::phast=1.9.9 bioconda::mutyper bioconda::perl-bio-db-hts \
+    bioconda::tabix bioconda::vcflib
 RUN mamba install -n nspectra -y \
     conda-forge::r-base>=4.1.0 \
     conda-forge::r-cowplot \
@@ -46,6 +45,14 @@ RUN conda-pack -n nspectra -o /tmp/env.tar && \
 RUN /venv/bin/conda-unpack
 
 
+# Compile and use Smakcr
+FROM rust:1.97.1-alpine AS cargo_build
+WORKDIR /opt/
+RUN apk add --no-cache git
+RUN git clone https://github.com/julibeg/smakcr
+RUN cd smakcr && cargo build --release
+
+
 # The runtime-stage image; we can use Debian as the
 # base image since the Conda env also includes Python
 # for us.
@@ -60,6 +67,7 @@ RUN chmod a+x /usr/local/bin/datasets
 
 # Copy /venv from the previous stage:
 COPY --from=build /venv /venv
+COPY --from=cargo_build /opt/smakcr/target/release/smakcr /usr/local/bin/smakcr
 
 # When image is run, run the code with the environment
 # activated:

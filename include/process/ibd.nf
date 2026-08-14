@@ -4,13 +4,11 @@ process ibd {
     label "medium"
 
     input:
-    path vcf
-    path tbi
+    tuple val(contig), path(vcf), path(tbi), path(map)
     path refinedibd
-    val contig
 
     output:
-    tuple val(contig), path("ibd.${contig}.ibd.gz")
+    tuple val(contig), path(vcf), path(tbi), path(map), path("IBD.${contig}.ibd.gz")
 
     script:
     """
@@ -31,15 +29,15 @@ process ibd {
 process make_map {
 
     input:
-    path vcf
-    path tbi
+    tuple val(chrom), path(vcf), path(tbi)
 
     output:
-    path "${vcf.simpleName}.map"
+    
+    tuple val(chrom), path(vcf), path(tbi), path("${vcf.simpleName}.map")
 
     script:
     """
-    bcftools query -f '%CHROM\t%ID\t%POS\n' ${vcf} | awk 'BEGIN{OFS="\t"}; {print \$1,\$2,\$3/1000000,\$3}'> ${vcf.simpleName}.map
+    bcftools query -f '%CHROM\t%ID\t%POS\n' ${vcf} | awk 'BEGIN{OFS="\t"}; {print \$1,\$2,\$3 * ${params.recombination_rate},\$3}'> ${vcf.simpleName}.map
     """
 
     stub:
@@ -53,28 +51,23 @@ process merge_ibd {
     label "medium"
 
     input:
-    tuple val(contig), path(ibd)
+    tuple val(contig), path(vcf), path(tbi), path(map), path(ibd)
     path merge_ibd
-    path vcf
-    path tbi
-    path map
 
     output:
-    path "ibd.${contig}.ibd.gz"
+    path "IBD.${contig}.merged.ibd.gz"
 
     script:
     """
     javamem=`python -c "import sys; maxmem=int(sys.argv[1]); print( maxmem - int(maxmem * .1) )" ${ task.memory.toGiga() }`
-    java -Xmx\${javamem}G -jar ${merge_ibd} \
-            ${ibd} \
+    zcat ${ibd} | java -Xmx\${javamem}G -jar ${merge_ibd} \
             ${vcf} \
             ${map} \
-            ${params.merge_ibd_params} \
-            IBD.${contig}.merge
+            ${params.merge_ibd_params} | bgzip -c > IBD.${contig}.merged.ibd.gz
     """
 
     stub:
     """
-    touch ibd.${contig}.ibd.gz
+    touch IBD.${contig}.merged.ibd.gz
     """
 }

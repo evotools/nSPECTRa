@@ -4,17 +4,9 @@ include {ibd; make_map; merge_ibd} from '../process/ibd'
 
 workflow IBD {
     take:
-        vcf
-        tbi
-        chromosomeList
+        vcf_by_chr
 
     main:
-        // Get chromosome list
-        chromosomeList
-            .splitCsv(header: ['N','chrom'])
-            .map{ row-> tuple(row.N, row.chrom) }
-            .set{ chromosomes_ch }
-
         // get refined-ibd if missing
         if (params.refinedibd){
             ch_refibd = file(params.refinedibd)
@@ -31,14 +23,14 @@ workflow IBD {
             ch_mergeibd = get_merge_ibd.out
         }
 
-        // make map
-        make_map(vcf, tbi)
-
         // run refined-ibd
-        ibd(vcf, tbi, ch_refibd, chromosomes_ch)
-
-        // Merge-ibd
-        merge_ibd(ibd.out, vcf, tbi, ch_mergeibd, make_map.out)
+        merge_ibd(
+                ibd(
+                make_map(vcf_by_chr), 
+                ch_refibd
+            ),
+            ch_mergeibd
+        )
 
     emit:
         merge_ibd.out
