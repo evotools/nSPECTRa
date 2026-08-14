@@ -166,6 +166,7 @@ workflow {
       model_ch = neutral_model.model
       intervals_ch = neutral_model.intervals
       ref_sizes_ch = neutral_model.sizes
+      genomes_ch = neutral_model.genomes
     }
 
     // Get constrined elements and remove variants in them
@@ -176,7 +177,7 @@ workflow {
 
     // Get variants not in BGC candidate regions
     if ( params.bgc ){
-      bgc_ch = BGC(vcf_by_chr, model_ch, intervals_ch, ref_sizes_ch)
+      bgc_ch = BGC(vcf_by_chr, model_ch, intervals_ch, ref_sizes_ch, genomes_ch)
       vcf_by_chr = bgc_ch.vcf
     }
 

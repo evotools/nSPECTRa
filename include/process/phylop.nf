@@ -406,14 +406,21 @@ process GENOME_INTERVALS {
     import pysam
     import re
 
-    sizes = open("${sizes}")
+    # Load the sizes and order them
+    sizes_fn = open("${sizes}")
+    sizes = []
+    for line in sizes_fn:
+        line = line.strip().split()
+        sizes.append((int(line[1]), line[0]))
+    sizes.sort(reverse=True)
+
+    # Now, we can create the chunks
     n = 1
     target_size = ${params.chunk_size}
     proc_size = 0
     tmp_list = []
-    for line in sizes:
-        seq_id, seq_len = line.strip().split()
-        seq_len = int(seq_len)
+    tot_len = 0
+    for (seq_len, seq_id) in sizes:
         if seq_len > target_size:
             for i in range(0, seq_len, target_size):
                 with open(f"intervals_{n}.bed", "w") as bedfile:
@@ -422,12 +429,20 @@ process GENOME_INTERVALS {
                     bedfile.write(f'{seq_id}\\t{start}\\t{end}\\n')
                     n+=1
         else:
-            with open(f"intervals_{n}.bed", "w") as bedfile:
-                bedfile.write(f'{seq_id}\\t0\\t{seq_len}\\n')
-                n+=1
+            if tot_len >= target_size:
+                with open(f"intervals_{n}.bed", "w") as bedfile:
+                    for line in tmp_list:
+                        bedfile.write(line)
+                    n+=1
+                tmp_list = []
+                tot_len = 0
+            else:
+                tmp_list.append(f'{seq_id}\\t0\\t{seq_len}\\n')
+                tot_len += seq_len
     if len(tmp_list) > 0:
-        for line in tmp_list:
-            bedfile.write(line)
+        with open(f"intervals_{n}.bed", "w") as bedfile:
+            for line in tmp_list:
+                bedfile.write(line)
     """
 }
 
@@ -440,6 +455,7 @@ process create_maf {
 
     input:
     tuple path(HAL), path(BED)
+    val GENOMES
 
     output:
     tuple path("${BED.simpleName}.maf"), path(BED)

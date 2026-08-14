@@ -78,6 +78,7 @@ workflow NEUTRAL_MODEL {
         model = model_ch
         intervals = intervals_ch
         sizes = ref_sizes_ch
+        genomes = genomes_ch
 }
 
 
@@ -140,6 +141,7 @@ workflow BGC {
         model_ch
         intervals_ch
         ref_sizes_ch
+        genomes_ch
 
     main:
         // Load hal file
@@ -158,7 +160,7 @@ workflow BGC {
         } else {
             exit 1, "Exon BED file ${params.exon_bed} not found"
         }
-        maf_ch = create_maf(hal_ch | combine(intervals_ch | flatten))
+        maf_ch = create_maf(hal_ch | combine(intervals_ch | flatten), genomes_ch | collect)
 
         // Run pastBias
         phastbias_ch = phastBias(maf_ch, model_ch | collect)
