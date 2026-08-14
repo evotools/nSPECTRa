@@ -47,25 +47,39 @@ rm /tmp/env.tar
 # so now fix up paths:
 /venv/bin/conda-unpack
 
+# The cargo compiler image; we can use alpine as it is small.
+Bootstrap: docker
+From: rust:1.67-alpine 
+Stage: cargo_build
+WORKDIR /opt/
+
+%post
+cd /opt
+apk add --no-cache git
+git clone https://github.com/julibeg/smakcr
+cd smakcr && \
+    cargo build --release && \
+    cp target/release/smakcr /opt
 
 # The runtime-stage image; we can use Debian as the
 # base image since the Conda env also includes Python
 # for us.
-
-
 Bootstrap: docker
 From: ubuntu:24.04 
 Stage: runtime
 
-%files from build
-/venv /venv
 %post
-
 # Install procps in debian to make it compatible with reporting
 apt-get update && apt install -y file jellyfish procps g++ curl git wget parallel && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 curl -o /usr/local/bin/datasets https://ftp.ncbi.nlm.nih.gov/pub/datasets/command-line/LATEST/linux-amd64/datasets && \
     chmod a+x /usr/local/bin/datasets
+
+%files from build
+/venv /venv
+
+%files from cargo_build
+/opt/smakcr /usr/local/bin/smakcr
 
 %environment
 export PATH=/venv/bin/:$PATH

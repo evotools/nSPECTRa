@@ -339,7 +339,7 @@ process kmercount {
 
     script:
     """
-    kmer_count ${ancfa} ${k} > ${params.species.capitalize()}.K${k}.txt
+    smakcr -k ${k} -o ${params.species.capitalize()}.K${k}.txt ${ancfa}
     """
 
     stub:

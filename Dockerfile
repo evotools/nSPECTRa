@@ -45,6 +45,14 @@ RUN conda-pack -n nspectra -o /tmp/env.tar && \
 RUN /venv/bin/conda-unpack
 
 
+# Compile and use Smakcr
+FROM rust:1.97.1-alpine AS cargo_build
+WORKDIR /opt/
+RUN apk add --no-cache git
+RUN git clone https://github.com/julibeg/smakcr
+RUN cd smakcr && cargo build --release
+
+
 # The runtime-stage image; we can use Debian as the
 # base image since the Conda env also includes Python
 # for us.
@@ -59,6 +67,7 @@ RUN chmod a+x /usr/local/bin/datasets
 
 # Copy /venv from the previous stage:
 COPY --from=build /venv /venv
+COPY --from=cargo_build /opt/smakcr/target/release/smakcr /usr/local/bin/smakcr
 
 # When image is run, run the code with the environment
 # activated:
