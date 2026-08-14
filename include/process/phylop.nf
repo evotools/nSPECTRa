@@ -612,3 +612,40 @@ process catsort {
     touch ${OUTNAME}
     """
 }
+
+// Processes for the phastBias methods
+process RENAME_BED {
+
+    input:
+    path BED
+    path TABLE
+
+    output:
+    path "${BED.simpleName}.renamed.bed"
+
+    script:
+    """
+    #!/usr/bin/env python
+    # Load bed and map files
+    bed_fn = sys.argv[1]
+    map_fn = sys.argv[2]
+
+    # Load the sizes and order them
+    conv_map = {}
+    with open(map_fn) as map_file:
+        for line in map_file:
+            if line[0] == "#":
+                continue
+            line = line.strip().split()
+            code_1 = line[0]
+            code_2 = line[1]
+            conv_map[code_1] = code_2
+
+    # Convert BED file
+    with open(bed_fn) as bed_file, open(f"${BED.simpleName}.renamed.bed", "w") as out_bed:
+        for line in bed_file:
+            line = line.strip().split()
+            line[0] = conv_map.get(line[0], line[0])
+            out_bed.write("\t".join(line) + "\n")
+    """
+}

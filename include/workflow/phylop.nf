@@ -12,12 +12,12 @@ include {
     halSize;
     halTree;
     make4dmaf;
-    msa_view as maf_to_4d_ss;
-    msa_view as maf_to_ss;
+    msa_view as 4dmaf_to_ss;
     phastBias;
     phyloFit;
     phyloP;
     phyloPtrain;
+    RENAME_BED;
     vcf_drop_intervals;
     wig2bedgraph;
 } from '../process/phylop'
@@ -51,7 +51,7 @@ workflow NEUTRAL_MODEL {
         genomes_ch = hal_genomes(hal_ch)
 
         // Extract 4d elements
-        maf4d = hal4d(hal_ch, exons_ch)
+        ss4d_ch = hal4d(hal_ch, exons_ch)
         | combine(genomes_ch)
         | map{
             hal, maf, genomes_env ->
@@ -59,10 +59,10 @@ workflow NEUTRAL_MODEL {
             [hal, maf, genomes]
         }
         | make4dmaf
-        | maf_to_4d_ss
+        | 4dmaf_to_ss
 
         // Fit model using 4D codons
-        model_ch = maf4d
+        model_ch = ss4d_ch
             | combine(hal_ch | halTree)
             | phyloFit
 
@@ -118,7 +118,14 @@ workflow CONSTRAINED {
         | collect
 
         // Extract conserved
-        conserved_ch = combine_bed(phylop_ch, "phylop", "PHYLOP") | extract_conserved
+        conserved_ch = combine_bed(phylop_ch, "phylop", "PHYLOP") 
+        | extract_conserved
+
+        // Rename if a mapping file is provided
+        if (params.rename_hal_sequences){
+            conversion_table_ch = file( params.rename_hal_sequences )
+            conserved_ch = RENAME_BED(conserved_ch, conversion_table_ch)
+        }
 
         // Perform actual filtering
         vcf_out_ch = vcf_drop_intervals(vcf_by_chr_ch, conserved_ch, "non-conserved", "PHYLOP/")
@@ -187,6 +194,12 @@ workflow BGC {
 
         // Combine all BGC regions
         bgc_ch = combine_bed(large_bed_ch, "bgc", "PHASTBIAS")
+    
+        // Rename if a mapping file is provided
+        if (params.rename_hal_sequences){
+            conversion_table_ch = file( params.rename_hal_sequences )
+            tracts_bed_ch = RENAME_BED(tracts_bed_ch, conversion_table_ch)
+        }
 
         // Perform actual filtering
         vcf_out_ch = vcf_drop_intervals(vcf_by_chr_ch, tracts_bed_ch, 'no-bgc', "PHASTBIAS/")
